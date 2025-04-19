@@ -27,6 +27,7 @@
       "onAutoForward": "openPreview"
     }
   },
+  "postCreateCommand": "git config --global core.autocrlf input",
   "forwardPorts": [
     8501
   ]
