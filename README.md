@@ -32,6 +32,38 @@ Dieser Service basiert auf der kostenlosen Version von Streamlit.
    uv run streamlit run streamlit_app.py
    ```
 
+## 🤖 BNetzA Smart Meter Tools
+
+Das Projekt enthält automatisierte Tools zum Download und zur Analyse von BNetzA Smart Meter Daten:
+
+### Tools Übersicht
+
+1. **`01_download_bnetza_data.py`** - Lädt BNetzA Artikel-Seite herunter und extrahiert Excel-URLs
+2. **`02_find_roll_out_report.py`** - Verwendet KI zur Identifikation von Roll-Out-Quoten-Berichten
+
+### Verwendung
+
+```bash
+# 1. BNetzA Daten herunterladen
+uv run tools/01_download_bnetza_data.py
+
+# 2. Roll-Out-Bericht mit KI identifizieren
+uv run tools/02_find_roll_out_report.py
+
+# Oder direkt mit Pipeline:
+uv run tools/01_download_bnetza_data.py && uv run tools/02_find_roll_out_report.py
+```
+
+### Konfiguration
+
+Die Tools verwenden das `tmp/` Verzeichnis im Workspace für temporäre Dateien:
+
+- Downloads werden nach `tmp/bnetza_download_YYYYMMDD_HHMMSS/` gespeichert
+- Automatische Erkennung der neuesten Download-Session
+- Persistent und nachvollziehbar (nicht randomisiert wie system temp)
+
+Für KI-Features siehe: [`docs/API_KEY_SETUP.md`](docs/API_KEY_SETUP.md)
+
 #### Alternative mit pip
 
 1. Python Virtual Environment erstellen

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -3101,9 +3101,12 @@ dependencies = [
     { name = "asyncpg" },
     { name = "boto3" },
     { name = "geopandas" },
+    { name = "httpx" },
+    { name = "jinja2" },
     { name = "mapbox-vector-tile" },
     { name = "matplotlib" },
     { name = "numpy" },
+    { name = "openai" },
     { name = "pandas" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -3155,12 +3158,15 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.34.0" },
     { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.4.0" },
     { name = "geopandas" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "httpx", marker = "extra == 'test'", specifier = ">=0.24.0" },
     { name = "isort", marker = "extra == 'dev'", specifier = ">=5.12.0" },
+    { name = "jinja2", specifier = ">=3.1.0" },
     { name = "mapbox-vector-tile" },
     { name = "matplotlib" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.5.0" },
     { name = "numpy", specifier = ">=1.24.0" },
+    { name = "openai", specifier = ">=1.99.9" },
     { name = "openai", marker = "extra == 'ai'", specifier = ">=1.0.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "pdfplumber", marker = "extra == 'ai'", specifier = ">=0.9.0" },

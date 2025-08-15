@@ -33,6 +33,9 @@ dependencies = [
     "matplotlib",
     "pandas>=2.0.0",
     "numpy>=1.24.0",
+    "httpx>=0.28.1",
+    "openai>=1.99.9",
+    "jinja2>=3.1.0",
 ]
 
 [project.optional-dependencies]
