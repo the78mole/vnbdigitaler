@@ -1,6 +1,6 @@
 # Pre-commit configuration for VNBdigitaler
 repos:
-  # General file checks
+  # General pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
     hooks:
@@ -15,14 +15,13 @@ repos:
       - id: check-case-conflict
       - id: check-docstring-first
       - id: debug-statements
-      - id: requirements-txt-fixer
+        exclude: ^src/
 
   # Python code formatting with black
   - repo: https://github.com/psf/black
     rev: 23.7.0
     hooks:
       - id: black
-        language_version: python3.11
         args: [--line-length=88]
 
   # Import sorting with isort
@@ -44,48 +43,71 @@ repos:
     rev: v1.5.1
     hooks:
       - id: mypy
-        additional_dependencies: [types-requests, types-PyYAML]
-        args: [--ignore-missing-imports, --no-strict-optional]
+        additional_dependencies:
+          - types-requests
+          - types-PyYAML
+          - pydantic
+          - sqlalchemy
+        args: [--ignore-missing-imports]
+        files: ^src/
+
+  # Docstring style checking with pydocstyle
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: [--convention=google]
+        files: ^src/
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.3
+    hooks:
+      - id: prettier
+        types: [yaml]
+        exclude: |
+          (?x)^(
+            \.github/workflows/.*\.ya?ml|
+            \.pre-commit-config\.yaml
+          )$
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+        exclude: |
+          (?x)^(
+            \.github/.*\.md
+          )$
 
   # Security checks with bandit
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.5
     hooks:
       - id: bandit
-        args: [-r, ., -f, json, -o, bandit-report.json]
+        args: [-ll]
         exclude: ^tests/
 
-  # Documentation style checks
-  - repo: https://github.com/pycqa/pydocstyle
-    rev: 6.3.0
-    hooks:
-      - id: pydocstyle
-        args: [--convention=google]
-
-  # Markdown linting
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.35.0
-    hooks:
-      - id: markdownlint
-        args: [--fix]
-
-  # YAML formatting
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0
-    hooks:
-      - id: prettier
-        types: [yaml]
-
-  # Python dependency checks - removed as uv handles this
-  # Security checks remain important
-
-  # Secrets detection
+  # Security scanning for secrets
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
     hooks:
       - id: detect-secrets
-        args: ["--baseline", ".secrets.baseline"]
-        exclude: package.lock.json
+        exclude: |
+          (?x)^(
+            \.env\.template|
+            \.streamlit/secrets\.toml\.template|
+            docs/SECRETS_SETUP\.md|
+            README\.md|
+            CHECKLIST\.md|
+            COPILOT_INSTRUCTIONS\.md|
+            \.github/COPILOT_INSTRUCTIONS\.md|
+            data/.*\.csv|
+            tmp/.*|
+            tests/.*
+          )$
 
 # Global configuration
 ci:

@@ -66,17 +66,20 @@ Homepage = "https://github.com/the78mole/vnbdigitaler"
 Repository = "https://github.com/the78mole/vnbdigitaler"
 Issues = "https://github.com/the78mole/vnbdigitaler/issues"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [tool.ruff]
 # Target Python 3.11+
 target-version = "py311"
 line-length = 88
 
+[tool.ruff.lint]
 # Enable specific rule sets
 select = [
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
     "F",   # pyflakes
-    "I",   # isort
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
@@ -112,7 +115,7 @@ exclude = [
     "migrations",
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Test files can have additional flexibility
 "tests/**/*.py" = ["PLR2004", "S101", "ARG001"]
 # Config files can have unused imports
@@ -120,11 +123,11 @@ exclude = [
 # Init files can have unused imports
 "**/__init__.py" = ["F401"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party = ["src"]
 force-sort-within-sections = true
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 max-args = 8
 max-branches = 15
 max-returns = 8

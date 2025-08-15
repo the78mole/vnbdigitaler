@@ -6,6 +6,7 @@ Die folgenden Secrets müssen in GitHub Actions konfiguriert werden:
 Repository Settings > Secrets and variables > Actions > Repository secrets
 
 ### Database Secrets
+
 ```
 NEON_DATABASE_URL
 Value: postgresql+asyncpg://user:password@host:5432/database
@@ -13,6 +14,7 @@ Description: Neon PostgreSQL database connection string
 ```
 
 ### AI Service Secrets
+
 ```
 OPENROUTER_API_KEY
 Value: or-xxx
@@ -20,6 +22,7 @@ Description: OpenRouter API key for AI model access
 ```
 
 ### Object Storage Secrets
+
 ```
 CLOUDFLARE_R2_ACCESS_KEY
 Value: xxx
@@ -39,6 +42,7 @@ Description: Cloudflare R2 endpoint URL
 ```
 
 ### Optional Monitoring Secrets
+
 ```
 SENTRY_DSN
 Value: https://xxx@sentry.io/xxx
@@ -52,6 +56,7 @@ Description: Slack webhook for notifications (optional)
 ## Environment Variables für GitHub Actions
 
 Diese werden automatisch in den Workflows gesetzt:
+
 - `ENVIRONMENT=production`
 - `LOG_LEVEL=INFO`
 

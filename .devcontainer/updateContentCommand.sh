@@ -9,4 +9,3 @@ pip3 install --user -r requirements.txt;
 pip3 install --user streamlit;
 
 echo '✅ Packages installed and Requirements met'
-

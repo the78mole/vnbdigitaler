@@ -7,22 +7,26 @@ VNBdigitaler ist eine Streamlit-basierte Web-Anwendung zur Vereinfachung des Zug
 ## Technologie-Stack
 
 ### Backend & Database
+
 - **ORM**: SQLAlchemy (bevorzugt) oder Tortoise ORM
 - **Database**: Neon Cloud PostgreSQL
 - **Migrations**: Alembic
 - **Object Storage**: Cloudflare R2 (S3-kompatibel)
 
 ### AI & Processing
+
 - **AI Provider**: OpenRouter API
 - **Models**: GPT-4, Claude (für PDF-Analyse und Datenvalidierung)
 - **PDF Processing**: PyPDF2, pdfplumber, oder ähnliche Libraries
 
 ### Frontend & Deployment
+
 - **Framework**: Streamlit
 - **Deployment**: Streamlit Cloud
 - **CI/CD**: GitHub Actions
 
 ### Development Tools
+
 - **Testing**: pytest
 - **Code Quality**: ruff, mypy
 - **Documentation**: Sphinx oder MkDocs
@@ -30,6 +34,7 @@ VNBdigitaler ist eine Streamlit-basierte Web-Anwendung zur Vereinfachung des Zug
 ## Code-Stil und Konventionen
 
 ### Python Coding Standards
+
 ```python
 # Verwende Type Hints für alle Funktionen
 def process_vnb_data(vnb_id: str, data: Dict[str, Any]) -> VNBData:
@@ -48,6 +53,7 @@ class VNBCreateSchema(BaseModel):
 ```
 
 ### File Structure Patterns
+
 ```
 src/
 ├── models/          # SQLAlchemy Models
@@ -60,6 +66,7 @@ src/
 ```
 
 ### Database Models Beispiel
+
 ```python
 from sqlalchemy import Column, String, DateTime, Integer, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
@@ -80,6 +87,7 @@ class VNB(Base):
 ## Environment Variables und Configuration
 
 ### Required Environment Variables
+
 ```python
 # Database
 NEON_DATABASE_URL = "postgresql+asyncpg://user:pass@host/db"
@@ -100,6 +108,7 @@ LOG_LEVEL = "INFO"
 ```
 
 ### Configuration Management
+
 ```python
 from pydantic import BaseSettings
 
@@ -117,6 +126,7 @@ settings = Settings()
 ## API Integration Patterns
 
 ### OpenRouter Client
+
 ```python
 import aiohttp
 from typing import Dict, Any
@@ -138,6 +148,7 @@ class OpenRouterClient:
 ```
 
 ### R2 Storage Client
+
 ```python
 import boto3
 from botocore.config import Config
@@ -161,6 +172,7 @@ class R2StorageClient:
 ## GitHub Actions Patterns
 
 ### Data Processing Workflow
+
 ```yaml
 name: Update VNB Data
 on:
@@ -188,6 +200,7 @@ jobs:
 ## Streamlit App Patterns
 
 ### Page Structure
+
 ```python
 import streamlit as st
 from src.services.vnb_service import VNBService
@@ -220,6 +233,7 @@ def main():
 ## Testing Patterns
 
 ### Database Tests
+
 ```python
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -246,6 +260,7 @@ async def test_create_vnb(db_session):
 ## Error Handling und Logging
 
 ### Standard Error Handling
+
 ```python
 import logging
 from typing import Optional
@@ -263,6 +278,7 @@ async def safe_api_call(func, *args, **kwargs) -> Optional[Any]:
 ## Domain-Specific Knowledge
 
 ### VNB-spezifische Begriffe
+
 - **VNB**: Verteilnetzbetreiber
 - **Betreibernummer**: 13-stellige eindeutige Nummer
 - **iMSys**: Intelligente Messsysteme (Smart Meter)
@@ -270,6 +286,7 @@ async def safe_api_call(func, *args, **kwargs) -> Optional[Any]:
 - **Preisblatt**: Dokument mit Tarifen und Gebühren
 
 ### Typische Datenstrukturen
+
 ```python
 class PriceSheetData(BaseModel):
     vnb_id: str

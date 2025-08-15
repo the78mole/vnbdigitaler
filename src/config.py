@@ -1,49 +1,49 @@
 """Configuration management for VNBdigitaler."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
-from pydantic import BaseSettings, Field
+import streamlit as st
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 if TYPE_CHECKING:
-    import streamlit as st
+    pass
 
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
 
     # Database
-    database_url: str = Field(..., env="NEON_DATABASE_URL")
+    database_url: str = Field(default="", description="Neon Database URL")
 
     # AI Services
-    openrouter_api_key: str = Field(..., env="OPENROUTER_API_KEY")
+    openrouter_api_key: str = Field(default="", description="OpenRouter API Key")
     openrouter_base_url: str = Field(
         default="https://openrouter.ai/api/v1",
-        env="OPENROUTER_BASE_URL",
+        description="OpenRouter Base URL",
     )
 
     # Object Storage
-    r2_access_key: str = Field(..., env="CLOUDFLARE_R2_ACCESS_KEY")
-    r2_secret_key: str = Field(..., env="CLOUDFLARE_R2_SECRET_KEY")
-    r2_bucket_name: str = Field(..., env="CLOUDFLARE_R2_BUCKET_NAME")
-    r2_endpoint: str = Field(..., env="CLOUDFLARE_R2_ENDPOINT")
+    r2_access_key: str = Field(default="", description="Cloudflare R2 Access Key")
+    r2_secret_key: str = Field(default="", description="Cloudflare R2 Secret Key")
+    r2_bucket_name: str = Field(default="", description="Cloudflare R2 Bucket Name")
+    r2_endpoint: str = Field(default="", description="Cloudflare R2 Endpoint")
 
     # Application
-    log_level: str = Field(default="INFO", env="LOG_LEVEL")
-    environment: str = Field(default="development", env="ENVIRONMENT")
+    log_level: str = Field(default="INFO", description="Logging Level")
+    environment: str = Field(default="development", description="Environment")
 
-    class Config:
-        """Pydantic configuration."""
-
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config: ClassVar = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "env_prefix": "",
+    }
 
     @classmethod
     def from_streamlit_secrets(cls) -> "Settings":
         """Load settings from Streamlit secrets in production."""
         try:
-            import streamlit as st
-
             if hasattr(st, "secrets"):
                 return cls(
                     database_url=st.secrets["database"]["url"],
@@ -67,7 +67,7 @@ _settings_cache: Settings | None = None
 
 def get_settings() -> Settings:
     """Get application settings singleton."""
-    global _settings_cache
+    global _settings_cache  # noqa: PLW0603
     if _settings_cache is None:
         # Try Streamlit secrets first, fallback to environment
         try:
@@ -79,5 +79,5 @@ def get_settings() -> Settings:
 
 def reset_settings() -> None:
     """Reset settings cache (useful for testing)."""
-    global _settings_cache
+    global _settings_cache  # noqa: PLW0603
     _settings_cache = None

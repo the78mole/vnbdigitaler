@@ -1,42 +1,61 @@
-import requests
-from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
-import tempfile
-import json
-from mapbox_vector_tile import decode as decode_mvt
+"""VNB Client for fetching and processing electricity grid operator data."""
+
+import base64
 import gzip
 import io
-import base64
-from urllib.parse import quote
+from dataclasses import dataclass, field
+from typing import Any
+
+import requests
+from mapbox_vector_tile import decode as decode_mvt
 
 
 @dataclass
 class Region:
+    """Represents a geographical region with ID and name."""
+
     id: str
     name: str
 
 
 @dataclass
 class VNBInfo:
+    """Information about a electricity grid operator (Verteilnetzbetreiber)."""
+
     id: str
     name: str
     address: str
     postcode: str
     city: str
     website: str
-    phone: Optional[str]
-    contact: Optional[str]
-    layer_url: Optional[str]
-    bbox: Optional[List[float]] = field(default=None)
-    geojson: Optional[Dict[str, Any]] = field(default=None)
-    regions: List[Region] = field(default_factory=list)
+    phone: str | None
+    contact: str | None
+    layer_url: str | None
+    bbox: list[float] | None = field(default=None)
+    geojson: dict[str, Any] | None = field(default=None)
+    regions: list[Region] = field(default_factory=list)
 
 
 class VNBClient:
+    """Client for fetching VNB (electricity grid operator) information."""
+
     def __init__(self, graphql_url: str):
+        """Initialize the VNB client.
+
+        Args:
+            graphql_url: The GraphQL endpoint URL for VNB data.
+        """
         self.graphql_url = graphql_url
 
-    def fetch_vnb_info(self, vnb_id: str) -> VNBInfo:
+    def fetch_vnb_info(self, vnb_id: str) -> VNBInfo | None:
+        """Fetch information about a specific VNB.
+
+        Args:
+            vnb_id: The unique identifier of the VNB.
+
+        Returns:
+            VNBInfo object if found, None otherwise.
+        """
         query = """
         query ($id: ID!) {
           vnb_vnb(id: $id) {
@@ -61,7 +80,8 @@ class VNBClient:
         response = requests.post(
             self.graphql_url,
             json={"query": query, "variables": variables},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
+            timeout=30,
         )
         response.raise_for_status()
         data = response.json()
@@ -74,49 +94,23 @@ class VNBClient:
         # Hole GeoJSON aus MVT, falls verfügbar
         geojson = None
 
-        layer_url = vnb.get("layerUrl")
-
-        # Raw from graphql-request
-        # https://www.vnbdigital.de/mapproxy/geoserver?
-        #   LAYERS=vnbdigital:VNBGeoFeatures&
-        # PROXY_PARAMS=eyJpZHMiOlsiUkVGYWpFSmZpTmFwaHNwN1ciXSwi
-        #              c3RhdGVzIjpbIkFDVElWRSJdfQ==
-        #
-        # Real:
-        # https://www.vnbdigital.de/mapproxy/geoserver?
-        #   LAYERS=vnbdigital:VNBGeoFeatures&
-        # PROXY_PARAMS=eyJpZHMiOlsiUkVGYWpFSmZpTmFwaHNwN1ciXSwi
-        #              c3RhdGVzIjpbIkFDVElWRSJdfQ==&
-        # SERVICE=WMS&
-        # VERSION=1.3.0&
-        # REQUEST=GetMap&
-        # FORMAT=application%2Fvnd.mapbox-vector-tile&
-        # TRANSPARENT=true&
-        # SRS=EPSG%3A900913&
-        # WIDTH=256&HEIGHT=256&
-        # CRS=EPSG%3A3857&
-        # STYLES=&
-        # BBOX=0%2C5009377.085697312%2C2504688.5428486555%2C7514065.628545968
-
-        req = dict()
-        req["SERVICE"]    = "WMS"
-        req["VERSION"]    = "1.3.0"
-        req["REQUEST"]     = "GetMap"
-        req["FORMAT"]      = "application/vnd.mapbox-vector-tile"
+        req = {}
+        req["SERVICE"] = "WMS"
+        req["VERSION"] = "1.3.0"
+        req["REQUEST"] = "GetMap"
+        req["FORMAT"] = "application/vnd.mapbox-vector-tile"
         req["TRANSPARENT"] = "true"
-        req["SRS"]         = "EPSG:900913"
-        req["WIDTH"]       = "256"
-        req["HEIGHT"]      = "256"
-        req["CRS"]         = "EPSG:3857"
-        req["STYLES"]      = ""
+        req["SRS"] = "EPSG:900913"
+        req["WIDTH"] = "256"
+        req["HEIGHT"] = "256"
+        req["CRS"] = "EPSG:3857"
+        req["STYLES"] = ""
         # BBOX seems to be a fixed value???
-        req["BBOX"]        = "0,5009377.085697312,2504688.5428486555,7514065.628545968"
-
-        #print(json.dumps(req, indent=4))
+        req["BBOX"] = "0,5009377.085697312,2504688.5428486555,7514065.628545968"
 
         if vnb.get("layerUrl"):
             try:
-                r = requests.get(vnb["layerUrl"], params=req)
+                r = requests.get(vnb["layerUrl"], params=req, timeout=30)
 
                 print("Request response:", r.status_code, base64.b64encode(r.content))
                 r.raise_for_status()
@@ -124,25 +118,24 @@ class VNBClient:
                 mvt_bytes = r.content
 
                 # Falls gzip-komprimiert
-                if mvt_bytes[:2] == b'\x1f\x8b':
+                if mvt_bytes[:2] == b"\x1f\x8b":
                     with gzip.GzipFile(fileobj=io.BytesIO(mvt_bytes)) as f:
                         mvt_bytes = f.read()
 
                 tile_layers = decode_mvt(mvt_bytes)
                 features = []
                 for layer_name, layer in tile_layers.items():
-                    for feature in layer['features']:
-                        features.append({
-                            "type": "Feature",
-                            "geometry": feature["geometry"],
-                            "properties": feature["properties"],
-                            "layer": layer_name
-                        })
+                    for feature in layer["features"]:
+                        features.append(
+                            {
+                                "type": "Feature",
+                                "geometry": feature["geometry"],
+                                "properties": feature["properties"],
+                                "layer": layer_name,
+                            }
+                        )
 
-                geojson = {
-                    "type": "FeatureCollection",
-                    "features": features
-                }
+                geojson = {"type": "FeatureCollection", "features": features}
             except Exception as e:
                 print(f"Warnung: Konnte MVT nicht konvertieren: {e}")
 
@@ -161,5 +154,5 @@ class VNBClient:
             regions=[
                 Region(id=region["_id"], name=region["name"])
                 for region in vnb.get("regions", [])
-            ]
+            ],
         )

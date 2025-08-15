@@ -3,6 +3,7 @@
 ## Phase 1: Infrastructure & Database Setup
 
 ### 1.1 Environment & Secrets Management ✅
+
 - [x] **Configuration Management**
   - [x] Pydantic Settings für Environment Variables
   - [x] .env.template für lokale Entwicklung
@@ -10,8 +11,10 @@
   - [x] GitHub Actions Secrets Dokumentation
   - [x] Multi-Environment Support (dev/prod)
   - [x] Setup Script für Entwicklungsumgebung
+  - [x] Pre-commit Hooks mit detect-secrets (exclude-based)
 
 ### 1.2 Neon Cloud Database Integration
+
 - [ ] **ORM Setup**
   - [ ] SQLAlchemy als Python ORM implementieren
   - [ ] Database Models definieren für:
@@ -28,6 +31,7 @@
   - [ ] Database Schema Creation Scripts
 
 ### 1.2 OpenRouter KI-Integration
+
 - [ ] **API Setup**
   - [ ] OpenRouter API Client implementieren
   - [ ] API Key Management über Environment Variables
@@ -41,6 +45,7 @@
   - [ ] Anomalie-Erkennung in Preisdaten
 
 ### 1.3 Cloudflare R2 Object Storage
+
 - [ ] **Storage Setup**
   - [ ] R2 Bucket Konfiguration
   - [ ] AWS S3-kompatible Client Library (boto3)
@@ -56,6 +61,7 @@
 ## Phase 2: GitHub Actions Automation
 
 ### 2.1 CI/CD Pipeline
+
 - [ ] **Workflow Setup**
   - [ ] GitHub Actions für automatische Datenaktualisierung
   - [ ] Scheduled Jobs für regelmäßige Datenabholung
@@ -69,6 +75,7 @@
   - [ ] Data Validation und Quality Checks
 
 ### 2.2 Security & Secrets
+
 - [ ] **GitHub Secrets Management**
   - [ ] NEON_DATABASE_URL
   - [ ] OPENROUTER_API_KEY
@@ -79,6 +86,7 @@
 ## Phase 3: Application Features
 
 ### 3.1 Data Collection Enhancement
+
 - [ ] **Automated Web Scraping**
   - [ ] VNB Website Monitoring
   - [ ] Preisblatt Download Automation
@@ -86,6 +94,7 @@
   - [ ] Legal Compliance Check
 
 ### 3.2 Streamlit App Updates
+
 - [ ] **Database Integration**
   - [ ] Replace CSV files with database queries
   - [ ] Real-time data updates
@@ -99,6 +108,7 @@
   - [ ] Alert System für Preisänderungen
 
 ### 3.3 Document Management
+
 - [ ] **PDF Processing**
   - [ ] Automatic text extraction
   - [ ] Table recognition and parsing
@@ -108,6 +118,7 @@
 ## Phase 4: Quality & Monitoring
 
 ### 4.1 Testing
+
 - [ ] **Unit Tests**
   - [ ] Database Model Tests
   - [ ] API Integration Tests
@@ -120,6 +131,7 @@
   - [ ] Performance benchmarks
 
 ### 4.2 Monitoring & Logging
+
 - [ ] **Application Monitoring**
   - [ ] Error tracking (Sentry)
   - [ ] Performance monitoring
@@ -127,6 +139,7 @@
   - [ ] Usage analytics
 
 ### 4.3 Documentation
+
 - [ ] **Technical Documentation**
   - [ ] API Documentation
   - [ ] Database Schema Documentation
@@ -141,6 +154,7 @@
 ## Phase 5: Community & Maintenance
 
 ### 5.1 Community Features
+
 - [ ] **Contribution System**
   - [ ] Pull Request Templates
   - [ ] Data Validation Workflows
@@ -148,6 +162,7 @@
   - [ ] Recognition System
 
 ### 5.2 Maintenance
+
 - [ ] **Regular Updates**
   - [ ] Dependency Updates
   - [ ] Security Patches

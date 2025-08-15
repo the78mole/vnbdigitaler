@@ -1,6 +1,12 @@
-import json
+"""Convert GeoJSON data to ASCII art representation."""
 
-def geojson_to_ascii(geojson, width=80, height=25):
+from typing import Any
+
+
+def geojson_to_ascii(
+    geojson: dict[str, Any], width: int = 80, height: int = 25
+) -> None:
+    """Convert GeoJSON to ASCII art representation."""
     features = geojson.get("features", [])
     if not features:
         print("No features to display.")

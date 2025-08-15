@@ -8,7 +8,7 @@ st.title("🎬 Movies dataset")
 st.write(
     """
     This app visualizes data from [The Movie Database (TMDB)](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata).
-    It shows which movie genre performed best at the box office over the years. Just 
+    It shows which movie genre performed best at the box office over the years. Just
     click on the widgets below to explore!
     """
 )
