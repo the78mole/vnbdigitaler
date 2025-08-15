@@ -10,14 +10,18 @@
       ]
     },
     "vscode": {
-      "settings": {},
+      "settings": {
+        "terminal.integrated.env.linux": {
+          "PYTHONPATH": "${workspaceFolder}/src"
+        }
+      },
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance"
       ]
     }
   },
-  "updateContentCommand": "[ -f packages.txt ] && sudo apt update && sudo apt upgrade -y && sudo xargs apt install -y <packages.txt; [ -f requirements.txt ] && pip3 install --user -r requirements.txt; pip3 install --user streamlit; echo '✅ Packages installed and Requirements met'",
+  "updateContentCommand": ".devcontainer/updateContentCommand.sh",
   "postAttachCommand": {
     "server": "streamlit run streamlit_app.py --server.enableCORS false --server.enableXsrfProtection false"
   },
@@ -27,7 +31,7 @@
       "onAutoForward": "openPreview"
     }
   },
-  "postCreateCommand": "git config --global core.autocrlf input",
+  "postCreateCommand": ".devcontainer/postCreateCommand.sh",
   "forwardPorts": [
     8501
   ]

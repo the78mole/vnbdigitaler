@@ -1,5 +1,21 @@
 .streamlit/secrets.toml
 
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+
+# VNBdigitaler specific
+logs/
+uploads/
+data/local/
+*.db
+*.sqlite
+
+# Bandit security report
+bandit-report.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

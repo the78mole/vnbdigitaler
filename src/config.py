@@ -1,0 +1,83 @@
+"""Configuration management for VNBdigitaler."""
+
+from typing import TYPE_CHECKING
+
+from pydantic import BaseSettings, Field
+
+if TYPE_CHECKING:
+    import streamlit as st
+
+
+class Settings(BaseSettings):
+    """Application settings with environment variable support."""
+
+    # Database
+    database_url: str = Field(..., env="NEON_DATABASE_URL")
+
+    # AI Services
+    openrouter_api_key: str = Field(..., env="OPENROUTER_API_KEY")
+    openrouter_base_url: str = Field(
+        default="https://openrouter.ai/api/v1",
+        env="OPENROUTER_BASE_URL",
+    )
+
+    # Object Storage
+    r2_access_key: str = Field(..., env="CLOUDFLARE_R2_ACCESS_KEY")
+    r2_secret_key: str = Field(..., env="CLOUDFLARE_R2_SECRET_KEY")
+    r2_bucket_name: str = Field(..., env="CLOUDFLARE_R2_BUCKET_NAME")
+    r2_endpoint: str = Field(..., env="CLOUDFLARE_R2_ENDPOINT")
+
+    # Application
+    log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    environment: str = Field(default="development", env="ENVIRONMENT")
+
+    class Config:
+        """Pydantic configuration."""
+
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = False
+
+    @classmethod
+    def from_streamlit_secrets(cls) -> "Settings":
+        """Load settings from Streamlit secrets in production."""
+        try:
+            import streamlit as st
+
+            if hasattr(st, "secrets"):
+                return cls(
+                    database_url=st.secrets["database"]["url"],
+                    openrouter_api_key=st.secrets["openrouter"]["api_key"],
+                    openrouter_base_url=st.secrets["openrouter"]["base_url"],
+                    r2_access_key=st.secrets["cloudflare_r2"]["access_key"],
+                    r2_secret_key=st.secrets["cloudflare_r2"]["secret_key"],
+                    r2_bucket_name=st.secrets["cloudflare_r2"]["bucket_name"],
+                    r2_endpoint=st.secrets["cloudflare_r2"]["endpoint"],
+                    log_level=st.secrets["app"]["log_level"],
+                    environment=st.secrets["app"]["environment"],
+                )
+        except (ImportError, KeyError):
+            pass
+        return cls()
+
+
+# Module-level settings cache
+_settings_cache: Settings | None = None
+
+
+def get_settings() -> Settings:
+    """Get application settings singleton."""
+    global _settings_cache
+    if _settings_cache is None:
+        # Try Streamlit secrets first, fallback to environment
+        try:
+            _settings_cache = Settings.from_streamlit_secrets()
+        except Exception:
+            _settings_cache = Settings()
+    return _settings_cache
+
+
+def reset_settings() -> None:
+    """Reset settings cache (useful for testing)."""
+    global _settings_cache
+    _settings_cache = None

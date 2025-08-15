@@ -10,16 +10,49 @@ Dieser Service basiert auf der kostenlosen Version von Streamlit.
 
 ### Auf dem eigenen Rechner ausführen
 
-1. Requirements installieren
+1. uv installieren (empfohlen)
 
-   ```
-   $ pip install -r requirements.txt
+   ```bash
+   # macOS/Linux
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+
+   # Windows
+   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
-2. App starten
+2. Dependencies installieren
 
+   ```bash
+   uv sync
    ```
-   $ streamlit run streamlit_app.py
+
+3. App starten
+
+   ```bash
+   uv run streamlit run streamlit_app.py
+   ```
+
+#### Alternative mit pip
+
+1. Python Virtual Environment erstellen
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/macOS
+   # oder
+   venv\Scripts\activate     # Windows
+   ```
+
+2. Dependencies installieren
+
+   ```bash
+   pip install -e ".[dev]"
+   ```
+
+3. App starten
+
+   ```bash
+   streamlit run streamlit_app.py
    ```
 
 ## Datenherkunft
