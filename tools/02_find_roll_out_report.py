@@ -283,34 +283,78 @@ Antwort:"""
 
                     ai_json = json.loads(json_text)
                     if isinstance(ai_json, dict):
-                        # Extract from JSON response
-                        if "selected_index" in ai_json:
-                            selected_index = ai_json["selected_index"]
-                        elif ai_json.get("selected_url"):
-                            # Find index of URL
-                            selected_url = ai_json["selected_url"]
-                            selected_index = next(
-                                (
-                                    i
-                                    for i, url in enumerate(excel_urls)
-                                    if url == selected_url
-                                ),
-                                None,
-                            )
+                        selected_index = None
+                        selected_url_from_ai = ai_json.get("selected_url")
+
+                        # Method 1: Use selected_url if provided and validate
+                        if selected_url_from_ai:
+                            # Find index of URL in our list
+                            for i, url in enumerate(excel_urls):
+                                if url == selected_url_from_ai:
+                                    selected_index = i
+                                    self.logger.info(
+                                        f"AI provided valid selected_url, matched to index {i}"
+                                    )
+                                    break
+
                             if selected_index is None:
-                                raise ValueError(
-                                    f"AI returned URL not in list: {selected_url}"
+                                self.logger.warning(
+                                    f"AI provided selected_url not in list: {selected_url_from_ai}"
                                 )
-                        else:
-                            raise ValueError("AI JSON response missing required fields")
+                                # Fall back to selected_index if URL doesn't match
+                                if "selected_index" in ai_json:
+                                    selected_index = ai_json["selected_index"]
 
-                        # Validate index
-                        if selected_index < 0 or selected_index >= len(excel_urls):
+                        # Method 2: Use selected_index with validation and correction
+                        elif "selected_index" in ai_json:
+                            selected_index = ai_json["selected_index"]
+
+                        if selected_index is None:
                             raise ValueError(
-                                f"AI returned invalid index: {selected_index}"
+                                "AI JSON response missing both selected_url and selected_index"
                             )
 
-                        # Extract additional fields from Hermes-2-Pro native format
+                        # Validate and correct index (be forgiving with 1-based counting)
+                        original_index = selected_index
+                        if selected_index < 0:
+                            raise ValueError(
+                                f"AI returned negative index: {selected_index}"
+                            )
+                        elif selected_index >= len(excel_urls):
+                            # Check if AI used 1-based indexing instead of 0-based
+                            if (
+                                selected_index - 1 < len(excel_urls)
+                                and selected_index - 1 >= 0
+                            ):
+                                self.logger.warning(
+                                    f"AI used 1-based indexing ({selected_index}), correcting to 0-based ({selected_index - 1})"
+                                )
+                                selected_index = selected_index - 1
+                            else:
+                                raise ValueError(
+                                    f"AI returned invalid index: {selected_index} (max: {len(excel_urls) - 1})"
+                                )
+
+                        # Validate against selected_url if both provided
+                        if (
+                            selected_url_from_ai
+                            and excel_urls[selected_index] != selected_url_from_ai
+                        ):
+                            self.logger.warning(
+                                f"Mismatch between selected_index ({selected_index}) and selected_url. "
+                                f"Index points to: {excel_urls[selected_index][:100]}... "
+                                f"But AI provided: {selected_url_from_ai[:100]}..."
+                            )
+                            # Trust the URL over the index
+                            for i, url in enumerate(excel_urls):
+                                if url == selected_url_from_ai:
+                                    selected_index = i
+                                    self.logger.info(
+                                        f"Using URL-based selection, corrected index to {i}"
+                                    )
+                                    break
+
+                        # Extract additional fields from JSON response
                         confidence = ai_json.get("confidence", "high")
                         reasoning = ai_json.get(
                             "reasoning",
@@ -332,6 +376,14 @@ Antwort:"""
                             if response.usage
                             else 0,
                         }
+
+                        # Log any index corrections for debugging
+                        if original_index != selected_index:
+                            result["index_corrected"] = True
+                            result["original_index"] = original_index
+                            self.logger.info(
+                                f"Index corrected from {original_index} to {selected_index}"
+                            )
 
                         self.logger.info(
                             f"AI selected URL {selected_index + 1}: {Path(excel_urls[selected_index]).name}"
