@@ -1,16 +1,13 @@
 #!/bin/bash
 
+# Configure git
 git config --global core.autocrlf input
 
-# Install uv if not already installed
-if ! command -v uv &> /dev/null; then
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    source ~/.bashrc
-fi
-
-# Install dependencies
+# Install dependencies using uv (now installed via DevContainer feature)
+echo "Installing Python dependencies with uv..."
 uv sync
 
+# Configure Streamlit
 mkdir -p ~/.streamlit
 cat > ~/.streamlit/credentials.toml <<HERE
 [general]
@@ -19,4 +16,4 @@ cat > ~/.streamlit/credentials.toml <<HERE
     gatherUsageStats = false
 HERE
 
-echo '✅ DevContainer setup completed'
+echo '✅ DevContainer setup completed with uv feature'

@@ -1,0 +1,33 @@
+{
+    "id": "uv",
+    "version": "1.0.0",
+    "name": "uv Python Package Manager",
+    "documentationURL": "https://docs.astral.sh/uv/",
+    "description": "Installs uv, the extremely fast Python package and project manager written in Rust",
+    "options": {
+        "version": {
+            "type": "string",
+            "proposals": [
+                "latest",
+                "0.8.11",
+                "0.8.10",
+                "0.8.9"
+            ],
+            "default": "latest",
+            "description": "Version of uv to install"
+        },
+        "installPath": {
+            "type": "string",
+            "default": "/usr/local/bin",
+            "description": "Installation path for uv binary"
+        },
+        "enableShellCompletion": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable shell completion for bash and zsh"
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}

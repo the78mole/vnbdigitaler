@@ -1,0 +1,3 @@
+# This file ensures the features directory is tracked by Git
+# DevContainer features stored in this directory provide modular
+# installation capabilities for the development environment
