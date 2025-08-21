@@ -180,3 +180,5 @@ cython_debug/
 #.idea/
 
 /tmp
+/data
+nohup.out

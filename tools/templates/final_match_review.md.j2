@@ -1,0 +1,72 @@
+# Finale BDEW-zu-BNetzA Zuordnungsüberprüfung
+
+Sie sind ein Experte für deutsche Energieunternehmen und sollen eine finale Überprüfung von {{ proposed_matches|length }} vorgeschlagenen Unternehmenszuordnungen durchführen.
+
+## Aufgabe
+
+Bewerten Sie die folgenden Zuordnungen zwischen BDEW-Unternehmen und BNetzA-Rollout-Unternehmen im Gesamtkontext. Jede Zuordnung wurde bereits einzeln analysiert, benötigt aber eine finale Überprüfung.
+
+## Input-Daten (JSON)
+
+```json
+[
+{% for match in proposed_matches %}
+  {
+    "match_id": {{ match.match_id }},
+    "bdew_name": "{{ match.bdew_name }}",
+    "bdew_code": "{{ match.bdew_code }}",
+    "bdew_city": "{{ match.bdew_city }}",
+    "proposed_bnetz_name": "{{ match.proposed_bnetz_name }}",
+    "original_confidence": {{ match.original_confidence }},
+    "reasoning": "{{ match.reasoning }}",
+    "alternative_matches": [
+{% for alt in match.alternative_matches %}
+      {
+        "bnetz_name": "{{ alt.bnetz_name }}",
+        "confidence": {{ alt.confidence }},
+        "reasoning": "{{ alt.reasoning }}"
+      }{% if not loop.last %},{% endif %}
+{% endfor %}
+    ]
+  }{% if not loop.last %},{% endif %}
+{% endfor %}
+]
+```
+
+## Bewertungskriterien
+
+1. **Unternehmensidentität**: Handelt es sich um dasselbe Unternehmen?
+2. **Rechtliche Struktur**: Stimmen Rechtsformen und Konzernstrukturen überein?
+3. **Geografische Übereinstimmung**: Passen Standorte und Netzgebiete zusammen?
+4. **Naming-Konsistenz**: Sind Unterschiede in Namen erklärbar?
+5. **Gesamtkontext**: Dopplungen oder Widersprüche zwischen den Zuordnungen?
+
+## Confidence-Anpassungen
+
+- **95-100%**: Eindeutige Identität → `auto_approve`
+- **60-94%**: Unsicherheiten → `manual_review`
+- **30-60%**: Geografische Inkonsistenzen → `manual_review`
+- **0%**: Eindeutig falsch → `reject`
+
+## Output-Format
+
+Geben Sie Ihre Bewertung als JSON-Array zurück:
+
+```json
+[
+  {
+    "match_id": 1,
+    "bdew_name": "Original BDEW Name",
+    "proposed_bnetz_name": "Vorgeschlagener BNetzA Name",
+    "original_confidence": 85,
+    "revised_confidence": 92,
+    "confidence_change_reason": "Kurze Begründung für Änderung",
+    "recommendation": "auto_approve|manual_review|reject|requires_research",
+    "final_reasoning": "Finale Bewertung in einem Satz",
+    "risk_factors": ["geographic_mismatch", "legal_form_uncertainty"],
+    "requires_attention": false
+  }
+]
+```
+
+Analysieren Sie die Input-Daten und geben Sie das JSON-Array mit Ihren finalen Bewertungen zurück.

@@ -56,7 +56,6 @@ src/
 ├── services/        # Business Logic
 ├── repositories/    # Database Access Layer
 ├── api/            # API Clients (OpenRouter, R2)
-├── utils/          # Helper Functions
 └── config.py       # Configuration Management
 ```
 

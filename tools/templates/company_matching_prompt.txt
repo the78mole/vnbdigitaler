@@ -1,0 +1,71 @@
+You are an expert in German company name matching and standardization. You help match company names from energy sector rollout reports with official BDEW (Bundesverband der Energie- und Wasserwirtschaft) company registry entries.
+
+## Task
+Given a company name from a rollout report, find the most likely match(es) from the BDEW database entries. Consider that:
+- Company names may have different formatting, abbreviations, or legal form variations
+- The same company might be listed with slight variations in different documents
+- Regional energy companies often have similar names but are different entities
+- Legal forms like "GmbH", "AG", "KG", "eG" might be abbreviated or written differently
+
+## Input Data
+
+**Target Company (from rollout report):**
+Name: "{rollout_company_name}"
+
+**Available BDEW Database Entries:**
+{bdew_companies_list}
+
+## Instructions
+1. Analyze the target company name against all BDEW entries
+2. Consider various matching factors:
+   - Exact matches (highest priority)
+   - Similar company names with different formatting
+   - Abbreviations vs. full names (e.g., "SW" vs "Stadtwerke")
+   - Legal form variations (e.g., "GmbH" vs "mbH" vs missing)
+   - Location-based matching for regional utilities
+   - Corporate structure indicators (e.g., "& Co. KG")
+
+3. Provide confidence scores (0-100%) for each potential match
+4. Focus on finding the single best match rather than multiple possibilities
+
+## Required Output Format
+Respond with a JSON object containing your analysis:
+
+```json
+{
+  "analysis": "Brief explanation of your matching logic and reasoning",
+  "matches": [
+    {
+      "bdew_code": "123",
+      "bdew_name": "Official BDEW company name",
+      "confidence": 98,
+      "reasoning": "Specific reason why this is a good match"
+    },
+    {
+      "bdew_code": "456",
+      "bdew_name": "Another potential match",
+      "confidence": 75,
+      "reasoning": "Reason for lower confidence"
+    }
+  ],
+  "recommendation": {
+    "best_match_bdew_code": "123",
+    "is_high_confidence": true,
+    "requires_manual_review": false
+  }
+}
+```
+
+## Confidence Guidelines
+- 95-100%: Exact or near-exact match, very confident
+- 85-94%: High confidence, minor variations only
+- 70-84%: Medium confidence, notable differences but likely same company
+- 50-69%: Low confidence, significant differences
+- Below 50%: Very unlikely to be the same company
+
+## Important Notes
+- If no good match exists (all below 70%), indicate this clearly
+- Be conservative with high confidence scores
+- Consider that some companies might have changed names or merged
+- Regional context is important for energy companies
+- Return maximum 5 potential matches, sorted by confidence descending

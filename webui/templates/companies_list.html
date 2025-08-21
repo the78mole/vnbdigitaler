@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block title %}Companies Management - VNBdigitaler Admin{% endblock %}
+
+{% block toolbar %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-primary" onclick="loadCompanies()">
+        <i class="fas fa-sync me-1"></i> Refresh
+    </button>
+    <a href="/companies/map" class="btn btn-outline-info">
+        <i class="fas fa-map me-1"></i> Map View
+    </a>
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-filter me-1"></i> Filter
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="applyFilter('all')">All Companies</a></li>
+            <li><a class="dropdown-item" href="#" onclick="applyFilter('matched')">Matched Only</a></li>
+            <li><a class="dropdown-item" href="#" onclick="applyFilter('unmatched')">Unmatched Only</a></li>
+            <li><a class="dropdown-item" href="#" onclick="applyFilter('manual')">Manual Review</a></li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Search and Filter Controls -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search companies by name...">
+                    <button class="btn btn-outline-secondary" type="button" onclick="searchCompanies()">
+                        Search
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="row">
+                    <div class="col-md-6">
+                        <select class="form-select" id="manualVerificationFilter">
+                            <option value="">All Verification Status</option>
+                            <option value="true">Manually verified</option>
+                            <option value="false">Needs Manual Review</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <select class="form-select" id="rolloutNameFilter">
+                            <option value="">All Match Status</option>
+                            <option value="true">Has Rollout Match</option>
+                            <option value="false">No Rollout Match</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Companies Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-building me-2"></i>
+            Companies List
+        </h5>
+        <span id="companiesCount" class="badge bg-primary">Loading...</span>
+    </div>
+    <div class="card-body">
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="text-center py-4" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading companies...</p>
+        </div>
+
+        <!-- Companies table -->
+        <div class="table-responsive">
+            <table class="table table-hover" id="companiesTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>BDEW Code</th>
+                        <th>Company Name</th>
+                        <th>City</th>
+                        <th>Rollout Match</th>
+                        <th>Manual Review</th>
+                        <th>Service Area</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="companiesTableBody">
+                    <!-- Data will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <nav aria-label="Companies pagination">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- Pagination will be generated here -->
+            </ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let currentFilters = {};
+
+    async function loadCompanies(page = 1) {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        showLoading(loadingIndicator);
+
+        try {
+            // Build query parameters
+            const params = new URLSearchParams({
+                page: page,
+                page_size: 50
+            });
+
+            // Add filters
+            const nameFilter = document.getElementById('searchInput')?.value;
+            if (nameFilter) params.append('name_filter', nameFilter);
+
+            const manualVerification = document.getElementById('manualVerificationFilter')?.value;
+            if (manualVerification) params.append('manual_verification', manualVerification);
+
+            const rolloutName = document.getElementById('rolloutNameFilter')?.value;
+            if (rolloutName) params.append('has_rollout_name', rolloutName);
+
+            const response = await apiRequest(`/companies/api?${params}`);
+
+            displayCompanies(response.companies);
+            updatePagination(response.page, Math.ceil(response.total / response.page_size));
+            updateCompaniesCount(response.total);
+
+            currentPage = page;
+
+        } catch (error) {
+            console.error('Failed to load companies:', error);
+            document.getElementById('companiesTableBody').innerHTML =
+                '<tr><td colspan="7" class="text-center text-danger">Failed to load companies: ' + error.message + '</td></tr>';
+            showMessage('Failed to load companies: ' + error.message, 'danger');
+        } finally {
+            hideLoading(loadingIndicator);
+        }
+    }
+
+    function displayCompanies(companies) {
+        const tbody = document.getElementById('companiesTableBody');
+
+        if (companies.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No companies found</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = companies.map(company => `
+        <tr>
+            <td><code>${company.bdew_code}</code></td>
+            <td>
+                <strong>${company.bdew_name}</strong>
+                ${company.rollout_name_variations && company.rollout_name_variations.length > 0 ?
+                `<br><small class="text-muted">Variations: ${company.rollout_name_variations.length}</small>` : ''}
+            </td>
+            <td>${company.bdew_city || '<em>N/A</em>'}</td>
+            <td>
+                ${company.rollout_report_name ?
+                `<span class="badge bg-success">
+                        <i class="fas fa-check"></i> ${company.rollout_report_name}
+                    </span>` :
+                '<span class="badge bg-warning"><i class="fas fa-question"></i> No Match</span>'
+            }
+            </td>
+            <td>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox"
+                           ${company.manual_verification ? 'checked' : ''}
+                           onchange="toggleManualVerification(${company.id}, this.checked)">
+                    <label class="form-check-label">
+                        ${company.manual_verification ? 'Verified' : 'Not Verified'}
+                    </label>
+                </div>
+            </td>
+            <td>
+                ${company.has_service_area ?
+                '<span class="badge bg-info"><i class="fas fa-map"></i> Available</span>' :
+                '<span class="badge bg-secondary">N/A</span>'
+            }
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-primary"
+                            onclick="editCompany(${company.id})" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-info"
+                            onclick="viewCompanyDetail(${company.id})" title="Company Detail">
+                        <i class="fas fa-info-circle"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    }
+
+    function updatePagination(currentPage, totalPages) {
+        const pagination = document.getElementById('pagination');
+
+        if (totalPages <= 1) {
+            pagination.innerHTML = '';
+            return;
+        }
+
+        let paginationHTML = '';
+
+        // Previous button
+        paginationHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadCompanies(${currentPage - 1})">Previous</a>
+        </li>
+    `;
+
+        // Page numbers (show max 5 pages around current)
+        const startPage = Math.max(1, currentPage - 2);
+        const endPage = Math.min(totalPages, currentPage + 2);
+
+        if (startPage > 1) {
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadCompanies(1)">1</a>
+            </li>
+        `;
+            if (startPage > 2) {
+                paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadCompanies(${i})">${i}</a>
+            </li>
+        `;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+            paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="loadCompanies(${totalPages})">${totalPages}</a>
+            </li>
+        `;
+        }
+
+        // Next button
+        paginationHTML += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadCompanies(${currentPage + 1})">Next</a>
+        </li>
+    `;
+
+        pagination.innerHTML = paginationHTML;
+    }
+
+    function updateCompaniesCount(count) {
+        document.getElementById('companiesCount').textContent = `${count} companies`;
+    }
+
+    async function toggleManualVerification(companyId, checked) {
+        try {
+            await apiRequest(`/companies/api/${companyId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    manual_verification: checked
+                })
+            });
+
+            showMessage(
+                `Manual verification ${checked ? 'marked as verified' : 'marked as not verified'} for company`,
+                'success'
+            );
+
+        } catch (error) {
+            // Revert checkbox state on error
+            const checkbox = event.target;
+            checkbox.checked = !checked;
+            showMessage('Failed to update manual verification status', 'danger');
+        }
+    }
+
+    function editCompany(companyId) {
+        window.location.href = `/companies/edit/${companyId}`;
+    }
+
+    function viewCompanyDetail(companyId) {
+        window.location.href = `/companies/${companyId}`;
+    }
+
+    function searchCompanies() {
+        loadCompanies(1);
+    }
+
+    function applyFilter(filterType) {
+        const manualFilter = document.getElementById('manualVerificationFilter');
+        const rolloutFilter = document.getElementById('rolloutNameFilter');
+
+        // Reset filters
+        manualFilter.value = '';
+        rolloutFilter.value = '';
+
+        switch (filterType) {
+            case 'matched':
+                rolloutFilter.value = 'true';
+                break;
+            case 'unmatched':
+                rolloutFilter.value = 'false';
+                break;
+            case 'manual':
+                manualFilter.value = 'true';
+                break;
+        }
+
+        loadCompanies(1);
+    }
+
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCompanies();
+
+        // Add enter key support for search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchCompanies();
+            }
+        });
+
+        // Add change listeners for filters
+        document.getElementById('manualVerificationFilter').addEventListener('change', () => loadCompanies(1));
+        document.getElementById('rolloutNameFilter').addEventListener('change', () => loadCompanies(1));
+    });
+</script>
+{% endblock %}

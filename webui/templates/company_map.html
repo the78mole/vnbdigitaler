@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}Company Map{% endblock %}
+
+{% block toolbar %}
+<div class="btn-group me-2">
+    <a href="/companies/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i>
+        Companies
+    </a>
+    <a href="/" class="btn btn-outline-primary">
+        <i class="fas fa-tachometer-alt me-1"></i>
+        Dashboard
+    </a>
+</div>
+<div class="btn-group">
+    <button type="button" class="btn btn-outline-secondary" onclick="resetMapView()">
+        <i class="fas fa-compress-arrows-alt me-1"></i>
+        Reset View
+    </button>
+    <button type="button" class="btn btn-outline-info" onclick="toggleFullscreen()">
+        <i class="fas fa-expand me-1"></i>
+        Fullscreen
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+    <!-- Map Container -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map me-2 text-primary"></i>
+                        Unternehmen Map - Erlangen Region
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleLayer('companies')"
+                            id="companiesToggle">
+                            <i class="fas fa-building me-1"></i>
+                            Companies
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleLayer('regions')"
+                            id="regionsToggle">
+                            <i class="fas fa-globe me-1"></i>
+                            Regions
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="map" class="map-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div class="col-lg-4">
+        <!-- Location Details -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    Standort Details
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <i class="fas fa-city text-muted"></i>
+                            <span class="detail-label">Stadt</span>
+                            <span class="detail-value">Erlangen</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <i class="fas fa-flag text-muted"></i>
+                            <span class="detail-label">Bundesland</span>
+                            <span class="detail-value">Bayern</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <i class="fas fa-globe text-muted"></i>
+                            <span class="detail-label">Land</span>
+                            <span class="detail-value">Deutschland</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <i class="fas fa-crosshairs text-muted"></i>
+                            <span class="detail-label">Koordinaten</span>
+                            <span class="detail-value">49.59°N, 11.00°E</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regional Context -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-map-marked-alt me-2 text-success"></i>
+                    Regionale Umgebung
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="region-list">
+                    <div class="region-item" onclick="panToLocation(49.4539, 11.0773, 'Nürnberg')">
+                        <div class="region-marker bg-primary"></div>
+                        <div class="region-info">
+                            <strong>Nürnberg</strong>
+                            <small class="text-muted">20 km südlich</small>
+                        </div>
+                        <i class="fas fa-external-link-alt region-link"></i>
+                    </div>
+                    <div class="region-item" onclick="panToLocation(49.8988, 10.9027, 'Bamberg')">
+                        <div class="region-marker bg-secondary"></div>
+                        <div class="region-info">
+                            <strong>Bamberg</strong>
+                            <small class="text-muted">50 km nördlich</small>
+                        </div>
+                        <i class="fas fa-external-link-alt region-link"></i>
+                    </div>
+                    <div class="region-item" onclick="panToLocation(49.7913, 9.9534, 'Würzburg')">
+                        <div class="region-marker bg-success"></div>
+                        <div class="region-info">
+                            <strong>Würzburg</strong>
+                            <small class="text-muted">80 km westlich</small>
+                        </div>
+                        <i class="fas fa-external-link-alt region-link"></i>
+                    </div>
+                    <div class="region-item" onclick="panToLocation(48.1351, 11.5820, 'München')">
+                        <div class="region-marker bg-warning"></div>
+                        <div class="region-info">
+                            <strong>München</strong>
+                            <small class="text-muted">180 km südlich</small>
+                        </div>
+                        <i class="fas fa-external-link-alt region-link"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Controls -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2 text-warning"></i>
+                    Karten-Steuerung
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="centerOnErlangen()">
+                        <i class="fas fa-home me-1"></i>
+                        Zurück zu Erlangen
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleSatelliteView()">
+                        <i class="fas fa-satellite me-1"></i>
+                        Satellitenansicht
+                    </button>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="showMapInfo()">
+                        <i class="fas fa-question-circle me-1"></i>
+                        Karten-Info
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Info Modal -->
+<div class="modal fade" id="mapInfoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Karten-Information
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Kartendaten:</strong> OpenStreetMap</p>
+                <p><strong>Zentrum:</strong> Erlangen, Bayern</p>
+                <p><strong>Zoom-Level:</strong> <span id="currentZoom">10</span></p>
+                <p><strong>Aktuelle Position:</strong> <span id="currentPosition">49.59°N, 11.00°E</span></p>
+                <hr>
+                <p class="text-muted small">
+                    Diese Karte zeigt die Region um Erlangen mit wichtigen umliegenden Städten.
+                    Verwenden Sie die Steuerelemente, um durch die Karte zu navigieren.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    // Global variables
+    let map;
+    let companiesLayer;
+    let regionsLayer;
+    let currentTileLayer;
+    let satelliteLayer;
+    let isFullscreen = false;
+
+    // Map configuration
+    const MAP_CONFIG = {
+        center: [49.5897, 11.0045], // Erlangen coordinates
+        defaultZoom: 10,
+        maxZoom: 19,
+        minZoom: 5
+    };
+
+    // City data
+    const CITIES = {
+        erlangen: { name: 'Erlangen', coords: [49.5897, 11.0045], zoom: 12 },
+        nuernberg: { name: 'Nürnberg', coords: [49.4539, 11.0773], zoom: 11 },
+        bamberg: { name: 'Bamberg', coords: [49.8988, 10.9027], zoom: 11 },
+        wuerzburg: { name: 'Würzburg', coords: [49.7913, 9.9534], zoom: 11 },
+        muenchen: { name: 'München', coords: [48.1351, 11.5820], zoom: 10 }
+    };
+
+    // Initialize map
+    function initializeMap() {
+        try {
+            // Create map
+            map = L.map('map', {
+                center: MAP_CONFIG.center,
+                zoom: MAP_CONFIG.defaultZoom,
+                maxZoom: MAP_CONFIG.maxZoom,
+                minZoom: MAP_CONFIG.minZoom,
+                zoomControl: true,
+                attributionControl: true
+            });
+
+            // Add OpenStreetMap tile layer
+            currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Create satellite layer (but don't add it initially)
+            satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '© <a href="https://www.arcgis.com/">ArcGIS</a>',
+                maxZoom: 19
+            });
+
+            // Initialize layers
+            initializeLayers();
+
+            // Add event listeners
+            addMapEventListeners();
+
+            // Show success message
+            showMessage('Karte erfolgreich geladen', 'success');
+
+        } catch (error) {
+            console.error('Error initializing map:', error);
+            showMessage('Fehler beim Laden der Karte: ' + error.message, 'danger');
+        }
+    }
+
+    // Initialize map layers
+    function initializeLayers() {
+        // Companies layer
+        companiesLayer = L.layerGroup();
+
+        // Add Erlangen marker
+        const erlangenMarker = L.marker(MAP_CONFIG.center, {
+            title: 'Erlangen'
+        }).bindPopup(`
+            <div class="popup-content">
+                <h6><i class="fas fa-city me-2"></i>Erlangen</h6>
+                <p class="mb-1"><strong>Zentrum der Karte</strong></p>
+                <p class="mb-0 text-muted small">Koordinaten: 49.59°N, 11.00°E</p>
+            </div>
+        `);
+        companiesLayer.addLayer(erlangenMarker);
+        companiesLayer.addTo(map);
+
+        // Regions layer
+        regionsLayer = L.layerGroup();
+
+        // Add regional markers
+        Object.entries(CITIES).forEach(([key, city]) => {
+            if (key !== 'erlangen') {
+                const marker = L.marker(city.coords, {
+                    title: city.name,
+                    opacity: 0.7
+                }).bindPopup(`
+                    <div class="popup-content">
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>${city.name}</h6>
+                        <p class="mb-1">Wichtige Nachbarstadt</p>
+                        <p class="mb-0 text-muted small">
+                            Koordinaten: ${city.coords[0].toFixed(2)}°N, ${city.coords[1].toFixed(2)}°E
+                        </p>
+                    </div>
+                `);
+                regionsLayer.addLayer(marker);
+            }
+        });
+        regionsLayer.addTo(map);
+    }
+
+    // Add map event listeners
+    function addMapEventListeners() {
+        map.on('zoomend', updateMapInfo);
+        map.on('moveend', updateMapInfo);
+
+        map.on('click', function (e) {
+            console.log('Map clicked at:', e.latlng);
+        });
+    }
+
+    // Update map information display
+    function updateMapInfo() {
+        const zoom = map.getZoom();
+        const center = map.getCenter();
+
+        const zoomElement = document.getElementById('currentZoom');
+        const positionElement = document.getElementById('currentPosition');
+
+        if (zoomElement) {
+            zoomElement.textContent = zoom;
+        }
+
+        if (positionElement) {
+            positionElement.textContent = `${center.lat.toFixed(4)}°N, ${center.lng.toFixed(4)}°E`;
+        }
+    }
+
+    // Map control functions
+    function resetMapView() {
+        if (map) {
+            map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
+            showMessage('Kartenansicht zurückgesetzt', 'info');
+        }
+    }
+
+    function centerOnErlangen() {
+        if (map) {
+            map.setView(CITIES.erlangen.coords, CITIES.erlangen.zoom);
+            showMessage('Karte auf Erlangen zentriert', 'success');
+        }
+    }
+
+    function panToLocation(lat, lng, name) {
+        if (map) {
+            map.setView([lat, lng], 11);
+            showMessage(`Karte auf ${name} zentriert`, 'info');
+        }
+    }
+
+    function toggleLayer(layerType) {
+        const button = document.getElementById(layerType + 'Toggle');
+
+        if (layerType === 'companies') {
+            if (map.hasLayer(companiesLayer)) {
+                map.removeLayer(companiesLayer);
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-secondary');
+            } else {
+                map.addLayer(companiesLayer);
+                button.classList.remove('btn-secondary');
+                button.classList.add('btn-outline-secondary');
+            }
+        } else if (layerType === 'regions') {
+            if (map.hasLayer(regionsLayer)) {
+                map.removeLayer(regionsLayer);
+                button.classList.remove('btn-outline-secondary');
+                button.classList.add('btn-secondary');
+            } else {
+                map.addLayer(regionsLayer);
+                button.classList.remove('btn-secondary');
+                button.classList.add('btn-outline-secondary');
+            }
+        }
+    }
+
+    function toggleSatelliteView() {
+        if (map.hasLayer(currentTileLayer)) {
+            map.removeLayer(currentTileLayer);
+            map.addLayer(satelliteLayer);
+            showMessage('Satellitenansicht aktiviert', 'info');
+        } else {
+            map.removeLayer(satelliteLayer);
+            map.addLayer(currentTileLayer);
+            showMessage('Straßenkarte aktiviert', 'info');
+        }
+    }
+
+    function toggleFullscreen() {
+        const mapContainer = document.getElementById('map');
+        const button = event.target.closest('button');
+        const icon = button.querySelector('i');
+
+        if (!isFullscreen) {
+            mapContainer.style.position = 'fixed';
+            mapContainer.style.top = '0';
+            mapContainer.style.left = '0';
+            mapContainer.style.width = '100vw';
+            mapContainer.style.height = '100vh';
+            mapContainer.style.zIndex = '9999';
+            mapContainer.style.backgroundColor = 'white';
+
+            icon.className = 'fas fa-compress me-1';
+            button.innerHTML = '<i class="fas fa-compress me-1"></i>Exit Fullscreen';
+            isFullscreen = true;
+
+            // Invalidate map size
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 100);
+
+        } else {
+            mapContainer.style.position = '';
+            mapContainer.style.top = '';
+            mapContainer.style.left = '';
+            mapContainer.style.width = '';
+            mapContainer.style.height = '';
+            mapContainer.style.zIndex = '';
+            mapContainer.style.backgroundColor = '';
+
+            icon.className = 'fas fa-expand me-1';
+            button.innerHTML = '<i class="fas fa-expand me-1"></i>Fullscreen';
+            isFullscreen = false;
+
+            // Invalidate map size
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 100);
+        }
+    }
+
+    function showMapInfo() {
+        updateMapInfo();
+        const modal = new bootstrap.Modal(document.getElementById('mapInfoModal'));
+        modal.show();
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('Initializing company map...');
+        initializeMap();
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', function () {
+        if (map) {
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 100);
+        }
+    });
+
+    // Escape key handler for fullscreen
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isFullscreen) {
+            toggleFullscreen();
+        }
+    });
+</script>
+{% endblock %}

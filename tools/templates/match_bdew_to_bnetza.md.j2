@@ -1,0 +1,69 @@
+You are an expert in German energy company name matching. Your task is to find the best match for a BDEW company among unmatched BNetzA rollout report entries.
+
+## BDEW Company to Match
+
+**BDEW Code:** {{ bdew_company.bdew_code }}
+**BDEW Name:** {{ bdew_company.bdew_name }}
+**BDEW City:** {{ bdew_company.bdew_city if bdew_company.bdew_city else "Not specified" }}
+
+## Available BNetzA Rollout Companies (Unmatched)
+
+{% for bnetz_company in bnetz_companies %}
+{{ bnetz_company }}
+{% endfor %}
+
+## Task
+
+Find the best match for the BDEW company "{{ bdew_company.bdew_name }}" among the BNetzA rollout company names listed above.
+
+Consider:
+- Exact name matches (highest priority)
+- Similar names with different formatting
+- Abbreviations vs. full names (e.g., "SW" vs "Stadtwerke")
+- Legal form variations (e.g., "GmbH" vs "mbH" vs missing)
+- Regional context (city/location information)
+- Corporate structure indicators (e.g., "& Co. KG", "Netz", "Energie")
+
+## Response Format
+
+Respond with a JSON object:
+
+```json
+{
+  "analysis": "Brief explanation of your matching logic",
+  "best_match": {
+    "bnetz_name": "matching_bnetz_name_or_null",
+    "confidence": confidence_percentage_0_to_100,
+    "reasoning": "Specific reason for this match"
+  },
+  "alternative_matches": [
+    {
+      "bnetz_name": "alternative_name",
+      "confidence": confidence_percentage,
+      "reasoning": "Why this could also be a match"
+    }
+  ],
+  "recommendation": {
+    "action": "auto_approve|manual_review|no_match",
+    "is_high_confidence": true_or_false
+  }
+}
+```
+
+## Confidence Guidelines
+
+- **95-100%**: Exact or nearly exact match, very confident
+- **85-94%**: High confidence, minor variations only
+- **70-84%**: Medium confidence, notable differences but likely same company
+- **50-69%**: Low confidence, significant differences
+- **Below 50%**: Very unlikely to be the same company
+
+## Important Notes
+
+- If no good match exists (all below 70%), set best_match fields to null and action to "no_match"
+- Be conservative with high confidence scores
+- Consider that some companies might have changed names or merged
+- Regional context is important for energy companies
+- Return maximum 3 alternative matches, sorted by confidence descending
+- Only recommend "auto_approve" for matches above 97% confidence
+- In very rare cases, typos in the names are possible (e.g. Rtoh vs. Roth is a known typo)

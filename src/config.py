@@ -15,12 +15,19 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = Field(default="", description="Neon Database URL")
+    neon_database_url: str = Field(default="", description="Neon Database URL (legacy)")
 
     # AI Services
     openrouter_api_key: str = Field(default="", description="OpenRouter API Key")
     openrouter_base_url: str = Field(
         default="https://openrouter.ai/api/v1",
         description="OpenRouter Base URL",
+    )
+
+    # AI Model Configuration
+    roll_out_report_find_model: str = Field(
+        default="meta-llama/llama-3.2-3b-instruct:free",
+        description="Model for roll-out report finding",
     )
 
     # Object Storage
@@ -47,8 +54,15 @@ class Settings(BaseSettings):
             if hasattr(st, "secrets"):
                 return cls(
                     database_url=st.secrets["database"]["url"],
+                    neon_database_url=st.secrets.get("neon_database", {}).get(
+                        "url", ""
+                    ),
                     openrouter_api_key=st.secrets["openrouter"]["api_key"],
                     openrouter_base_url=st.secrets["openrouter"]["base_url"],
+                    roll_out_report_find_model=st.secrets.get("ai", {}).get(
+                        "roll_out_report_find_model",
+                        "meta-llama/llama-3.2-3b-instruct:free",
+                    ),
                     r2_access_key=st.secrets["cloudflare_r2"]["access_key"],
                     r2_secret_key=st.secrets["cloudflare_r2"]["secret_key"],
                     r2_bucket_name=st.secrets["cloudflare_r2"]["bucket_name"],
@@ -59,6 +73,19 @@ class Settings(BaseSettings):
         except (ImportError, KeyError):
             pass
         return cls()
+
+    def get_database_url(self) -> str:
+        """Get the database URL, preferring neon_database_url if available."""
+        url = self.neon_database_url or self.database_url
+        # Convert sync postgresql:// URLs to async postgresql+asyncpg://
+        if url.startswith("postgresql://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+            # Fix SSL parameters for asyncpg
+            url = url.replace("sslmode=require", "ssl=require")
+            url = url.replace("channel_binding=require", "")
+            # Clean up extra & characters
+            url = url.replace("&&", "&").rstrip("&")
+        return url
 
 
 # Module-level settings cache

@@ -6,12 +6,17 @@ and initialization utilities for the VNBdigitaler application.
 
 import os
 from collections.abc import AsyncGenerator
+from pathlib import Path
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from .models import Base
+
+# Load environment variables from .env file
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 class DatabaseManager:

@@ -11,10 +11,10 @@ def test_settings_from_environment():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
-            "OPENROUTER_API_KEY": "test-key",
-            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",
-            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",
+            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
             "CLOUDFLARE_R2_BUCKET_NAME": "test-bucket",
             "CLOUDFLARE_R2_ENDPOINT": "https://test.r2.cloudflarestorage.com",
             "LOG_LEVEL": "DEBUG",
@@ -26,10 +26,10 @@ def test_settings_from_environment():
 
         assert (
             settings.database_url
-            == "postgresql+asyncpg://test:test@localhost:5432/test"
+            == "postgresql+asyncpg://test:test@localhost:5432/test"  # pragma: allowlist secret
         )
-        assert settings.openrouter_api_key == "test-key"
-        assert settings.r2_access_key == "test-access"
+        assert settings.openrouter_api_key == "test-key"  # pragma: allowlist secret
+        assert settings.r2_access_key == "test-access"  # pragma: allowlist secret
         assert settings.log_level == "DEBUG"
         assert settings.environment == "test"
 
@@ -39,10 +39,10 @@ def test_settings_defaults():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
-            "OPENROUTER_API_KEY": "test-key",
-            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",
-            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",
+            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
             "CLOUDFLARE_R2_BUCKET_NAME": "test-bucket",
             "CLOUDFLARE_R2_ENDPOINT": "https://test.r2.cloudflarestorage.com",
         },
@@ -60,15 +60,15 @@ def test_settings_from_streamlit_secrets():
     """Test loading settings from Streamlit secrets."""
     mock_secrets = {
         "database": {
-            "url": "postgresql+asyncpg://streamlit:test@localhost:5432/streamlit"
+            "url": "postgresql+asyncpg://streamlit:test@localhost:5432/streamlit"  # pragma: allowlist secret
         },
         "openrouter": {
-            "api_key": "streamlit-key",
+            "api_key": "streamlit-key",  # pragma: allowlist secret
             "base_url": "https://openrouter.ai/api/v1",
         },
         "cloudflare_r2": {
-            "access_key": "streamlit-access",
-            "secret_key": "streamlit-secret",
+            "access_key": "streamlit-access",  # pragma: allowlist secret
+            "secret_key": "streamlit-secret",  # pragma: allowlist secret
             "bucket_name": "streamlit-bucket",
             "endpoint": "https://streamlit.r2.cloudflarestorage.com",
         },
@@ -84,10 +84,12 @@ def test_settings_from_streamlit_secrets():
 
         assert (
             settings.database_url
-            == "postgresql+asyncpg://streamlit:test@localhost:5432/streamlit"
+            == "postgresql+asyncpg://streamlit:test@localhost:5432/streamlit"  # pragma: allowlist secret
         )
-        assert settings.openrouter_api_key == "streamlit-key"
-        assert settings.r2_access_key == "streamlit-access"
+        assert (
+            settings.openrouter_api_key == "streamlit-key"  # pragma: allowlist secret
+        )
+        assert settings.r2_access_key == "streamlit-access"  # pragma: allowlist secret
         assert settings.environment == "production"
 
 
@@ -98,10 +100,10 @@ def test_settings_singleton():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
-            "OPENROUTER_API_KEY": "test-key",
-            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",
-            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",
+            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
             "CLOUDFLARE_R2_BUCKET_NAME": "test-bucket",
             "CLOUDFLARE_R2_ENDPOINT": "https://test.r2.cloudflarestorage.com",
         },
@@ -117,10 +119,10 @@ def test_reset_settings():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
-            "OPENROUTER_API_KEY": "test-key",
-            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",
-            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",
+            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
             "CLOUDFLARE_R2_BUCKET_NAME": "test-bucket",
             "CLOUDFLARE_R2_ENDPOINT": "https://test.r2.cloudflarestorage.com",
             "ENVIRONMENT": "test1",
@@ -133,10 +135,10 @@ def test_reset_settings():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",
-            "OPENROUTER_API_KEY": "test-key",
-            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",
-            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",
+            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
+            "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
             "CLOUDFLARE_R2_BUCKET_NAME": "test-bucket",
             "CLOUDFLARE_R2_ENDPOINT": "https://test.r2.cloudflarestorage.com",
             "ENVIRONMENT": "test2",

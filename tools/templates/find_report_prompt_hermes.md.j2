@@ -14,6 +14,8 @@ A rollout report usually has these characteristics:
 
 Current date: {{ now | date("%d.%m.%Y") }}
 
+For the returned numerical selected_index, start counting at 0.
+
 Output JSON: {"selected_index": int, "quarter": "Q1-Q4", "year": int, "confidence": "high|medium|low", "reasoning": "brief explanation", "selected_url": str}
 <|im_end|>
 <|im_start|>assistant

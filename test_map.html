@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+
+        #loading {
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test Map</h1>
+    <div id="loading">Loading map...</div>
+    <div id="map" style="display: none;"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('DOM loaded');
+
+            if (typeof L === 'undefined') {
+                console.error('Leaflet not loaded');
+                document.getElementById('loading').innerHTML = 'Leaflet failed to load';
+                return;
+            }
+
+            console.log('Leaflet loaded, initializing map');
+
+            try {
+                var map = L.map('map').setView([49.5897, 11.0045], 10);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                L.marker([49.5897, 11.0045])
+                    .addTo(map)
+                    .bindPopup('Erlangen')
+                    .openPopup();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('map').style.display = 'block';
+
+                console.log('Map initialized successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').innerHTML = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+
+</html>

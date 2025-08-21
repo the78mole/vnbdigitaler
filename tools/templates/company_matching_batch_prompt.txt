@@ -1,0 +1,37 @@
+You are an expert in German company name matching for the energy sector.
+
+TASK: Match the following BNetzA rollout company names to BDEW company names.
+
+BNetzA ROLLOUT COMPANIES TO MATCH:
+{rollout_companies_list}
+
+AVAILABLE BDEW COMPANIES (sorted by name length, longest first):
+{bdew_companies_list}
+
+Please provide a JSON response with the following structure:
+{{
+    "matches": [
+        {{
+            "bnetz_code": "code_from_rollout_list",
+            "bnetz_name": "name_from_rollout_list",
+            "matched_bdew_code": "best_matching_bdew_code_or_null",
+            "matched_bdew_name": "best_matching_bdew_name_or_null",
+            "confidence": confidence_percentage_0_to_100,
+            "reasoning": "brief_explanation_of_match_or_no_match"
+        }}
+    ],
+    "summary": {{
+        "total_processed": number_of_companies_processed,
+        "high_confidence_matches": number_of_matches_above_97_percent,
+        "potential_matches": number_of_matches_80_to_97_percent,
+        "no_matches": number_of_companies_with_no_good_match
+    }}
+}}
+
+MATCHING GUIDELINES:
+- 95-100%: Exact or nearly exact matches (different formatting, abbreviations)
+- 85-94%: High confidence matches (clear semantic similarity)
+- 70-84%: Medium confidence (possible but uncertain)
+- Below 70%: Low confidence or no match (set matched_bdew_code and matched_bdew_name to null)
+
+Focus on company names, not just codes. Consider abbreviations, legal forms (GmbH, AG, etc.), and regional variations.

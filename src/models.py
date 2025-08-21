@@ -1,17 +1,227 @@
 """Database models for VNBdigitaler application.
 
-This module contains SQLAlchemy models for storing BNetzA Roll-Out report data
-and related metadata in a Neon PostgreSQL database.
+This module contains SQLAlchemy models for storing BNetzA Roll-Out report data,
+BDEW grid operator information, and related metadata in a Neon PostgreSQL database.
 """
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, Integer, String, Text
+from sqlalchemy import (
+    ARRAY,
+    JSON,
+    Boolean,
+    CheckConstraint,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
 Base: DeclarativeMeta = declarative_base()
+
+
+class Company(Base):  # type: ignore[valid-type,misc]
+    """Model for storing electricity grid operator companies with BDEW as single source of truth."""
+
+    __tablename__ = "companies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # BDEW data (Single Source of Truth)
+    bdew_code: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        unique=True,
+        index=True,
+        comment="Official BDEW operator code (authoritative)",
+    )
+    bdew_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Official BDEW company name (authoritative)",
+    )
+    bdew_name_normalized: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        unique=True,
+        index=True,
+        comment="Normalized BDEW name for matching",
+    )
+    bdew_city: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, index=True, comment="City from BDEW data"
+    )
+
+    # vnbdigital.de Stammdaten (strukturiert)
+    vnbdigital_name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="Company name from vnbdigital.de (may differ from BDEW)",
+    )
+    vnbdigital_address: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, comment="Full address from vnbdigital.de"
+    )
+    vnbdigital_postcode: Mapped[str | None] = mapped_column(
+        String(10), nullable=True, comment="Postal code from vnbdigital.de"
+    )
+    vnbdigital_city: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        index=True,
+        comment="City from vnbdigital.de (may differ from BDEW)",
+    )
+    vnbdigital_phone: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, comment="Phone number from vnbdigital.de"
+    )
+    vnbdigital_email: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, comment="Email contact from vnbdigital.de"
+    )
+    vnbdigital_website: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, comment="Website URL from vnbdigital.de"
+    )
+    vnbdigital_grid_types: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+        comment="Grid voltage levels (e.g., Hochspannung, Mittelspannung, Niederspannung)",
+    )
+
+    # Geographic data
+    network_territory_geojson: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="GeoJSON geometry for network territory boundaries from vnbdigital.de",
+    )
+    network_territory_layer_url: Mapped[str | None] = mapped_column(
+        String(1000),
+        nullable=True,
+        comment="GeoServer layer URL for territory data (may require authentication)",
+    )
+
+    # Company headquarters location (WGS84 decimal degrees)
+    company_latitude: Mapped[float | None] = mapped_column(
+        Float,
+        CheckConstraint(
+            "company_latitude IS NULL OR (company_latitude >= -90 AND company_latitude <= 90)",
+            name="chk_company_latitude",
+        ),
+        nullable=True,
+        index=True,
+        comment="Company headquarters latitude in WGS84 decimal degrees (-90 to 90)",
+    )
+    company_longitude: Mapped[float | None] = mapped_column(
+        Float,
+        CheckConstraint(
+            "company_longitude IS NULL OR (company_longitude >= -180 AND company_longitude <= 180)",
+            name="chk_company_longitude",
+        ),
+        nullable=True,
+        index=True,
+        comment="Company headquarters longitude in WGS84 decimal degrees (-180 to 180)",
+    )
+
+    # vnbdigital.de Zusatzdaten (JSONB für flexible Struktur)
+    vnbdigital_extended_data: Mapped[dict | None] = mapped_column(
+        JSON,
+        nullable=True,
+        comment="Additional vnbdigital.de data: bbox, services, documents, regions, etc.",
+    )
+
+    # Integration Status und Metadaten
+    vnbdigital_last_enriched: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Last successful enrichment from vnbdigital.de",
+    )
+    vnbdigital_enrichment_status: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, index=True, comment="Status: found, not_found, error"
+    )
+
+    # Roll-Out Report data (may contain variations)
+    rollout_report_name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
+        comment="Company name as it appears in Roll-Out reports",
+    )
+    rollout_name_variations: Mapped[list[str] | None] = mapped_column(
+        ARRAY(String),
+        nullable=True,
+        comment="Array of different name variations found in Roll-Out reports",
+    )
+
+    # Company classification
+    company_type: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+        index=True,
+        comment="Type of company (e.g., Stadtwerk, Netzbetreiber, etc.)",
+    )
+
+    # Matching and verification metadata
+    name_matching_confidence: Mapped[float | None] = mapped_column(
+        Float,
+        CheckConstraint(
+            "name_matching_confidence IS NULL OR (name_matching_confidence >= 0.0 AND name_matching_confidence <= 1.0)",
+            name="chk_matching_confidence_range",
+        ),
+        nullable=True,
+        index=True,
+        comment="AI confidence score for name matching (0.0-1.0)",
+    )
+    manual_verification: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+        comment="Whether the matching has been manually verified",
+    )
+    verification_notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Manual verification notes and comments"
+    )
+
+    # Metadata
+    source_metadata: Mapped[dict | None] = mapped_column(
+        JSON, nullable=True, comment="Raw source data and processing metadata"
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    # Business rule constraints
+    __table_args__ = (
+        CheckConstraint(
+            "bdew_code IS NOT NULL AND length(trim(bdew_code)) > 0",
+            name="chk_bdew_code_required",
+        ),
+        CheckConstraint(
+            "bdew_name IS NOT NULL AND length(trim(bdew_name)) > 0",
+            name="chk_bdew_name_required",
+        ),
+        CheckConstraint(
+            "length(trim(bdew_name_normalized)) > 0",
+            name="chk_normalized_name_not_empty",
+        ),
+    )
+
+    def __repr__(self) -> str:
+        """Return string representation of Company."""
+        return f"<Company(id={self.id}, bdew_code='{self.bdew_code}', bdew_name='{self.bdew_name}')>"
 
 
 class RollOutReport(Base):  # type: ignore[valid-type,misc]
@@ -24,18 +234,25 @@ class RollOutReport(Base):  # type: ignore[valid-type,misc]
     # Report identification
     filename: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     url: Mapped[str] = mapped_column(Text, nullable=False)
-    quarter: Mapped[str] = mapped_column(
-        String(2), nullable=False, index=True
-    )  # Q1, Q2, Q3, Q4
+    quarter: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("quarter >= 1 AND quarter <= 4", name="quarter_range_check"),
+        nullable=False,
+        index=True,
+    )  # 1, 2, 3, 4
     year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     # Analysis metadata
     confidence: Mapped[str] = mapped_column(
         String(20), nullable=False
     )  # high, medium, low
-    method: Mapped[str] = mapped_column(
-        String(50), nullable=False
-    )  # ai_analysis, fallback_pattern
+    method: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("method >= 0 AND method <= 2", name="method_range_check"),
+        nullable=False,
+        default=0,
+        index=True,
+    )  # 0=unknown, 1=ai_analysis, 2=fallback_pattern
     reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # AI analysis details
@@ -101,7 +318,7 @@ class DownloadSession(Base):  # type: ignore[valid-type,misc]
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Raw metadata
-    metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    session_metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     # Timestamps
     started_at: Mapped[datetime] = mapped_column(
@@ -156,3 +373,249 @@ class AnalysisSession(Base):  # type: ignore[valid-type,misc]
     def __repr__(self) -> str:
         """Return string representation of AnalysisSession."""
         return f"<AnalysisSession(id={self.id}, download_session_id='{self.download_session_id}', status='{self.status}')>"
+
+
+class RolloutEntry(Base):  # type: ignore[valid-type,misc]
+    """Model for storing individual entries from BNetzA Roll-Out CSV reports."""
+
+    __tablename__ = "rollout_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # CSV data fields
+    company_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Company name as it appears in the BNetzA Roll-Out CSV",
+    )
+    rollout_quota: Mapped[float] = mapped_column(
+        Float,
+        CheckConstraint(
+            "rollout_quota >= 0.0 AND rollout_quota <= 1.0",
+            name="chk_rollout_quota_range",
+        ),
+        nullable=False,
+        index=True,
+        comment="Roll-out quota (Ausstattungsquote) as decimal value 0.0-1.0",
+    )
+    reference_date: Mapped[datetime] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+        comment="Reference date (Stichtag) for the quota measurement",
+    )
+
+    # Source metadata
+    source_file: Mapped[str] = mapped_column(
+        String(255), nullable=False, index=True, comment="Source CSV filename"
+    )
+    csv_line_number: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="Line number in the source CSV file"
+    )
+
+    # Matching status
+    matched_company_id: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        index=True,
+        comment="Foreign key to matched company in companies table",
+    )
+    matching_confidence: Mapped[float | None] = mapped_column(
+        Float,
+        CheckConstraint(
+            "matching_confidence IS NULL OR (matching_confidence >= 0.0 AND matching_confidence <= 1.0)",
+            name="chk_rollout_matching_confidence_range",
+        ),
+        nullable=True,
+        index=True,
+        comment="Confidence score for company matching (0.0-1.0)",
+    )
+    is_manual_match: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+        comment="Whether the match was made manually",
+    )
+    match_notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Notes about the matching process"
+    )
+
+    # Data processing metadata
+    name_normalized: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+        comment="Normalized company name for matching",
+    )
+    import_metadata: Mapped[dict | None] = mapped_column(
+        JSON, nullable=True, comment="Metadata about the import process"
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    # Business constraints
+    __table_args__ = (
+        CheckConstraint(
+            "company_name IS NOT NULL AND length(trim(company_name)) > 0",
+            name="chk_rollout_company_name_required",
+        ),
+        CheckConstraint(
+            "source_file IS NOT NULL AND length(trim(source_file)) > 0",
+            name="chk_rollout_source_file_required",
+        ),
+    )
+
+    def __repr__(self) -> str:
+        """Return string representation of RolloutEntry."""
+        return f"<RolloutEntry(id={self.id}, company_name='{self.company_name}', rollout_quota={self.rollout_quota})>"
+
+
+class RolloutCompany(Base):  # type: ignore[valid-type,misc]
+    """Model for storing unique rollout companies with BDEW linking."""
+
+    __tablename__ = "rollout_companies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Company identification
+    bnetza_name: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        unique=True,
+        index=True,
+        comment="Original company name as it appears in BNetzA Roll-Out reports",
+    )
+    normalized_name: Mapped[str] = mapped_column(
+        String(500),
+        nullable=False,
+        index=True,
+        comment="Normalized company name for matching purposes",
+    )
+
+    # BDEW linking
+    bdew_company_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("companies.id"),
+        nullable=True,
+        index=True,
+        comment="Foreign key to matched BDEW company",
+    )
+    is_manually_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+        comment="Whether the BDEW linking was manually verified",
+    )
+    verification_notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Notes about the verification process"
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        """Return string representation of RolloutCompany."""
+        return f"<RolloutCompany(id={self.id}, bnetza_name='{self.bnetza_name}', bdew_company_id={self.bdew_company_id})>"
+
+
+class RolloutQuota(Base):  # type: ignore[valid-type,misc]
+    """Model for storing time-series rollout quota data."""
+
+    __tablename__ = "rollout_quotas"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Company reference
+    rollout_company_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("rollout_companies.id"),
+        nullable=False,
+        index=True,
+        comment="Foreign key to rollout company",
+    )
+
+    # Quota data
+    rollout_quota: Mapped[float] = mapped_column(
+        Float,
+        CheckConstraint(
+            "rollout_quota >= 0.0 AND rollout_quota <= 1.0", name="chk_quota_range"
+        ),
+        nullable=False,
+        index=True,
+        comment="Roll-out quota (Ausstattungsquote) as decimal value 0.0-1.0",
+    )
+    reference_date: Mapped[datetime] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+        comment="Reference date (Stichtag) for the quota measurement",
+    )
+
+    # Report metadata
+    report_quarter: Mapped[str | None] = mapped_column(
+        String(10),
+        nullable=True,
+        index=True,
+        comment="Report quarter (e.g., '2025Q1', '2025Q2')",
+    )
+    source_file: Mapped[str] = mapped_column(
+        String(200), nullable=False, index=True, comment="Source CSV filename"
+    )
+    csv_line_number: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="Line number in the source CSV file"
+    )
+
+    # Import metadata
+    import_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+        comment="When this data was imported",
+    )
+    import_metadata: Mapped[dict | None] = mapped_column(
+        JSON, nullable=True, comment="Metadata about the import process"
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+    # Business constraints
+    __table_args__ = (
+        UniqueConstraint(
+            "rollout_company_id",
+            "reference_date",
+            "report_quarter",
+            name="uq_rollout_quota_company_date_quarter",
+        ),
+        CheckConstraint(
+            "rollout_quota >= 0.0 AND rollout_quota <= 1.0",
+            name="chk_rollout_quota_valid_range",
+        ),
+    )
+
+    def __repr__(self) -> str:
+        """Return string representation of RolloutQuota."""
+        return f"<RolloutQuota(id={self.id}, rollout_company_id={self.rollout_company_id}, quota={self.rollout_quota}, date={self.reference_date})>"
