@@ -142,6 +142,20 @@
                                 <span class="detail-value" id="companyCity">-</span>
                             </div>
                         </div>
+                        <div class="col-12" id="companyAddressContainer" style="display: none;">
+                            <div class="detail-item">
+                                <i class="fas fa-map-marker-alt text-muted"></i>
+                                <span class="detail-label">Address</span>
+                                <span class="detail-value" id="companyAddress">-</span>
+                            </div>
+                        </div>
+                        <div class="col-6" id="companyLocationContainer" style="display: none;">
+                            <div class="detail-item">
+                                <i class="fas fa-map-marker-alt text-muted"></i>
+                                <span class="detail-label">Location</span>
+                                <span class="detail-value" id="companyLocation">-</span>
+                            </div>
+                        </div>
                         <div class="col-12">
                             <div class="detail-item">
                                 <i class="fas fa-link text-muted"></i>
@@ -163,6 +177,11 @@
                         <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="centerOnCompany()">
                             <i class="fas fa-crosshairs me-1"></i>
                             Center on Company
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-1"
+                            onclick="showCompanyMarkerPopup()" style="display: none;" id="showMarkerBtn">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Show Marker Info
                         </button>
                     </div>
                 </div>
@@ -362,6 +381,47 @@
     .leaflet-overlay-pane svg {
         pointer-events: auto !important;
     }
+
+    /* Company marker styles */
+    .company-marker {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .company-marker:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Company popup styles */
+    .company-popup .popup-title {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        font-weight: bold;
+        color: #333;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+    }
+
+    .company-popup .detail-row {
+        margin: 5px 0;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+
+    .company-popup .detail-row strong {
+        color: #555;
+    }
 </style>
 {% endblock %}
 
@@ -381,6 +441,7 @@
     // Global variables
     let map;
     let companyData;
+    let companyMarker;
     let serviceAreaLayer;
     let germanyLayer;
     let statesLayer;
@@ -735,6 +796,24 @@
             document.getElementById('companyCode').textContent = response.bdew_code;
             document.getElementById('companyCity').textContent = response.bdew_city || 'N/A';
 
+            // Update address information
+            updateAddressDisplay(response);
+
+            // Add company marker if coordinates are available and update location info
+            const hasMarker = addCompanyMarker(response);
+            const locationContainer = document.getElementById('companyLocationContainer');
+            const locationEl = document.getElementById('companyLocation');
+
+            if (hasMarker && response.company_latitude && response.company_longitude) {
+                const lat = parseFloat(response.company_latitude);
+                const lng = parseFloat(response.company_longitude);
+                locationEl.innerHTML = `<span class="text-success"><i class="fas fa-map-marker-alt me-1"></i>Geocoded</span>`;
+                locationContainer.style.display = 'block';
+            } else {
+                locationEl.innerHTML = '<span class="text-muted">No coordinates</span>';
+                locationContainer.style.display = 'block';
+            }
+
             // Update rollout match with link if available
             const rolloutMatchEl = document.getElementById('rolloutMatch');
             if (response.rollout_quota && response.rollout_quota.bnetza_name) {
@@ -794,6 +873,171 @@
 
             document.getElementById('loadingCompanyInfo').innerHTML =
                 '<div class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading company data</div>';
+        }
+    }
+
+    // Add company marker to map
+    function addCompanyMarker(companyData) {
+        // Remove existing marker if present
+        if (companyMarker) {
+            map.removeLayer(companyMarker);
+            companyMarker = null;
+        }
+
+        // Check if company has coordinates
+        if (companyData.company_latitude && companyData.company_longitude) {
+            const lat = parseFloat(companyData.company_latitude);
+            const lng = parseFloat(companyData.company_longitude);
+
+            // Validate coordinates
+            if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                // Create custom icon for company marker
+                const companyIcon = L.divIcon({
+                    className: 'company-marker',
+                    html: '<i class="fas fa-building"></i>',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30],
+                    popupAnchor: [0, -30]
+                });
+
+                // Create marker
+                companyMarker = L.marker([lat, lng], { icon: companyIcon });
+
+                // Create popup content
+                const popupContent = `
+                    <div class="company-popup">
+                        <h6 class="popup-title">
+                            <i class="fas fa-building me-2 text-primary"></i>
+                            ${companyData.bdew_name}
+                        </h6>
+                        <div class="popup-content">
+                            <div class="detail-row">
+                                <strong>BDEW Code:</strong> ${companyData.bdew_code}
+                            </div>
+                            ${buildAddressDisplay(companyData)}
+                            <div class="detail-row">
+                                <strong>Koordinaten:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                            </div>
+                            ${companyData.rollout_quota ? `
+                                <div class="detail-row">
+                                    <strong>Roll-Out Quote:</strong>
+                                    <span class="fw-bold ${companyData.rollout_quota.quota_percentage >= 80 ? 'text-success' : companyData.rollout_quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">
+                                        ${companyData.rollout_quota.quota_percentage}%
+                                    </span>
+                                    <small class="text-muted d-block">Stichtag: ${companyData.rollout_quota.reference_date}</small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+                companyMarker.bindPopup(popupContent);
+
+                // Add marker to map
+                companyMarker.addTo(map);
+
+                console.log(`Company marker added at coordinates: ${lat}, ${lng}`);
+
+                // Update "Center on Company" button functionality
+                window.centerOnCompanyMarker = function () {
+                    if (companyMarker) {
+                        map.setView([lat, lng], Math.max(map.getZoom(), 12));
+                        companyMarker.openPopup();
+                        showMessage('Centered on company location', 'success');
+                    }
+                };
+
+                // Show the marker info button
+                const showMarkerBtn = document.getElementById('showMarkerBtn');
+                if (showMarkerBtn) {
+                    showMarkerBtn.style.display = 'block';
+                }
+
+                return true; // Marker was added
+            } else {
+                console.warn('Invalid company coordinates:', lat, lng);
+            }
+        } else {
+            console.log('No coordinates available for company');
+        }
+
+        return false; // No marker was added
+    }
+
+    // Helper function to build formatted address display
+    function buildAddressDisplay(companyData) {
+        const addressParts = [];
+        let hasAddress = false;
+
+        // Street address
+        if (companyData.vnbdigital_address) {
+            addressParts.push(`<strong>Adresse:</strong> ${companyData.vnbdigital_address}`);
+            hasAddress = true;
+        }
+
+        // Build city line with postcode
+        const cityParts = [];
+        if (companyData.vnbdigital_postcode) {
+            cityParts.push(companyData.vnbdigital_postcode);
+        }
+
+        const city = companyData.vnbdigital_city || companyData.bdew_city;
+        if (city) {
+            cityParts.push(city.trim());
+        }
+
+        if (cityParts.length > 0) {
+            const cityLine = cityParts.join(' ');
+            if (hasAddress) {
+                // If we have a street address, show city as separate line
+                addressParts.push(`<strong>Ort:</strong> ${cityLine}`);
+            } else {
+                // If no street address, show city as main address
+                addressParts.push(`<strong>Stadt:</strong> ${cityLine}`);
+            }
+        }
+
+        // Return formatted address HTML
+        if (addressParts.length > 0) {
+            return addressParts.map(part => `<div class="detail-row">${part}</div>`).join('');
+        } else {
+            return '<div class="detail-row"><strong>Stadt:</strong> N/A</div>';
+        }
+    }
+
+    // Helper function to update address display in the UI
+    function updateAddressDisplay(companyData) {
+        const addressContainer = document.getElementById('companyAddressContainer');
+        const addressEl = document.getElementById('companyAddress');
+
+        const addressParts = [];
+
+        // Build street address
+        if (companyData.vnbdigital_address) {
+            addressParts.push(companyData.vnbdigital_address);
+        }
+
+        // Build city with postcode
+        const cityParts = [];
+        if (companyData.vnbdigital_postcode) {
+            cityParts.push(companyData.vnbdigital_postcode);
+        }
+
+        const city = companyData.vnbdigital_city || companyData.bdew_city;
+        if (city) {
+            cityParts.push(city.trim());
+        }
+
+        if (cityParts.length > 0) {
+            addressParts.push(cityParts.join(' '));
+        }
+
+        // Update UI
+        if (addressParts.length > 0) {
+            addressEl.innerHTML = addressParts.join('<br>');
+            addressContainer.style.display = 'block';
+        } else {
+            addressContainer.style.display = 'none';
         }
     }
 
@@ -951,22 +1195,38 @@
     }
 
     function centerOnCompany() {
+        // Priority 1: Center on company marker if available
+        if (companyMarker) {
+            const markerLatLng = companyMarker.getLatLng();
+            map.setView(markerLatLng, Math.max(map.getZoom(), 12));
+            companyMarker.openPopup();
+            showMessage('Centered on company location', 'success');
+            return;
+        }
+
+        // Priority 2: Center on service area if available
         if (map && serviceAreaLayer && serviceAreaLayer.getLayers().length > 0) {
-            // Get bounds from all layers in the service area layer group
             const group = new L.featureGroup(serviceAreaLayer.getLayers());
             const bounds = group.getBounds();
             if (bounds.isValid()) {
-                // Only center, don't change zoom level
                 const center = bounds.getCenter();
                 map.panTo(center);
-                showMessage('Centered on company location', 'success');
-            } else {
-                map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
-                showMessage('No valid service area found, centered on default location', 'info');
+                showMessage('Centered on service area', 'success');
+                return;
             }
+        }
+
+        // Fallback: Default location
+        map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
+        showMessage('No specific location found, centered on default location', 'info');
+    }
+
+    function showCompanyMarkerPopup() {
+        if (companyMarker) {
+            companyMarker.openPopup();
+            showMessage('Showing company marker information', 'info');
         } else {
-            map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
-            showMessage('No service area data available, centered on default location', 'info');
+            showMessage('No company marker available', 'warning');
         }
     }
 

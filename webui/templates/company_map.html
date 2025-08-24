@@ -34,7 +34,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
                         <i class="fas fa-map me-2 text-primary"></i>
-                        Unternehmen Map - Erlangen Region
+                        Unternehmen Map - Deutschland
                     </h5>
                     <div class="btn-group btn-group-sm">
                         <button type="button" class="btn btn-outline-secondary" onclick="toggleLayer('companies')"
@@ -71,29 +71,29 @@
                     <div class="col-6">
                         <div class="detail-item">
                             <i class="fas fa-city text-muted"></i>
-                            <span class="detail-label">Stadt</span>
-                            <span class="detail-value">Erlangen</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="detail-item">
-                            <i class="fas fa-flag text-muted"></i>
-                            <span class="detail-label">Bundesland</span>
-                            <span class="detail-value">Bayern</span>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="detail-item">
-                            <i class="fas fa-globe text-muted"></i>
                             <span class="detail-label">Land</span>
                             <span class="detail-value">Deutschland</span>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="detail-item">
+                            <i class="fas fa-building text-muted"></i>
+                            <span class="detail-label">Unternehmen</span>
+                            <span class="detail-value" id="companiesCount">Lade...</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
                             <i class="fas fa-crosshairs text-muted"></i>
                             <span class="detail-label">Koordinaten</span>
-                            <span class="detail-value">49.59°N, 11.00°E</span>
+                            <span class="detail-value">51.17°N, 10.45°E</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <i class="fas fa-map text-muted"></i>
+                            <span class="detail-label">Geocoding</span>
+                            <span class="detail-value" id="geocodingRate">Lade...</span>
                         </div>
                     </div>
                 </div>
@@ -226,10 +226,10 @@
 
     // Map configuration
     const MAP_CONFIG = {
-        center: [49.5897, 11.0045], // Erlangen coordinates
-        defaultZoom: 10,
+        center: [51.1657, 10.4515], // Deutschland center
+        defaultZoom: 6,
         maxZoom: 19,
-        minZoom: 5
+        minZoom: 4
     };
 
     // City data
@@ -286,18 +286,8 @@
         // Companies layer
         companiesLayer = L.layerGroup();
 
-        // Add Erlangen marker
-        const erlangenMarker = L.marker(MAP_CONFIG.center, {
-            title: 'Erlangen'
-        }).bindPopup(`
-            <div class="popup-content">
-                <h6><i class="fas fa-city me-2"></i>Erlangen</h6>
-                <p class="mb-1"><strong>Zentrum der Karte</strong></p>
-                <p class="mb-0 text-muted small">Koordinaten: 49.59°N, 11.00°E</p>
-            </div>
-        `);
-        companiesLayer.addLayer(erlangenMarker);
-        companiesLayer.addTo(map);
+        // Load companies data from API
+        loadCompaniesData();
 
         // Regions layer
         regionsLayer = L.layerGroup();
@@ -321,6 +311,87 @@
             }
         });
         regionsLayer.addTo(map);
+    }
+
+    // Load companies data and add markers
+    async function loadCompaniesData() {
+        try {
+            showMessage('Lade Unternehmensdaten...', 'info');
+
+            const response = await fetch('/companies/map/api/data');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log(`Loaded ${data.total_count} companies with coordinates`);
+
+            // Clear existing companies
+            companiesLayer.clearLayers();
+
+            // Add company markers
+            data.companies.forEach(company => {
+                const marker = L.marker([company.latitude, company.longitude], {
+                    title: company.name
+                }).bindPopup(`
+                    <div class="popup-content">
+                        <h6><i class="fas fa-building me-2 text-primary"></i>${company.name}</h6>
+                        <p class="mb-1"><strong>BDEW-Code:</strong> ${company.bdew_code}</p>
+                        <p class="mb-1"><strong>Stadt:</strong> ${company.city || 'N/A'}</p>
+                        <p class="mb-1"><strong>Adresse:</strong> ${company.address}</p>
+                        <p class="mb-1 text-muted small">
+                            <i class="fas fa-crosshairs me-1"></i>
+                            ${company.latitude.toFixed(4)}°N, ${company.longitude.toFixed(4)}°E
+                        </p>
+                        <div class="mt-2">
+                            <a href="/companies/${company.id}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye me-1"></i>Details
+                            </a>
+                        </div>
+                    </div>
+                `);
+
+                companiesLayer.addLayer(marker);
+            });
+
+            companiesLayer.addTo(map);
+
+            // Update map title and info
+            document.querySelector('.card-title').innerHTML =
+                `<i class="fas fa-map me-2 text-primary"></i>Unternehmen Map - ${data.total_count} Unternehmen`;
+
+            // Update statistics
+            const companiesCountElement = document.getElementById('companiesCount');
+            if (companiesCountElement) {
+                companiesCountElement.textContent = data.total_count;
+            }
+
+            const geocodingRateElement = document.getElementById('geocodingRate');
+            if (geocodingRateElement) {
+                // Calculate geocoding rate (assuming total companies is ~893)
+                const geocodingRate = ((data.total_count / 893) * 100).toFixed(1);
+                geocodingRateElement.textContent = `${geocodingRate}%`;
+            }
+
+            showMessage(`${data.total_count} Unternehmen erfolgreich geladen`, 'success');
+
+        } catch (error) {
+            console.error('Error loading companies data:', error);
+            showMessage('Fehler beim Laden der Unternehmensdaten: ' + error.message, 'danger');
+
+            // Fallback: Add Erlangen marker as before
+            const erlangenMarker = L.marker(MAP_CONFIG.center, {
+                title: 'Erlangen'
+            }).bindPopup(`
+                <div class="popup-content">
+                    <h6><i class="fas fa-city me-2"></i>Erlangen</h6>
+                    <p class="mb-1"><strong>Zentrum der Karte</strong></p>
+                    <p class="mb-0 text-muted small">Koordinaten: 49.59°N, 11.00°E</p>
+                </div>
+            `);
+            companiesLayer.addLayer(erlangenMarker);
+            companiesLayer.addTo(map);
+        }
     }
 
     // Add map event listeners

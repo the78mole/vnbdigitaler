@@ -4,9 +4,9 @@
 
 # Nächste Verbesserungen
 
-- [ ] Adresse des Unternehmens über Nominatim in GeoKoordinaten auflösen
-- [ ] Map-Darstellung mit einem Fähnchen/Geolocation-Indicator versehen, der den Standort anzeigt
-- [ ] Tooltip mit Unternehmensinformationen bei Mouseover auf dem Fähnchen anzeigen
+- [X] Adresse des Unternehmens über Nominatim in GeoKoordinaten auflösen
+- [X] Map-Darstellung mit einem Fähnchen/Geolocation-Indicator versehen, der den Standort anzeigt
+- [X] Tooltip mit Unternehmensinformationen bei Mouseover auf dem Fähnchen anzeigen
 - [ ] Tooltips der Features verbessern (aktuell ziemlich sinnlose Infos für den Nutzer)
 - [ ] Tabellen sortierbar machen (Responsive Tables)
 
@@ -132,9 +132,9 @@
   </tr>
   <tr>
     <td>Adressauflösung (Nominatim)</td>
+    <td align="center">✅</td>
     <td align="center">❌</td>
-    <td align="center">❌</td>
-    <td align="center">⏸️</td>
+    <td align="center">✅</td>
     <td>Geocoding für Unternehmensadressen</td>
   </tr>
   <tr>

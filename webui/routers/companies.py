@@ -66,6 +66,67 @@ async def companies_map(request: Request):
     )
 
 
+@router.get("/map/api/data", response_class=JSONResponse)
+async def get_companies_map_data(
+    session: AsyncSession = Depends(get_db_session),
+):
+    """API endpoint to get companies with geocoding data for map visualization."""
+    try:
+        # Query only companies with valid coordinates
+        query = (
+            select(
+                Company.id,
+                Company.bdew_code,
+                Company.bdew_name,
+                Company.bdew_city,
+                Company.vnbdigital_city,
+                Company.vnbdigital_address,
+                Company.company_latitude,
+                Company.company_longitude,
+            )
+            .where(
+                Company.company_latitude.is_not(None),
+                Company.company_longitude.is_not(None),
+            )
+            .order_by(Company.bdew_name)
+        )
+
+        result = await session.execute(query)
+        companies = result.fetchall()
+
+        companies_data = []
+        for company in companies:
+            # Build display address
+            address_parts = []
+            if company.vnbdigital_address:
+                address_parts.append(company.vnbdigital_address)
+
+            city = company.vnbdigital_city or company.bdew_city
+            if city:
+                address_parts.append(city)
+
+            display_address = (
+                ", ".join(address_parts) if address_parts else "Address not available"
+            )
+
+            companies_data.append(
+                {
+                    "id": company.id,
+                    "bdew_code": company.bdew_code,
+                    "name": company.bdew_name,
+                    "city": city,
+                    "address": display_address,
+                    "latitude": float(company.company_latitude),
+                    "longitude": float(company.company_longitude),
+                }
+            )
+
+        return {"companies": companies_data, "total_count": len(companies_data)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e!s}")
+
+
 @router.get("/map/{company_id}", response_class=HTMLResponse)
 async def company_individual_map(request: Request, company_id: int):
     """Individual company map page (by database ID)."""
@@ -138,6 +199,8 @@ async def get_companies_api(
             Company.rollout_name_variations,
             Company.manual_verification,
             Company.network_territory_geojson,
+            Company.company_latitude,
+            Company.company_longitude,
         )
 
         # Apply filters
@@ -175,6 +238,8 @@ async def get_companies_api(
                     "rollout_name_variations": row.rollout_name_variations or [],
                     "manual_verification": row.manual_verification or False,
                     "has_service_area": bool(row.network_territory_geojson),
+                    "company_latitude": row.company_latitude,
+                    "company_longitude": row.company_longitude,
                 }
             )
 
@@ -274,11 +339,16 @@ async def get_company_details(
             "bdew_name": company.bdew_name,
             "bdew_city": company.bdew_city,
             "bdew_name_normalized": company.bdew_name_normalized,
+            "vnbdigital_address": company.vnbdigital_address,
+            "vnbdigital_postcode": company.vnbdigital_postcode,
+            "vnbdigital_city": company.vnbdigital_city,
             "rollout_report_name": company.rollout_report_name,
             "rollout_name_variations": company.rollout_name_variations or [],
             "manual_verification": company.manual_verification or False,
             "name_matching_confidence": company.name_matching_confidence,
             "has_service_area": bool(company.network_territory_geojson),
+            "company_latitude": company.company_latitude,
+            "company_longitude": company.company_longitude,
             "rollout_quota": rollout_quota_info,
         }
 
@@ -486,7 +556,3 @@ async def company_detail(request: Request, company_id: int):
             "company_id": company_id,
         },
     )
-
-
-# Note: Administrative boundaries are now loaded directly in the frontend using overpass-frontend
-# The /api/geodata/ endpoints have been removed to reduce backend complexity and improve performance
