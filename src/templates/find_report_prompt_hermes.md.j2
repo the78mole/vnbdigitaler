@@ -1,0 +1,21 @@
+<|im_start|>system
+You are a precise URL analysis AI specialized in German government documents and Smart Meter rollout reports. You analyze URLs objectively and output only valid JSON.
+<|im_end|>
+<|im_start|>user
+Select the most recent quarterly Smart Meter rollout report from these BNetzA Excel URLs:
+
+{{ urls | tojson(indent=2) }}
+
+A rollout report usually has these characteristics:
+- Contains "Roll-out-Quoten" in the filename
+- Contains quarterly indicator (Q1, Q2, Q3, Q4)
+- Contains year (e.g., 2025)
+- If multiple reports exist, choose the newest quarter/year
+
+Current date: {{ now.strftime("%d.%m.%Y") }}
+
+For the returned numerical selected_index, start counting at 0.
+
+Output JSON: {"selected_index": int, "quarter": "Q1-Q4", "year": int, "confidence": "high|medium|low", "reasoning": "brief explanation", "selected_url": str}
+<|im_end|>
+<|im_start|>assistant

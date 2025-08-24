@@ -6,7 +6,8 @@
       "version": "latest",
       "installPath": "/usr/local/bin",
       "enableShellCompletion": true
-    }
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker": {}
   },
   "customizations": {
     "codespaces": {

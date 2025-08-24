@@ -1,8 +1,77 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":combinePatchMinorReleases",
+    ":ignoreUnstable",
+    ":prImmediately",
+    ":updateNotScheduled",
+    ":automergeDisabled",
+    ":maintainLockFilesWeekly",
+    ":prConcurrentLimit2",
+    ":prHourlyLimit2"
   ],
   "dependencyDashboard": true,
-  "dependencyDashboardTitle": "📦 Renovate Dependency Dashboard"
+  "dependencyDashboardTitle": "📦 Renovate Dependency Dashboard",
+  "prTitle": "⬆️ {{semanticCommitType}}{{semanticCommitScope}}: {{prettyNewValue}}",
+  "pre-commit": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "description": "Group all pre-commit hooks updates",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "groupName": "pre-commit hooks",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps",
+      "schedule": [
+        "before 6am on monday"
+      ]
+    },
+    {
+      "description": "Auto-merge pre-commit hooks minor updates",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Python dependencies grouping",
+      "matchManagers": [
+        "pip_requirements",
+        "pip_setup",
+        "pipenv",
+        "poetry"
+      ],
+      "groupName": "Python dependencies",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
+    },
+    {
+      "description": "Development dependencies",
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "groupName": "Development dependencies",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "dev-deps"
+    }
+  ],
+  "timezone": "Europe/Berlin",
+  "assignees": [
+    "the78mole"
+  ],
+  "reviewers": [
+    "the78mole"
+  ]
 }

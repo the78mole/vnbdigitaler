@@ -704,6 +704,15 @@ wheels = [
 ]
 
 [[package]]
+name = "docopt-ng"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e4/50/8d6806cf13138127692ae6ff79ddeb4e25eb3b0bcc3c1bd033e7e04531a9/docopt_ng-0.9.0.tar.gz", hash = "sha256:91c6da10b5bb6f2e9e25345829fb8278c78af019f6fc40887ad49b060483b1d7", size = 32264, upload-time = "2023-05-30T20:46:25.064Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6c/4a/c3b77fc1a24510b08918b43a473410c0168f6e657118807015f1f1edceea/docopt_ng-0.9.0-py3-none-any.whl", hash = "sha256:bfe4c8b03f9fca424c24ee0b4ffa84bf7391cb18c29ce0f6a8227a3b01b81ff9", size = 16689, upload-time = "2023-05-30T20:46:45.294Z" },
+]
+
+[[package]]
 name = "dparse"
 version = "0.6.4"
 source = { registry = "https://pypi.org/simple" }
@@ -3510,6 +3519,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "beautifulsoup4" },
     { name = "boto3" },
+    { name = "docopt-ng" },
     { name = "fastapi" },
     { name = "fuzzywuzzy" },
     { name = "geopandas" },
@@ -3569,6 +3579,7 @@ test = [
 dev = [
     { name = "detect-secrets" },
     { name = "mypy" },
+    { name = "pydocstyle" },
     { name = "ruff" },
 ]
 
@@ -3583,6 +3594,7 @@ requires-dist = [
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.7.0" },
     { name = "boto3", specifier = ">=1.34.0" },
     { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.4.0" },
+    { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fastapi", specifier = ">=0.104.0" },
     { name = "fuzzywuzzy", specifier = ">=0.18.0" },
     { name = "geopandas" },
@@ -3631,6 +3643,7 @@ provides-extras = ["dev", "ai", "test"]
 dev = [
     { name = "detect-secrets", specifier = ">=1.5.0" },
     { name = "mypy", specifier = ">=1.17.1" },
+    { name = "pydocstyle", specifier = ">=6.3.0" },
     { name = "ruff", specifier = ">=0.12.9" },
 ]
 

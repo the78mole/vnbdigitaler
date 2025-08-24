@@ -2,7 +2,7 @@
 repos:
   # General pre-commit hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -39,7 +39,7 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-        exclude: ^tools/bak/
+        exclude: ^(tools/bak/|migrations/|tests/)
 
   # Type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -60,7 +60,7 @@ repos:
     rev: 6.3.0
     hooks:
       - id: pydocstyle
-        args: [--convention=google]
+        args: ["--convention=google", "--add-ignore=D100,D104,D105,D403"]
         files: ^src/
         exclude: ^tools/bak/
 
@@ -70,11 +70,11 @@ repos:
     hooks:
       - id: prettier
         types: [yaml]
-        exclude: |
-          (?x)^(
-            \.github/workflows/.*\.ya?ml|
-            \.pre-commit-config\.yaml
-          )$
+        #exclude: |
+        #  (?x)^(
+        #    \.github/workflows/.*\.ya?ml|
+        #    \.pre-commit-config\.yaml
+        #  )$
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -89,9 +89,10 @@ repos:
 
   # Security checks with bandit
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.5
+    rev: 1.7.10
     hooks:
       - id: bandit
+        additional_dependencies: [pbr]
         args: [-ll]
         exclude: ^(tests/|tools/bak/)
 

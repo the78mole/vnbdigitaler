@@ -38,13 +38,14 @@ dependencies = [
     "httpx>=0.28.1",
     "openai>=1.99.9",
     "jinja2>=3.1.0",
-    "psycopg2-binary>=2.9.0", # PostgreSQL adapter for Neon
+    "psycopg2-binary>=2.9.0",     # PostgreSQL adapter for Neon
     "openpyxl>=3.1.5",
     "beautifulsoup4>=4.13.4",
     "lxml>=6.0.0",
     "fuzzywuzzy>=0.18.0",
     "python-levenshtein>=0.27.1",
     "geopy>=2.4.1",
+    "docopt-ng>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -243,11 +244,18 @@ skips = [
 
 [tool.pydocstyle]
 convention = "google"
-add_ignore = ["D100", "D104", "D105"] # Missing docstrings in some cases
+add_ignore = [
+    "D100",
+    "D104",
+    "D105",
+    "D403",
+] # Missing docstrings in some cases + allow acronyms
+# Allow technical acronyms and official abbreviations in docstring first words
 
 [dependency-groups]
 dev = [
     "detect-secrets>=1.5.0",
     "mypy>=1.17.1",
+    "pydocstyle>=6.3.0",
     "ruff>=0.12.9",
 ]

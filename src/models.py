@@ -572,11 +572,25 @@ class RolloutQuota(Base):  # type: ignore[valid-type,misc]
     )
 
     # Report metadata
-    report_quarter: Mapped[str | None] = mapped_column(
-        String(10),
+    report_quarter: Mapped[int | None] = mapped_column(
+        Integer,
+        CheckConstraint(
+            "report_quarter IS NULL OR (report_quarter >= 1 AND report_quarter <= 4)",
+            name="chk_report_quarter_valid",
+        ),
         nullable=True,
         index=True,
-        comment="Report quarter (e.g., '2025Q1', '2025Q2')",
+        comment="Quarter number (1-4)",
+    )
+    report_year: Mapped[int | None] = mapped_column(
+        Integer,
+        CheckConstraint(
+            "report_year IS NULL OR (report_year >= 2024 AND report_year <= 2030)",
+            name="chk_report_year_valid",
+        ),
+        nullable=True,
+        index=True,
+        comment="Report year (2024-2030)",
     )
     source_file: Mapped[str] = mapped_column(
         String(200), nullable=False, index=True, comment="Source CSV filename"
@@ -608,7 +622,8 @@ class RolloutQuota(Base):  # type: ignore[valid-type,misc]
             "rollout_company_id",
             "reference_date",
             "report_quarter",
-            name="uq_rollout_quota_company_date_quarter",
+            "report_year",
+            name="uq_rollout_quota_company_date_quarter_year",
         ),
         CheckConstraint(
             "rollout_quota >= 0.0 AND rollout_quota <= 1.0",
@@ -619,3 +634,149 @@ class RolloutQuota(Base):  # type: ignore[valid-type,misc]
     def __repr__(self) -> str:
         """Return string representation of RolloutQuota."""
         return f"<RolloutQuota(id={self.id}, rollout_company_id={self.rollout_company_id}, quota={self.rollout_quota}, date={self.reference_date})>"
+
+
+class RolloutUpdateLog(Base):  # type: ignore[valid-type,misc]
+    """Model for tracking BNetzA rollout quota report downloads and updates."""
+
+    __tablename__ = "rollout_update_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    # Report source information
+    article_url: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        comment="URL of the BNetzA article page containing the report",
+    )
+    excel_filename: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        comment="Original filename of the downloaded Excel file",
+    )
+    excel_file_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        comment="SHA-256 hash of the Excel file content for change detection (set after processing)",
+    )
+
+    # Report metadata
+    report_reference_date: Mapped[datetime] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+        comment="The official reference date (Stichtag) of the report data",
+    )
+    report_quarter: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint(
+            "report_quarter >= 1 AND report_quarter <= 4",
+            name="chk_report_quarter_valid",
+        ),
+        nullable=False,
+        index=True,
+        comment="Quarter number (1-4)",
+    )
+    report_year: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint(
+            "report_year >= 2020 AND report_year <= 2050", name="chk_report_year_valid"
+        ),
+        nullable=False,
+        index=True,
+        comment="Year of the report",
+    )
+
+    # Processing statistics
+    total_entries_in_report: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint(
+            "total_entries_in_report >= 0", name="chk_total_entries_positive"
+        ),
+        nullable=False,
+        default=0,
+        comment="Total number of entries found in the report",
+    )
+    entries_updated: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("entries_updated >= 0", name="chk_entries_updated_positive"),
+        nullable=False,
+        default=0,
+        comment="Number of existing entries that were updated",
+    )
+    entries_added: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint("entries_added >= 0", name="chk_entries_added_positive"),
+        nullable=False,
+        default=0,
+        comment="Number of new entries that were added",
+    )
+    entries_with_wrong_reference_date: Mapped[int] = mapped_column(
+        Integer,
+        CheckConstraint(
+            "entries_with_wrong_reference_date >= 0",
+            name="chk_wrong_date_entries_positive",
+        ),
+        nullable=False,
+        default=0,
+        comment="Number of entries with different reference dates than expected",
+    )
+
+    # Processing metadata
+    download_timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+        comment="When the Excel file was downloaded",
+    )
+    processing_timestamp: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the processing started",
+    )
+    processing_duration_seconds: Mapped[float | None] = mapped_column(
+        Float,
+        CheckConstraint(
+            "processing_duration_seconds IS NULL OR processing_duration_seconds >= 0",
+            name="chk_processing_duration_positive",
+        ),
+        nullable=True,
+        comment="Duration of processing in seconds",
+    )
+
+    # Additional information
+    notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Additional notes about the update process"
+    )
+    error_message: Mapped[str | None] = mapped_column(
+        Text, nullable=True, comment="Error message if processing failed"
+    )
+
+    # Status tracking
+    status: Mapped[str] = mapped_column(
+        String(20),
+        CheckConstraint(
+            "status IN ('discovered', 'downloaded', 'processing', 'completed', 'failed')",
+            name="chk_status_valid",
+        ),
+        nullable=False,
+        default="discovered",
+        index=True,
+        comment="Processing status: discovered, downloaded, processing, completed, failed",
+    )
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        """Return string representation of RolloutUpdateLog."""
+        return f"<RolloutUpdateLog(id={self.id}, quarter='{self.report_quarter}', status='{self.status}')>"

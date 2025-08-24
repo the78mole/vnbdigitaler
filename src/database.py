@@ -38,6 +38,30 @@ class DatabaseManager:
         sync_url = self.database_url.replace("+asyncpg", "").replace(
             "postgresql://", "postgresql+psycopg2://"
         )
+
+        # Clean SSL parameters from sync URL for psycopg2 compatibility
+        import urllib.parse
+
+        parsed = urllib.parse.urlparse(sync_url)
+        query_params = urllib.parse.parse_qs(parsed.query)
+        # Remove problematic SSL parameters
+        if "ssl" in query_params:
+            del query_params["ssl"]
+        if "sslmode" in query_params:
+            del query_params["sslmode"]
+        # Rebuild URL
+        clean_query = urllib.parse.urlencode(query_params, doseq=True)
+        sync_url = urllib.parse.urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                clean_query,
+                parsed.fragment,
+            )
+        )
+
         self.sync_engine = create_engine(
             sync_url,
             echo=os.getenv("DATABASE_ECHO", "false").lower() == "true",
