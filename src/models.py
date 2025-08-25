@@ -504,12 +504,13 @@ class RolloutCompany(Base):  # type: ignore[valid-type,misc]
     )
 
     # BDEW linking
-    bdew_company_id: Mapped[int | None] = mapped_column(
+    bdew_code: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey("companies.id"),
+        ForeignKey("companies.bdew_code"),
         nullable=True,
+        unique=True,
         index=True,
-        comment="Foreign key to matched BDEW company",
+        comment="BDEW code referencing the matched BDEW company",
     )
     is_manually_verified: Mapped[bool] = mapped_column(
         Boolean,
@@ -535,7 +536,7 @@ class RolloutCompany(Base):  # type: ignore[valid-type,misc]
 
     def __repr__(self) -> str:
         """Return string representation of RolloutCompany."""
-        return f"<RolloutCompany(id={self.id}, bnetza_name='{self.bnetza_name}', bdew_company_id={self.bdew_company_id})>"
+        return f"<RolloutCompany(id={self.id}, bnetza_name='{self.bnetza_name}', bdew_code={self.bdew_code})>"
 
 
 class RolloutQuota(Base):  # type: ignore[valid-type,misc]

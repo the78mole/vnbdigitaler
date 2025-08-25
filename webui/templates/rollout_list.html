@@ -186,6 +186,58 @@
         </div>
     </div>
 </div>
+
+<!-- BDEW Link Modal -->
+<div class="modal fade" id="bdewLinkModal" tabindex="-1" aria-labelledby="bdewLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bdewLinkModalLabel">Link to BDEW Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label"><strong>Rollout Company:</strong></label>
+                    <div id="rolloutCompanyName" class="form-control-plaintext"></div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="bdewCompanySelect" class="form-label">BDEW Company:</label>
+                    <select class="form-select" id="bdewCompanySelect" size="10">
+                        <option value="">-- Loading companies... --</option>
+                    </select>
+                    <div class="form-text">
+                        Companies are sorted by fuzzy-match score based on name similarity.
+                        <strong>[Score%]</strong> indicates match quality.
+                        <br>
+                        <span class="badge bg-success">Green (80%+)</span> - High match
+                        <span class="badge bg-warning text-dark">Yellow (60-79%)</span> - Medium match
+                        <span class="badge bg-info">Blue (&lt;60%)</span> - Low match
+                        <span class="badge bg-warning">Yellow with ✓</span> - Current link
+                    </div>
+                </div>
+
+                <div id="linkError" class="alert alert-danger" style="display: none;">
+                    <!-- Error messages will appear here -->
+                </div>
+
+                <div id="linkSuccess" class="alert alert-success" style="display: none;">
+                    <!-- Success messages will appear here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="unlinkBtn" onclick="unlinkCompany()"
+                    style="display: none;">
+                    <i class="bi bi-x-circle"></i> Remove Link
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="linkBtn" onclick="linkCompany()">
+                    <i class="bi bi-link"></i> Link Company
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -276,6 +328,9 @@
                 row.id = 'highlighted-row';
             }
 
+            // Safely escape company name for JavaScript
+            const safeCompanyName = entry.company_name.replace(/'/g, "\\'").replace(/"/g, '\\"');
+
             row.innerHTML = `
             <td>
                 <strong>${escapeHtml(entry.company_name)}</strong>
@@ -302,9 +357,16 @@
                 <small class="text-muted">${escapeHtml(entry.source_file || 'N/A')}</small>
             </td>
             <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="viewEntry(${entry.id})">>
-                    <i class="bi bi-eye"></i> View
-                </button>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="viewEntry(${entry.id})" title="View Details">
+                        <i class="bi bi-eye"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-${entry.is_matched ? 'warning' : 'success'}"
+                            onclick="openLinkDialog(${entry.id}, '${safeCompanyName}', ${entry.bdew_company_code || 'null'})"
+                            title="${entry.is_matched ? 'Edit BDEW Link' : 'Link to BDEW Company'}">
+                        <i class="bi bi-${entry.is_matched ? 'pencil' : 'link'}"></i>
+                    </button>
+                </div>
             </td>
         `;
             tbody.appendChild(row);
@@ -588,6 +650,198 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // BDEW Link Dialog Functions
+    let currentRolloutCompanyId = null;
+    let currentLinkedBdewCode = null;
+
+    async function openLinkDialog(rolloutId, companyName, currentBdewCode) {
+        currentRolloutCompanyId = rolloutId;
+        currentLinkedBdewCode = currentBdewCode;
+
+        // Set company name
+        document.getElementById('rolloutCompanyName').textContent = companyName;
+
+        // Show/hide unlink button
+        const unlinkBtn = document.getElementById('unlinkBtn');
+        if (currentBdewCode) {
+            unlinkBtn.style.display = 'inline-block';
+        } else {
+            unlinkBtn.style.display = 'none';
+        }
+
+        // Clear previous messages
+        document.getElementById('linkError').style.display = 'none';
+        document.getElementById('linkSuccess').style.display = 'none';
+
+        // Load available companies
+        await loadAvailableBdewCompanies(rolloutId);
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('bdewLinkModal'));
+        modal.show();
+    }
+
+    async function loadAvailableBdewCompanies(rolloutId) {
+        const select = document.getElementById('bdewCompanySelect');
+        select.innerHTML = '<option value="">-- Loading companies... --</option>';
+
+        try {
+            const response = await fetch(`/rollout/api/bdew-companies/available?current_rollout_id=${rolloutId}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                select.innerHTML = '';
+
+                // Add "No Link" option
+                const noLinkOption = document.createElement('option');
+                noLinkOption.value = '';
+                noLinkOption.textContent = '-- No BDEW Link --';
+                noLinkOption.style.fontStyle = 'italic';
+                select.appendChild(noLinkOption);
+
+                if (data.companies.length === 0) {
+                    const noCompaniesOption = document.createElement('option');
+                    noCompaniesOption.value = '';
+                    noCompaniesOption.textContent = '-- No companies available --';
+                    noCompaniesOption.disabled = true;
+                    select.appendChild(noCompaniesOption);
+                } else {
+                    data.companies.forEach(company => {
+                        const option = document.createElement('option');
+                        option.value = company.bdew_code;
+
+                        // Build display text with match score
+                        let displayText = `${company.bdew_name} (${company.bdew_city || 'Unknown'}) - Code: ${company.bdew_code}`;
+
+                        if (company.match_score !== undefined && company.match_score > 0 && !company.is_current) {
+                            displayText = `[${company.match_score}%] ${displayText}`;
+                        }
+
+                        option.textContent = displayText;
+
+                        if (company.is_current) {
+                            option.selected = true;
+                            option.style.backgroundColor = '#fff3cd';
+                            option.style.fontWeight = 'bold';
+                            option.textContent = '✓ ' + option.textContent + ' (Current)';
+                        } else {
+                            // Color code based on match score
+                            if (company.match_score >= 80) {
+                                option.style.backgroundColor = '#d4edda'; // Green for high matches
+                                option.style.fontWeight = 'bold';
+                            } else if (company.match_score >= 60) {
+                                option.style.backgroundColor = '#fff3cd'; // Yellow for medium matches
+                            } else {
+                                option.style.backgroundColor = '#d1ecf1'; // Blue for low matches
+                            }
+                        }
+
+                        select.appendChild(option);
+                    });
+                }
+
+                // If no current link, select the "No Link" option
+                if (!data.current_linked_code) {
+                    select.value = '';
+                }
+            } else {
+                select.innerHTML = '<option value="">-- Error loading companies --</option>';
+                showLinkError('Error loading available companies: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error loading BDEW companies:', error);
+            select.innerHTML = '<option value="">-- Error loading companies --</option>';
+            showLinkError('Error loading companies: ' + error.message);
+        }
+    }
+
+    async function linkCompany() {
+        const select = document.getElementById('bdewCompanySelect');
+        const selectedBdewCode = select.value ? parseInt(select.value) : null;
+
+        // Clear previous messages
+        document.getElementById('linkError').style.display = 'none';
+        document.getElementById('linkSuccess').style.display = 'none';
+
+        try {
+            const formData = new FormData();
+            formData.append('rollout_company_id', currentRolloutCompanyId);
+            if (selectedBdewCode) {
+                formData.append('bdew_code', selectedBdewCode);
+            }
+
+            const response = await fetch('/rollout/api/bdew-companies/link', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showLinkSuccess(data.message);
+
+                // Refresh the table after successful link
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('bdewLinkModal'));
+                    modal.hide();
+                    loadEntries(); // Refresh the main table
+                }, 1500);
+            } else {
+                showLinkError(data.error || 'Unknown error occurred');
+            }
+        } catch (error) {
+            console.error('Error linking company:', error);
+            showLinkError('Error linking company: ' + error.message);
+        }
+    }
+
+    async function unlinkCompany() {
+        // Clear previous messages
+        document.getElementById('linkError').style.display = 'none';
+        document.getElementById('linkSuccess').style.display = 'none';
+
+        try {
+            const formData = new FormData();
+            formData.append('rollout_company_id', currentRolloutCompanyId);
+            // Don't add bdew_code - this will unlink
+
+            const response = await fetch('/rollout/api/bdew-companies/link', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showLinkSuccess(data.message);
+
+                // Refresh the table after successful unlink
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('bdewLinkModal'));
+                    modal.hide();
+                    loadEntries(); // Refresh the main table
+                }, 1500);
+            } else {
+                showLinkError(data.error || 'Unknown error occurred');
+            }
+        } catch (error) {
+            console.error('Error unlinking company:', error);
+            showLinkError('Error unlinking company: ' + error.message);
+        }
+    }
+
+    function showLinkError(message) {
+        const errorDiv = document.getElementById('linkError');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+
+    function showLinkSuccess(message) {
+        const successDiv = document.getElementById('linkSuccess');
+        successDiv.textContent = message;
+        successDiv.style.display = 'block';
     }
 </script>
 {% endblock %}

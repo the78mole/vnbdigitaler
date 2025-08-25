@@ -134,7 +134,7 @@ async def stats(request: Request, db: AsyncSession = Depends(get_db_session)):
         matched_rollout_query = (
             select(func.count())
             .select_from(RolloutCompany)
-            .where(RolloutCompany.bdew_company_id.is_not(None))
+            .where(RolloutCompany.bdew_code.is_not(None))
         )
         matched_rollout_result = await db.execute(matched_rollout_query)
         matched_rollout = matched_rollout_result.scalar() or 0

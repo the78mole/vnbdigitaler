@@ -38,7 +38,7 @@ dependencies = [
     "httpx>=0.28.1",
     "openai>=1.99.9",
     "jinja2>=3.1.0",
-    "psycopg2-binary>=2.9.0",     # PostgreSQL adapter for Neon
+    "psycopg2-binary>=2.9.0", # PostgreSQL adapter for Neon
     "openpyxl>=3.1.5",
     "beautifulsoup4>=4.13.4",
     "lxml>=6.0.0",
@@ -46,6 +46,7 @@ dependencies = [
     "python-levenshtein>=0.27.1",
     "geopy>=2.4.1",
     "docopt-ng>=0.9.0",
+    "python-multipart>=0.0.20",
 ]
 
 [project.optional-dependencies]

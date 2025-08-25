@@ -9,9 +9,10 @@ Shows only companies that are NOT linked to BDEW data.
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fuzzywuzzy import fuzz
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -129,9 +130,9 @@ async def get_rollout_entries(
     # Build company query first
     company_query = select(RolloutCompany)
 
-    # Filter for unmatched companies (where bdew_company_id IS NULL)
+    # Filter for unmatched companies (where bdew_code IS NULL)
     if unmatched_only:
-        company_query = company_query.where(RolloutCompany.bdew_company_id.is_(None))
+        company_query = company_query.where(RolloutCompany.bdew_code.is_(None))
 
     # Add search filter
     if search:
@@ -193,9 +194,9 @@ async def get_rollout_entries(
                 else None,
                 "report_quarter": quota.report_quarter if quota else None,
                 "source_file": quota.source_file if quota else None,
-                "is_matched": company.bdew_company_id is not None,
-                "matched_company_id": company.bdew_company_id,
-                "bdew_company_code": None,  # Will be filled below if matched
+                "is_matched": company.bdew_code is not None,
+                "matched_company_id": company.bdew_code,
+                "bdew_company_code": company.bdew_code,
                 "created_at": quota.created_at.isoformat()
                 if quota and quota.created_at
                 else None,
@@ -253,16 +254,16 @@ async def get_rollout_stats(
     total_result = await db.execute(total_query)
     total_companies = total_result.scalar() or 0
 
-    # Companies linked to BDEW (matched) - these have bdew_company_id
+    # Companies linked to BDEW (matched) - these have bdew_code
     matched_query = (
         select(func.count())
         .select_from(RolloutCompany)
-        .where(RolloutCompany.bdew_company_id.is_not(None))
+        .where(RolloutCompany.bdew_code.is_not(None))
     )
     matched_result = await db.execute(matched_query)
     matched_companies = matched_result.scalar() or 0
 
-    # Unmatched companies (not linked to BDEW) - these have NULL bdew_company_id
+    # Unmatched companies (not linked to BDEW) - these have NULL bdew_code
     unmatched_companies = total_companies - matched_companies
 
     # Total quota entries
@@ -312,7 +313,7 @@ async def get_rollout_companies(
 
     # Filter for unmatched companies
     if unmatched_only:
-        query = query.where(RolloutCompany.bdew_company_id.is_(None))
+        query = query.where(RolloutCompany.bdew_code.is_(None))
 
     # Add search filter
     if search:
@@ -346,7 +347,7 @@ async def get_rollout_companies(
                 "id": company.id,
                 "bnetza_name": company.bnetza_name,
                 "normalized_name": company.normalized_name,
-                "bdew_company_id": company.bdew_company_id,
+                "bdew_code": company.bdew_code,
                 "is_manually_verified": company.is_manually_verified,
                 "verification_notes": company.verification_notes,
                 "created_at": company.created_at.isoformat(),
@@ -402,8 +403,8 @@ async def get_rollout_entry(
         else None,
         "report_quarter": quota.report_quarter if quota else None,
         "source_file": quota.source_file if quota else None,
-        "is_matched": company.bdew_company_id is not None,
-        "matched_company_id": company.bdew_company_id,
+        "is_matched": company.bdew_code is not None,
+        "matched_company_id": company.bdew_code,
         "is_manually_verified": company.is_manually_verified,
         "verification_notes": company.verification_notes,
         "created_at": quota.created_at.isoformat()
@@ -443,7 +444,7 @@ async def find_page_for_bdew_id(
 
     # Find the position of our target company
     for i, company in enumerate(companies):
-        if company.bdew_company_id == bdew_id:
+        if company.bdew_code == bdew_id:
             position = i + 1  # 1-indexed position
             page = ((position - 1) // page_size) + 1
             return page
@@ -465,7 +466,7 @@ async def find_page_for_company_name(
 
     # Apply the same filters
     if unmatched_only:
-        company_query = company_query.where(RolloutCompany.bdew_company_id.is_(None))
+        company_query = company_query.where(RolloutCompany.bdew_code.is_(None))
 
     if search:
         search_term = f"%{search.lower()}%"
@@ -488,3 +489,197 @@ async def find_page_for_company_name(
             return page
 
     return 1  # Not found, default to page 1
+
+
+@router.get("/api/bdew-companies/available")
+async def get_available_bdew_companies(
+    current_rollout_id: int | None = Query(None),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Get BDEW companies that are available for linking.
+
+    Returns:
+    - All unlinked BDEW companies sorted by fuzzy match score
+    - The currently linked BDEW company (if any) for the given rollout company
+    """
+
+    # Get current rollout company name for fuzzy matching
+    rollout_company_name = ""
+    if current_rollout_id:
+        rollout_query = select(RolloutCompany).where(
+            RolloutCompany.id == current_rollout_id
+        )
+        rollout_result = await db.execute(rollout_query)
+        rollout_company = rollout_result.scalar_one_or_none()
+        if rollout_company:
+            rollout_company_name = rollout_company.bnetza_name
+
+    # Get BDEW companies that are NOT already linked to any rollout company
+    unlinked_query = (
+        select(Company)
+        .outerjoin(RolloutCompany, Company.bdew_code == RolloutCompany.bdew_code)
+        .where(RolloutCompany.bdew_code.is_(None))
+        .where(Company.bdew_code.is_not(None))
+    )
+
+    unlinked_result = await db.execute(unlinked_query)
+    unlinked_companies = unlinked_result.scalars().all()
+
+    # Get currently linked company (if any)
+    current_linked = None
+    if current_rollout_id:
+        current_query = (
+            select(Company)
+            .join(RolloutCompany, Company.bdew_code == RolloutCompany.bdew_code)
+            .where(RolloutCompany.id == current_rollout_id)
+        )
+        current_result = await db.execute(current_query)
+        current_linked = current_result.scalar_one_or_none()
+
+    # Calculate fuzzy match scores and sort companies
+    scored_companies = []
+    for company in unlinked_companies:
+        # Calculate fuzzy match score using multiple algorithms
+        name_score = 0
+        city_score = 0
+
+        if rollout_company_name:
+            # Score against BDEW company name
+            name_score = max(
+                fuzz.ratio(rollout_company_name.lower(), company.bdew_name.lower()),
+                fuzz.partial_ratio(
+                    rollout_company_name.lower(), company.bdew_name.lower()
+                ),
+                fuzz.token_sort_ratio(
+                    rollout_company_name.lower(), company.bdew_name.lower()
+                ),
+                fuzz.token_set_ratio(
+                    rollout_company_name.lower(), company.bdew_name.lower()
+                ),
+            )
+
+            # Also score against city if available
+            if company.bdew_city:
+                city_score = fuzz.partial_ratio(
+                    rollout_company_name.lower(), company.bdew_city.lower()
+                )
+
+        # Combined score (name is more important than city)
+        combined_score = int(name_score * 0.8 + city_score * 0.2)
+
+        scored_companies.append(
+            {
+                "company": company,
+                "score": combined_score,
+                "name_score": name_score,
+                "city_score": city_score,
+            }
+        )
+
+    # Sort by score (highest first)
+    scored_companies.sort(key=lambda x: x["score"], reverse=True)
+
+    # Combine results
+    available_companies = []
+
+    # Add currently linked company first (if exists)
+    if current_linked:
+        available_companies.append(
+            {
+                "bdew_code": current_linked.bdew_code,
+                "bdew_name": current_linked.bdew_name,
+                "bdew_city": current_linked.bdew_city or "",
+                "is_current": True,
+                "match_score": 100,  # Current link gets perfect score
+            }
+        )
+
+    # Add scored unlinked companies
+    for item in scored_companies:
+        company = item["company"]
+        available_companies.append(
+            {
+                "bdew_code": company.bdew_code,
+                "bdew_name": company.bdew_name,
+                "bdew_city": company.bdew_city or "",
+                "is_current": False,
+                "match_score": item["score"],
+            }
+        )
+
+    return {
+        "companies": available_companies,
+        "current_linked_code": current_linked.bdew_code if current_linked else None,
+        "rollout_company_name": rollout_company_name,
+    }
+
+
+@router.post("/api/bdew-companies/link")
+async def link_bdew_company(
+    rollout_company_id: int = Form(...),
+    bdew_code: int | None = Form(None),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Link a rollout company to a BDEW company or unlink it.
+
+    Args:
+        rollout_company_id: ID of the rollout company
+        bdew_code: BDEW code to link to (None to unlink)
+    """
+
+    # Get the rollout company
+    rollout_query = select(RolloutCompany).where(
+        RolloutCompany.id == rollout_company_id
+    )
+    rollout_result = await db.execute(rollout_query)
+    rollout_company = rollout_result.scalar_one_or_none()
+
+    if not rollout_company:
+        return {"success": False, "error": "Rollout company not found"}
+
+    # Verify BDEW company exists (if linking)
+    if bdew_code is not None:
+        bdew_query = select(Company).where(Company.bdew_code == bdew_code)
+        bdew_result = await db.execute(bdew_query)
+        bdew_company = bdew_result.scalar_one_or_none()
+
+        if not bdew_company:
+            return {"success": False, "error": "BDEW company not found"}
+
+        # Check if BDEW company is already linked to another rollout company
+        existing_link_query = (
+            select(RolloutCompany)
+            .where(RolloutCompany.bdew_code == bdew_code)
+            .where(RolloutCompany.id != rollout_company_id)
+        )
+        existing_link_result = await db.execute(existing_link_query)
+        existing_link = existing_link_result.scalar_one_or_none()
+
+        if existing_link:
+            return {
+                "success": False,
+                "error": f"BDEW company already linked to '{existing_link.bnetza_name}'",
+            }
+
+    # Update the link
+    rollout_company.bdew_code = bdew_code
+    rollout_company.is_manually_verified = True  # Mark as manually verified
+
+    await db.commit()
+
+    action = "linked" if bdew_code else "unlinked"
+    bdew_name = ""
+
+    if bdew_code:
+        bdew_query = select(Company).where(Company.bdew_code == bdew_code)
+        bdew_result = await db.execute(bdew_query)
+        bdew_company = bdew_result.scalar_one_or_none()
+        bdew_name = bdew_company.bdew_name if bdew_company else ""
+
+    return {
+        "success": True,
+        "message": f"Company '{rollout_company.bnetza_name}' {action}",
+        "rollout_company": rollout_company.bnetza_name,
+        "bdew_company": bdew_name,
+        "bdew_code": bdew_code,
+    }

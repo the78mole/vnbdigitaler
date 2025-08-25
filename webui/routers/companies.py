@@ -304,11 +304,11 @@ async def get_company_details(
         if not company:
             raise HTTPException(status_code=404, detail="Company not found")
 
-        # Get latest rollout quota if available via bdew_company_id relationship
+        # Get latest rollout quota if available via bdew_code relationship
         rollout_quota_info = None
-        # Find the rollout company by bdew_company_id (direct FK relationship)
+        # Find the rollout company by bdew_code (direct FK relationship)
         rollout_query = select(RolloutCompany).where(
-            RolloutCompany.bdew_company_id == company.id
+            RolloutCompany.bdew_code == company.bdew_code
         )
         rollout_result = await session.execute(rollout_query)
         rollout_company = rollout_result.scalar_one_or_none()
