@@ -43,26 +43,17 @@ async def dashboard_stats_api(db: AsyncSession = Depends(get_db_session)):
         total_companies_result = await db.execute(total_companies_query)
         total_companies = total_companies_result.scalar() or 0
 
-        # Companies with rollout names (matched)
+        # Companies with rollout names (matched) - using rollout_companies table
         matched_companies_query = (
-            select(func.count())
+            select(func.count(func.distinct(Company.id)))
             .select_from(Company)
-            .where(Company.rollout_report_name.is_not(None))
+            .join(RolloutCompany, Company.bdew_code == RolloutCompany.bdew_code)
         )
         matched_companies_result = await db.execute(matched_companies_query)
         matched_companies = matched_companies_result.scalar() or 0
 
         # Companies without rollout names (unmatched)
         unmatched_companies = total_companies - matched_companies
-
-        # Companies requiring manual verification
-        manual_verification_query = (
-            select(func.count())
-            .select_from(Company)
-            .where(Company.manual_verification.is_(True))
-        )
-        manual_verification_result = await db.execute(manual_verification_query)
-        manual_verification = manual_verification_result.scalar() or 0
 
         # Rollout companies
         rollout_companies_query = select(func.count()).select_from(RolloutCompany)
@@ -74,13 +65,22 @@ async def dashboard_stats_api(db: AsyncSession = Depends(get_db_session)):
         rollout_quotas_result = await db.execute(rollout_quotas_query)
         rollout_quotas = rollout_quotas_result.scalar() or 0
 
+        # Companies with service areas
+        service_areas_query = (
+            select(func.count())
+            .select_from(Company)
+            .where(Company.network_territory_geojson.is_not(None))
+        )
+        service_areas_result = await db.execute(service_areas_query)
+        service_areas = service_areas_result.scalar() or 0
+
         return {
             "total_companies": total_companies,
             "matched_companies": matched_companies,
             "unmatched_companies": unmatched_companies,
-            "manual_verification": manual_verification,
             "rollout_companies": rollout_companies,
             "rollout_quotas": rollout_quotas,
+            "service_areas": service_areas,
             "match_rate": round((matched_companies / total_companies * 100), 1)
             if total_companies > 0
             else 0.0,
@@ -94,9 +94,9 @@ async def dashboard_stats_api(db: AsyncSession = Depends(get_db_session)):
             "total_companies": 0,
             "matched_companies": 0,
             "unmatched_companies": 0,
-            "manual_verification": 0,
             "rollout_companies": 0,
             "rollout_quotas": 0,
+            "service_areas": 0,
             "match_rate": 0.0,
             "database_status": "error",
             "last_updated": "error",
@@ -113,16 +113,16 @@ async def stats(request: Request, db: AsyncSession = Depends(get_db_session)):
         total_companies_result = await db.execute(total_companies_query)
         total_companies = total_companies_result.scalar() or 0
 
-        # Companies with BDEW names (matched with external data)
+        # Companies with rollout names (matched) - using rollout_companies table
         matched_companies_query = (
-            select(func.count())
+            select(func.count(func.distinct(Company.id)))
             .select_from(Company)
-            .where(Company.bdew_name.is_not(None))
+            .join(RolloutCompany, Company.bdew_code == RolloutCompany.bdew_code)
         )
         matched_companies_result = await db.execute(matched_companies_query)
         matched_companies = matched_companies_result.scalar() or 0
 
-        # Companies without BDEW names (unmatched)
+        # Companies without rollout names (unmatched)
         unmatched_companies = total_companies - matched_companies
 
         # Rollout companies (new normalized structure)

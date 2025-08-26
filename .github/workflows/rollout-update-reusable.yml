@@ -1,0 +1,179 @@
+name: Reusable BNetzA Rollout Update
+
+on:
+  workflow_call:
+    inputs:
+      force_update:
+        description: "Force update even if no changes detected"
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: "Dry run - show what would be updated without making changes"
+        required: false
+        default: false
+        type: boolean
+      check_only:
+        description: "Only check for updates without executing them"
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      DATABASE_URL:
+        description: "PostgreSQL database connection URL"
+        required: true
+      NEON_DATABASE_URL:
+        description: "Alternative Neon database URL (optional)"
+        required: false
+    outputs:
+      has_updates:
+        description: "Whether new updates are available"
+        value: ${{ jobs.update-rollout.outputs.has_updates }}
+      action_taken:
+        description: "Description of the action that was taken"
+        value: ${{ jobs.update-rollout.outputs.action_taken }}
+      companies_processed:
+        description: "Number of companies processed"
+        value: ${{ jobs.update-rollout.outputs.companies_processed }}
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  update-rollout:
+    runs-on: ubuntu-latest
+    outputs:
+      has_updates: ${{ steps.check-reports.outputs.has_updates }}
+      action_taken: ${{ steps.determine-action.outputs.action_taken }}
+      companies_processed: ${{ steps.extract-stats.outputs.companies_processed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Configure database connection
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          echo "Database configuration set from secrets"
+
+      - name: Check for new rollout reports
+        id: check-reports
+        run: |
+          echo "🔍 Checking for new BNetzA rollout reports..."
+
+          # Create wrapper script for better output control
+          cat > check_reports.py << 'EOF'
+          import subprocess
+          import sys
+          import os
+
+          def run_check():
+              try:
+                  # Check for new reports
+                  result = subprocess.run([
+                      'uv', 'run', 'python',
+                      'src/bnetza/rollout_report_updater.py',
+                      '--check-update', '--verbose'
+                  ], capture_output=True, text=True, cwd='.')
+
+                  output = result.stdout + result.stderr
+                  print("=== CHECK REPORT OUTPUT ===")
+                  print(output)
+                  print("=== END OUTPUT ===")
+
+                  # Determine if updates are available based on exit code and output
+                  has_updates = result.returncode == 0 and "no new reports available" not in output.lower()
+
+                  # Set GitHub Actions output
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"has_updates={str(has_updates).lower()}\n")
+                      f.write(f"check_output={output.replace('\n', ' ')}\n")
+
+                  return has_updates
+
+              except Exception as e:
+                  print(f"Error checking reports: {e}")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"has_updates=false\n")
+                      f.write(f"check_output=Error: {e}\n")
+                  return False
+
+          if __name__ == "__main__":
+              has_updates = run_check()
+              sys.exit(0)
+          EOF
+
+          python check_reports.py
+
+      - name: Determine action
+        id: determine-action
+        run: |
+          if [[ "${{ inputs.check_only }}" == "true" ]]; then
+            echo "action=check_only" >> $GITHUB_OUTPUT
+            echo "action_taken=Check only - no updates performed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "action=dry_run" >> $GITHUB_OUTPUT
+            echo "action_taken=Dry run completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.force_update }}" == "true" ]]; then
+            echo "action=force_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Forced update completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.check-reports.outputs.has_updates }}" == "true" ]]; then
+            echo "action=regular_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Regular update completed" >> $GITHUB_OUTPUT
+          else
+            echo "action=no_action" >> $GITHUB_OUTPUT
+            echo "action_taken=No updates needed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run dry run
+        if: ${{ steps.determine-action.outputs.action == 'dry_run' }}
+        run: |
+          echo "🔍 Running dry run..."
+          uv run python src/bnetza/rollout_report_updater.py --dry-run --verbose
+
+      - name: Run forced update
+        if: ${{ steps.determine-action.outputs.action == 'force_update' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          echo "🚀 Running forced update..."
+          uv run python src/bnetza/rollout_report_updater.py --force-update --verbose | tee update_output.log
+
+      - name: Run regular update
+        if: ${{ steps.determine-action.outputs.action == 'regular_update' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          echo "📊 Running regular update..."
+          uv run python src/bnetza/rollout_report_updater.py --verbose | tee update_output.log
+
+      - name: Extract statistics
+        id: extract-stats
+        if: ${{ steps.determine-action.outputs.action == 'force_update' || steps.determine-action.outputs.action == 'regular_update' }}
+        run: |
+          # Extract number of companies processed from the output
+          if [[ -f "update_output.log" ]]; then
+            companies=$(grep -o "Imported [0-9]* company quota records" update_output.log | grep -o "[0-9]*" || echo "0")
+            echo "companies_processed=$companies" >> $GITHUB_OUTPUT
+            echo "📊 Processed $companies companies"
+          else
+            echo "companies_processed=0" >> $GITHUB_OUTPUT
+          fi

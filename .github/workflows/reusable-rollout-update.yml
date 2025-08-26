@@ -1,0 +1,311 @@
+name: Reusable BNetzA Rollout Update
+
+on:
+  workflow_call:
+    inputs:
+      force_update:
+        description: "Force update even if no changes detected"
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: "Dry run - show what would be updated without making changes"
+        required: false
+        default: false
+        type: boolean
+      check_only:
+        description: "Only check for updates without executing them"
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      DATABASE_URL:
+        description: "PostgreSQL database connection URL"
+        required: true
+    outputs:
+      has_updates:
+        description: "Whether new updates are available"
+        value: ${{ jobs.update-rollout.outputs.has_updates }}
+      action_taken:
+        description: "Description of the action that was taken"
+        value: ${{ jobs.update-rollout.outputs.action_taken }}
+      companies_processed:
+        description: "Number of companies processed"
+        value: ${{ jobs.update-rollout.outputs.companies_processed }}
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  update-rollout:
+    runs-on: ubuntu-latest
+    outputs:
+      has_updates: ${{ steps.check-reports.outputs.has_updates }}
+      action_taken: ${{ steps.determine-action.outputs.action_taken }}
+      companies_processed: ${{ steps.extract-stats.outputs.companies_processed }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+
+      - name: Configure database connection
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "Database configuration set from secrets"
+
+      - name: Check for new rollout reports
+        id: check-reports
+        run: |
+          echo "🔍 Checking for new BNetzA rollout reports..."
+
+          # Create wrapper script for better output control
+          cat > check_reports.py << 'EOF'
+          import subprocess
+          import sys
+          import os
+
+          def run_check():
+              try:
+                  # Check for new reports
+                  result = subprocess.run([
+                      'uv', 'run', 'python',
+                      'src/bnetza/rollout_report_updater.py',
+                      '--check-update', '--verbose'
+                  ], capture_output=True, text=True, cwd='.')
+
+                  output = result.stdout + result.stderr
+                  print("=== CHECK REPORT OUTPUT ===")
+                  print(output)
+                  print("=== END OUTPUT ===")
+
+                  # Determine if updates are available based on exit code and output
+                  has_updates = result.returncode == 0 and "no new reports available" not in output.lower()
+
+                  # Set GitHub Actions output
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"has_updates={str(has_updates).lower()}\n")
+                      f.write(f"check_output={output.replace('\n', ' ')}\n")
+
+                  return has_updates
+
+              except Exception as e:
+                  print(f"Error checking reports: {e}")
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"has_updates=false\n")
+                      f.write(f"check_output=Error: {e}\n")
+                  return False
+
+          if __name__ == "__main__":
+              has_updates = run_check()
+              sys.exit(0)
+          EOF
+
+          python check_reports.py
+
+      - name: Determine action
+        id: determine-action
+        run: |
+          if [[ "${{ inputs.check_only }}" == "true" ]]; then
+            echo "action=check_only" >> $GITHUB_OUTPUT
+            echo "action_taken=Check only - no updates performed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "action=dry_run" >> $GITHUB_OUTPUT
+            echo "action_taken=Dry run completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.force_update }}" == "true" ]]; then
+            echo "action=force_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Forced update completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.check-reports.outputs.has_updates }}" == "true" ]]; then
+            echo "action=regular_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Regular update completed" >> $GITHUB_OUTPUT
+          else
+            echo "action=no_action" >> $GITHUB_OUTPUT
+            echo "action_taken=No updates needed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run dry run
+        if: ${{ steps.determine-action.outputs.action == 'dry_run' }}
+        run: |
+          echo "🔍 Running dry run..."
+          uv run python src/bnetza/rollout_report_updater.py --dry-run --verbose
+
+      - name: Run forced update
+        if: ${{ steps.determine-action.outputs.action == 'force_update' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🚀 Running forced update..."
+          uv run python src/bnetza/rollout_report_updater.py --force-update --verbose | tee update_output.log
+
+      - name: Run regular update
+        if: ${{ steps.determine-action.outputs.action == 'regular_update' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "📊 Running regular update..."
+          uv run python src/bnetza/rollout_report_updater.py --verbose | tee update_output.log
+
+      - name: Extract statistics
+        id: extract-stats
+        if: ${{ steps.determine-action.outputs.action == 'force_update' || steps.determine-action.outputs.action == 'regular_update' }}
+        run: |
+          # Extract number of companies processed from the output
+          if [[ -f "update_output.log" ]]; then
+            companies=$(grep -o "Imported [0-9]* company quota records" update_output.log | grep -o "[0-9]*" || echo "0")
+            echo "companies_processed=$companies" >> $GITHUB_OUTPUT
+            echo "📊 Processed $companies companies"
+          else
+            echo "companies_processed=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollout-data-files-${{ github.run_id }}
+          path: |
+            tmp/Roll-out-Quoten*.xlsx
+            tmp/Roll-out-Quoten*.csv
+            update_output.log
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Create job summary
+        if: always()
+        run: |
+          # Determine summary content based on action
+          ACTION="${{ steps.determine-action.outputs.action || 'unknown' }}"
+          HAS_UPDATES="${{ steps.check-reports.outputs.has_updates || 'false' }}"
+          COMPANIES="${{ steps.extract-stats.outputs.companies_processed || '0' }}"
+
+          cat > $GITHUB_STEP_SUMMARY << EOF
+          # 📊 BNetzA Rollout Update Results
+
+          ## Configuration
+          - **Action Type**: $ACTION
+          - **Force Update**: ${{ inputs.force_update }}
+          - **Dry Run**: ${{ inputs.dry_run }}
+          - **Check Only**: ${{ inputs.check_only }}
+
+          ## Update Status
+          EOF
+
+          # Add action-specific content
+          case "$ACTION" in
+            "check_only")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ### ✅ Check Completed
+          - **New Updates Available**: $HAS_UPDATES
+          - **Action**: Check only - no data modifications performed
+
+          EOF
+              ;;
+            "dry_run")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ### 🔍 Dry Run Completed
+          - **New Updates Available**: $HAS_UPDATES
+          - **Action**: Dry run - showed what would be updated without making changes
+          - **Files**: Excel and CSV files were processed but no database changes made
+
+          EOF
+              ;;
+            "force_update"|"regular_update")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ### 🚀 Database Update Completed
+          - **New Updates Available**: $HAS_UPDATES
+          - **Companies Processed**: $COMPANIES
+          - **Database**: Rollout quotas table updated successfully
+          - **Files**: Excel and CSV files processed and archived
+
+          EOF
+              ;;
+            "no_action")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ### ℹ️ No Action Required
+          - **New Updates Available**: $HAS_UPDATES
+          - **Reason**: No new updates detected and no force update requested
+
+          EOF
+              ;;
+          esac
+
+          # Add files section for non-check actions
+          if [[ "$ACTION" != "check_only" && "$ACTION" != "no_action" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Files Processed
+
+          The following files were processed during this run:
+          - **Excel File**: \`tmp/Roll-out-Quoten_Q1_2025.xlsx\` (downloaded from BNetzA)
+          - **CSV File**: \`tmp/Roll-out-Quoten_Q1_2025.csv\` (converted for import)
+          - **Log File**: \`update_output.log\` (detailed execution log)
+
+          These files are available as workflow artifacts for 30 days.
+
+          EOF
+          fi
+
+          # Add next steps section
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## Next Steps
+          EOF
+
+          case "$ACTION" in
+            "force_update"|"regular_update")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 🌐 **WebUI**: Check the [VNBdigitaler Dashboard](https://your-webui-url.com) for updated data
+          - 📊 **Statistics**: Review the updated rollout quotas in the database
+          - 🔗 **BDEW Linking**: Use the fuzzy matching system for new rollout companies
+          - 📈 **Validation**: Verify data integrity using the dashboard statistics
+          EOF
+              ;;
+            "dry_run")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 🔄 **Re-run**: Execute without dry-run flag to perform actual updates
+          - 📋 **Review**: Check the log output for what would be changed
+          - ✅ **Validate**: Confirm the expected changes before real execution
+          EOF
+              ;;
+            "check_only")
+              UPDATE_STATUS="not available"
+              if [[ "$HAS_UPDATES" == "true" ]]; then
+                UPDATE_STATUS="available"
+              fi
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 📊 **Status**: New updates are $UPDATE_STATUS
+          - 🔄 **Execute**: Run with update mode to process any available changes
+          - ⏰ **Schedule**: Next automatic check will run at the scheduled time
+          EOF
+              ;;
+          esac
+
+          # Add technical details
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## Technical Details
+          - **Workflow**: Reusable BNetzA Rollout Update
+          - **Run ID**: ${{ github.run_id }}
+          - **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          - **Repository**: ${{ github.repository }}
+          - **Ref**: ${{ github.ref }}
+
+          ---
+          *Generated by VNBdigitaler Reusable Rollout Update Workflow*
+          EOF

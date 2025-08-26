@@ -80,21 +80,22 @@
             </div>
         </div>
 
-        <!-- Manual Verification Needed -->
+        <!-- Rollout Entries -->
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Matched Roll-Out
+                                Rollout Entries
                             </div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ stats.manual_verification_needed }}
+                                {{ stats.rollout_entries if stats.rollout_entries is defined else
+                                stats.manual_verification_needed }}
                             </div>
                         </div>
                         <div class="col-auto">
-                            <i class="bi bi-check2-square text-gray-300" style="font-size: 2rem;"></i>
+                            <i class="bi bi-clipboard-data text-gray-300" style="font-size: 2rem;"></i>
                         </div>
                     </div>
                 </div>

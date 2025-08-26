@@ -18,7 +18,6 @@
             <li><a class="dropdown-item" href="#" onclick="applyFilter('all')">All Companies</a></li>
             <li><a class="dropdown-item" href="#" onclick="applyFilter('matched')">Matched Only</a></li>
             <li><a class="dropdown-item" href="#" onclick="applyFilter('unmatched')">Unmatched Only</a></li>
-            <li><a class="dropdown-item" href="#" onclick="applyFilter('manual')">Manual Review</a></li>
         </ul>
     </div>
 </div>
@@ -42,13 +41,6 @@
             </div>
             <div class="col-md-6">
                 <div class="row">
-                    <div class="col-md-6">
-                        <select class="form-select" id="manualVerificationFilter">
-                            <option value="">All Verification Status</option>
-                            <option value="true">Manually verified</option>
-                            <option value="false">Needs Manual Review</option>
-                        </select>
-                    </div>
                     <div class="col-md-6">
                         <select class="form-select" id="rolloutNameFilter">
                             <option value="">All Match Status</option>
@@ -89,7 +81,6 @@
                         <th>Company Name</th>
                         <th>City</th>
                         <th>Rollout Match</th>
-                        <th>Manual Review</th>
                         <th>Service Area</th>
                         <th>Actions</th>
                     </tr>
@@ -130,9 +121,6 @@
             const nameFilter = document.getElementById('searchInput')?.value;
             if (nameFilter) params.append('name_filter', nameFilter);
 
-            const manualVerification = document.getElementById('manualVerificationFilter')?.value;
-            if (manualVerification) params.append('manual_verification', manualVerification);
-
             const rolloutName = document.getElementById('rolloutNameFilter')?.value;
             if (rolloutName) params.append('has_rollout_name', rolloutName);
 
@@ -167,27 +155,15 @@
             <td><code>${company.bdew_code}</code></td>
             <td>
                 <strong>${company.bdew_name}</strong>
-                ${company.rollout_name_variations && company.rollout_name_variations.length > 0 ?
-                `<br><small class="text-muted">Variations: ${company.rollout_name_variations.length}</small>` : ''}
             </td>
             <td>${company.bdew_city || '<em>N/A</em>'}</td>
             <td>
-                ${company.rollout_report_name ?
+                ${company.rollout_name ?
                 `<span class="badge bg-success">
-                        <i class="fas fa-check"></i> ${company.rollout_report_name}
+                        <i class="fas fa-check"></i> ${company.rollout_name}
                     </span>` :
                 '<span class="badge bg-warning"><i class="fas fa-question"></i> No Match</span>'
             }
-            </td>
-            <td>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox"
-                           ${company.manual_verification ? 'checked' : ''}
-                           onchange="toggleManualVerification(${company.id}, this.checked)">
-                    <label class="form-check-label">
-                        ${company.manual_verification ? 'Verified' : 'Not Verified'}
-                    </label>
-                </div>
             </td>
             <td>
                 ${company.has_service_area ?
@@ -276,28 +252,6 @@
         document.getElementById('companiesCount').textContent = `${count} companies`;
     }
 
-    async function toggleManualVerification(companyId, checked) {
-        try {
-            await apiRequest(`/companies/api/${companyId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    manual_verification: checked
-                })
-            });
-
-            showMessage(
-                `Manual verification ${checked ? 'marked as verified' : 'marked as not verified'} for company`,
-                'success'
-            );
-
-        } catch (error) {
-            // Revert checkbox state on error
-            const checkbox = event.target;
-            checkbox.checked = !checked;
-            showMessage('Failed to update manual verification status', 'danger');
-        }
-    }
-
     function editCompany(companyId) {
         window.location.href = `/companies/edit/${companyId}`;
     }
@@ -311,11 +265,9 @@
     }
 
     function applyFilter(filterType) {
-        const manualFilter = document.getElementById('manualVerificationFilter');
         const rolloutFilter = document.getElementById('rolloutNameFilter');
 
         // Reset filters
-        manualFilter.value = '';
         rolloutFilter.value = '';
 
         switch (filterType) {
@@ -324,9 +276,6 @@
                 break;
             case 'unmatched':
                 rolloutFilter.value = 'false';
-                break;
-            case 'manual':
-                manualFilter.value = 'true';
                 break;
         }
 
@@ -345,7 +294,6 @@
         });
 
         // Add change listeners for filters
-        document.getElementById('manualVerificationFilter').addEventListener('change', () => loadCompanies(1));
         document.getElementById('rolloutNameFilter').addEventListener('change', () => loadCompanies(1));
     });
 </script>

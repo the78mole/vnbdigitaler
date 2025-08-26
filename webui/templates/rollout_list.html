@@ -136,7 +136,7 @@
                                         <th>BDEW Code</th>
                                         <th>Rollout Quota</th>
                                         <th>Reference Date</th>
-                                        <th>Status</th>
+                                        <th>BDEW Match</th>
                                         <th>Source File</th>
                                         <th>Actions</th>
                                     </tr>
@@ -349,9 +349,10 @@
             </td>
             <td>${entry.reference_date ? new Date(entry.reference_date).toLocaleDateString('de-DE') : 'N/A'}</td>
             <td>
-                <span class="badge ${entry.is_matched ? 'bg-success' : 'bg-warning text-dark'}">
-                    ${entry.is_matched ? 'Matched' : 'Unmatched'}
-                </span>
+                ${entry.is_matched ?
+                    `<span class="badge bg-success">${escapeHtml(entry.linked_bdew_name)}</span>` :
+                    '<span class="badge bg-warning text-dark">Unmatched</span>'
+                }
             </td>
             <td>
                 <small class="text-muted">${escapeHtml(entry.source_file || 'N/A')}</small>

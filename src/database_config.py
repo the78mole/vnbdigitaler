@@ -24,26 +24,28 @@ def get_database_url() -> str:
     """Get database URL from environment or return example for development.
 
     Priority order:
-    1. NEON_DATABASE_URL (direct PostgreSQL URL)
+    1. DATABASE_URL (direct PostgreSQL URL)
     2. Individual DATABASE_* variables
     3. Development fallback with error message
     """
-    # First try NEON_DATABASE_URL (direct PostgreSQL URL)
-    neon_url = os.environ.get("NEON_DATABASE_URL")
-    if neon_url:
+    # First try DATABASE_URL (direct PostgreSQL URL)
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
         # Convert postgresql:// to postgresql+asyncpg:// for async support
-        if neon_url.startswith("postgresql://"):
-            async_url = neon_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if database_url.startswith("postgresql://"):
+            async_url = database_url.replace(
+                "postgresql://", "postgresql+asyncpg://", 1
+            )
             # Convert SSL parameters for asyncpg compatibility
             async_url = async_url.replace("sslmode=require", "ssl=require")
             async_url = async_url.replace("channel_binding=require", "")
             # Clean up double & or trailing &
             async_url = async_url.replace("&&", "&").rstrip("&").rstrip("?")
             return async_url
-        elif neon_url.startswith("postgresql+asyncpg://"):
-            return neon_url
+        elif database_url.startswith("postgresql+asyncpg://"):
+            return database_url
         else:
-            print(f"⚠️  Invalid NEON_DATABASE_URL format: {neon_url}")
+            print(f"⚠️  Invalid DATABASE_URL format: {database_url}")
 
     # Try to get from individual environment variables
     if all(
@@ -63,23 +65,23 @@ def get_database_url() -> str:
 
         return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}?ssl=require"
 
-    # Development fallback - you would set your Neon database URL here
+    # Development fallback - you would set your database URL here
     print("⚠️  No database environment variables found.")
     print("📝 Please set one of the following:")
-    print("   Option 1: NEON_DATABASE_URL (complete PostgreSQL URL)")
+    print("   Option 1: DATABASE_URL (complete PostgreSQL URL)")
     print("   Option 2: Individual variables:")
-    print("   - DATABASE_HOST (your Neon host)")
-    print("   - DATABASE_USER (your Neon user)")
-    print("   - DATABASE_PASSWORD (your Neon password)")
+    print("   - DATABASE_HOST (your database host)")
+    print("   - DATABASE_USER (your database user)")
+    print("   - DATABASE_PASSWORD (your database password)")
     print("   - DATABASE_NAME (your database name)")
     print("   - DATABASE_PORT (optional, defaults to 5432)")
     print()
-    print("🔧 Example for Neon:")
+    print("🔧 Example:")
     print(
-        "   export NEON_DATABASE_URL='postgresql://user:pass@ep-xxx.region.neon.tech/db'"  # pragma: allowlist secret
+        "   export DATABASE_URL='postgresql://user:pass@host:5432/db'"  # pragma: allowlist secret
     )
     print("   or")
-    print("   export DATABASE_HOST='ep-xxx-xxx.us-east-1.aws.neon.tech'")
+    print("   export DATABASE_HOST='your-database-host'")
     print("   export DATABASE_USER='your-user'")
     print("   export DATABASE_PASSWORD='your-password'")  # pragma: allowlist secret
     print("   export DATABASE_NAME='vnbdigitaler'")

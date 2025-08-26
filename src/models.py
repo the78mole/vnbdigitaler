@@ -144,47 +144,12 @@ class Company(Base):  # type: ignore[valid-type,misc]
         String(20), nullable=True, index=True, comment="Status: found, not_found, error"
     )
 
-    # Roll-Out Report data (may contain variations)
-    rollout_report_name: Mapped[str | None] = mapped_column(
-        String(255),
-        nullable=True,
-        index=True,
-        comment="Company name as it appears in Roll-Out reports",
-    )
-    rollout_name_variations: Mapped[list[str] | None] = mapped_column(
-        ARRAY(String),
-        nullable=True,
-        comment="Array of different name variations found in Roll-Out reports",
-    )
-
     # Company classification
     company_type: Mapped[str | None] = mapped_column(
         String(50),
         nullable=True,
         index=True,
         comment="Type of company (e.g., Stadtwerk, Netzbetreiber, etc.)",
-    )
-
-    # Matching and verification metadata
-    name_matching_confidence: Mapped[float | None] = mapped_column(
-        Float,
-        CheckConstraint(
-            "name_matching_confidence IS NULL OR (name_matching_confidence >= 0.0 AND name_matching_confidence <= 1.0)",
-            name="chk_matching_confidence_range",
-        ),
-        nullable=True,
-        index=True,
-        comment="AI confidence score for name matching (0.0-1.0)",
-    )
-    manual_verification: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        index=True,
-        comment="Whether the matching has been manually verified",
-    )
-    verification_notes: Mapped[str | None] = mapped_column(
-        Text, nullable=True, comment="Manual verification notes and comments"
     )
 
     # Metadata
@@ -511,13 +476,6 @@ class RolloutCompany(Base):  # type: ignore[valid-type,misc]
         unique=True,
         index=True,
         comment="BDEW code referencing the matched BDEW company",
-    )
-    is_manually_verified: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        index=True,
-        comment="Whether the BDEW linking was manually verified",
     )
     verification_notes: Mapped[str | None] = mapped_column(
         Text, nullable=True, comment="Notes about the verification process"

@@ -84,7 +84,7 @@ class DatabaseManager:
     def _get_database_url(self) -> str:
         """Get database URL from environment variables."""
         # Try the main database URL first
-        database_url = os.getenv("NEON_DATABASE_URL")
+        database_url = os.getenv("DATABASE_URL")
         if database_url:
             # Ensure we use asyncpg for async operations
             if not database_url.startswith("postgresql+asyncpg://"):
@@ -94,16 +94,16 @@ class DatabaseManager:
             return database_url
 
         # Build URL from individual components
-        user = os.getenv("NEON_USER")
-        password = os.getenv("NEON_PASSWORD")
-        host = os.getenv("NEON_HOST")
-        port = os.getenv("NEON_PORT", "5432")
-        database = os.getenv("NEON_DATABASE")
+        user = os.getenv("DB_USER")
+        password = os.getenv("DB_PASSWORD")
+        host = os.getenv("DB_HOST")
+        port = os.getenv("DB_PORT", "5432")
+        database = os.getenv("DB_DATABASE")
 
         if not all([user, password, host, database]):
             raise ValueError(
-                "Database connection not configured. Set NEON_DATABASE_URL or "
-                "individual environment variables (NEON_USER, NEON_PASSWORD, NEON_HOST, NEON_DATABASE)"
+                "Database connection not configured. Set DATABASE_URL or "
+                "individual environment variables (DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE)"
             )
 
         return f"postgresql+asyncpg://{user}:{password}@{host}:{port}/{database}"

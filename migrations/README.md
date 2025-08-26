@@ -1,94 +1,98 @@
 # VNBdigitaler Database Migrations
 
-Dieses Verzeichnis enthält die Datenbankmigrationen für das VNBdigitaler-Projekt.
+This directory contains database migration and initialization scripts for the VNBdigitaler project.
 
-## Konsolidierte Schema-Erstellung
+## Current Migration Strategy
 
-**Für neue Installationen verwende:**
+**🎯 Single Initialization Script**: We use a single comprehensive initialization script instead of incremental migrations.
+
+### Database Initialization
 
 ```bash
-uv run python migrations/create_complete_schema.py
+# Initialize the complete database schema from scratch
+python migrations/init_database.py
 ```
 
-Dieses Script erstellt das komplette Datenbankschema von Grund auf neu und umfasst alle bisherigen Migrationen in einem einzigen, umfassenden Setup.
+This script will:
 
-## Datenbankschema Übersicht
+- ⚠️ **Drop all existing VNBdigitaler tables** (with confirmation prompt)
+- 🏗️ Create the complete normalized database schema
+- 📊 Set up all indexes for optimal performance
+- ✅ Validate all constraints and relationships
 
-### 📋 `companies` Tabelle
+### Database Schema Overview
 
-- **Zweck**: Haupttabelle für BDEW-Unternehmen mit vnbdigital.de Integration
-- **Daten**: BDEW-Codes, Unternehmensnamen, Adressen, Kontaktdaten, Netzgebiete
-- **Geocoding**: Latitude/Longitude, Adressinformationen, Geocoding-Metadaten
+The initialization script creates these tables:
 
-### 🏢 `rollout_companies` Tabelle
+| Table | Purpose |
+|-------|---------|
+| `companies` | BDEW companies with vnbdigital.de integration and geocoding |
+| `rollout_companies` | BNetzA company names linked to BDEW companies via `bdew_code` |
+| `rollout_quotas` | Time-series rollout quota data with quarter/year tracking |
+| `rollout_update_logs` | Automated report processing logs and statistics |
+| `rollout_reports` | BNetzA report metadata and AI analysis results |
+| `download_sessions` | Download session tracking for report automation |
 
-- **Zweck**: BNetzA-Unternehmensnamen für Rollout-Tracking
-- **Verknüpfung**: Optionale Verbindung zu BDEW-Unternehmen via `bdew_company_id`
-- **Normalisierung**: Normalisierte Namen für besseres Matching
-
-### 📊 `rollout_quotas` Tabelle
-
-- **Zweck**: Zeitreihen-Daten für Rollout-Quoten (Ausstattungsquoten)
-- **Zeiterfassung**: Quartal (1-4) und Jahr (2024-2030)
-- **Eindeutigkeit**: Pro Unternehmen, Datum, Quartal und Jahr
-- **Datenformat**: Rollout-Quote als Dezimalwert (0.0-1.0)
-
-### 📝 `rollout_update_logs` Tabelle
-
-- **Zweck**: Tracking der automatisierten BNetzA-Report-Verarbeitung
-- **Funktionen**: Status-Tracking, Statistiken, Fehlerbehandlung
-- **Deduplizierung**: Hash-basierte Erkennung bereits verarbeiteter Excel-Dateien
-
-## Beziehungen
+### Key Relationships
 
 ```
-companies (1) ←--→ (0..1) rollout_companies ←--→ (0..*) rollout_quotas
-                                                      ↓
-                                           rollout_update_logs (tracking)
+companies (BDEW)
+    ↓ (bdew_code)
+rollout_companies (BNetzA)
+    ↓ (rollout_company_id)
+rollout_quotas (Time-series data)
 ```
 
-## Constraints und Validierungen
+### Features
 
-- **Rollout-Quoten**: 0.0 ≤ rollout_quota ≤ 1.0
-- **Quartale**: 1 ≤ report_quarter ≤ 4
-- **Jahre**: 2024 ≤ report_year ≤ 2030 (rollout_quotas), 2020 ≤ report_year ≤ 2050 (logs)
-- **Status**: 'pending', 'processing', 'completed', 'failed'
-- **Eindeutigkeit**: Verhindert Duplikate basierend auf Geschäftslogik
+- ✅ **Normalized Structure**: Companies and rollout data are properly separated
+- ✅ **Foreign Key Constraints**: Proper relationships between tables
+- ✅ **Comprehensive Indexes**: Optimized for WebUI query patterns
+- ✅ **Data Validation**: Check constraints for data integrity
+- ✅ **Flexible JSONB**: Support for additional metadata
 
-## Indexes für Performance
+## Legacy Migrations
 
-- **Geografische Suche**: Lat/Lng-Index für Kartenoperationen
-- **Textsuche**: Normalisierte Namen für Fuzzy-Matching
-- **Zeitreihen**: Quartal/Jahr-Kombinationen für Trend-Analysen
-- **Fremdschlüssel**: Alle Referenzen optimiert
+Legacy migration files can be archived to `archive/` folder. They are no longer needed since the initialization script creates the complete schema.
 
-## Legacy-Migrationen (Archiv)
+### Archiving Legacy Migrations
 
-Die folgenden Dateien sind historische Migrationen, die in `create_complete_schema.py` konsolidiert wurden:
+```bash
+# Archive old migration files (optional)
+python migrations/archive_migrations.py
+```
 
-- `add_company_geolocation.py` - Geocoding-Felder für companies
-- `create_rollout_tables.py` - Ursprüngliche Rollout-Tabellen
-- `create_rollout_update_logs_table.py` - Update-Logs-Tabelle
-- `add_report_year_to_rollout_quotas.py` - report_year-Feld
-- `replace_quarter_with_numeric_report_quarter.py` - Numerische Quartale
-- `update_rollout_logs_quarter_fields.py` - Quartal-Normalisierung
-- `update_rollout_quotas_unique_constraint.py` - Erweiterte Unique-Constraints
-- `fix_quarter_fields.py` - Quartal-Feld-Korrekturen
+## Development Notes
 
-**⚠️ Diese legacy Migrationen sollten nicht mehr verwendet werden!**
+### Adding New Schema Changes
 
-## Verwendung
+For new schema changes:
 
-1. **Neue Datenbank**: Verwende `create_complete_schema.py`
-2. **Daten importieren**: Nutze die Tools in `/tools/` für BDEW/BNetzA-Daten
-3. **Geocoding**: Führe `tools/geocode_companies.py` aus
-4. **Rollout-Updates**: Verwende `tools/update_rollout_quotas_simple.py`
+1. **Update SQLAlchemy Models** in `src/models.py`
+2. **Update the initialization script** `init_database.py`
+3. **Test with fresh database** using the init script
 
-## Entwicklung
+### Database Backup Before Initialization
 
-Bei Schema-Änderungen:
+```bash
+# Backup existing database (recommended)
+pg_dump your_database > backup_$(date +%Y%m%d_%H%M%S).sql
+```
 
-1. Modifiziere `create_complete_schema.py`
-2. Aktualisiere entsprechende SQLAlchemy-Models in `src/models.py`
-3. Teste mit einer frischen Datenbank
-4. Dokumentiere Änderungen hier
+### Restoring from Backup
+
+```bash
+# Restore from backup if needed
+psql your_database < backup_20250826_123456.sql
+```
+
+## Production Deployment
+
+For production deployment:
+
+1. **Backup existing database**
+2. **Run initialization script** during maintenance window
+3. **Import BDEW and rollout data** using data import scripts
+4. **Verify data integrity** using application endpoints
+
+⚠️ **Important**: The initialization script drops all tables. Only use on development databases or during planned maintenance with proper backups.

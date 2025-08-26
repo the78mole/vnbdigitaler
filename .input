@@ -1,0 +1,3 @@
+update_type=check-only
+dry_run=true
+force_update=false

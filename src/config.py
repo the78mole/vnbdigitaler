@@ -14,8 +14,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support."""
 
     # Database
-    database_url: str = Field(default="", description="Neon Database URL")
-    neon_database_url: str = Field(default="", description="Neon Database URL (legacy)")
+    database_url: str = Field(default="", description="Database URL")
 
     # AI Services
     openrouter_api_key: str = Field(default="", description="OpenRouter API Key")
@@ -36,6 +35,13 @@ class Settings(BaseSettings):
     r2_bucket_name: str = Field(default="", description="Cloudflare R2 Bucket Name")
     r2_endpoint: str = Field(default="", description="Cloudflare R2 Endpoint")
 
+    # Geocoding Services
+    opencagedata_api_key: str = Field(default="", description="OpenCageData API Key")
+    opencagedata_api_url: str = Field(
+        default="https://api.opencagedata.com/geocode/v1/json",
+        description="OpenCageData API URL",
+    )
+
     # Application
     log_level: str = Field(default="INFO", description="Logging Level")
     environment: str = Field(default="development", description="Environment")
@@ -54,9 +60,6 @@ class Settings(BaseSettings):
             if hasattr(st, "secrets"):
                 return cls(
                     database_url=st.secrets["database"]["url"],
-                    neon_database_url=st.secrets.get("neon_database", {}).get(
-                        "url", ""
-                    ),
                     openrouter_api_key=st.secrets["openrouter"]["api_key"],
                     openrouter_base_url=st.secrets["openrouter"]["base_url"],
                     roll_out_report_find_model=st.secrets.get("ai", {}).get(
@@ -75,8 +78,8 @@ class Settings(BaseSettings):
         return cls()
 
     def get_database_url(self) -> str:
-        """Get the database URL, preferring neon_database_url if available."""
-        url = self.neon_database_url or self.database_url
+        """Get the database URL."""
+        url = self.database_url
         # Convert sync postgresql:// URLs to async postgresql+asyncpg://
         if url.startswith("postgresql://"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)

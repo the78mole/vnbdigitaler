@@ -31,7 +31,7 @@ async def rollout_list(
     request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    unmatched_only: bool = Query(True),
+    unmatched_only: bool = Query(False),  # Changed default to False to show all entries
     search: str | None = Query(None),
     show_latest_only: bool = Query(True),
     highlight: str | None = Query(None),
@@ -101,7 +101,7 @@ async def rollout_unmatched(
 async def get_rollout_entries(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    unmatched_only: bool = Query(True),  # Default back to True
+    unmatched_only: bool = Query(False),  # Changed default to False to show all entries
     search: str | None = Query(None),
     show_latest_only: bool = Query(True),
     highlight: str | None = Query(None),
@@ -126,9 +126,15 @@ async def get_rollout_entries(
                 highlight, page_size, unmatched_only, search, db
             )
 
-    # Simplified approach: get companies first, then their quota data separately
-    # Build company query first
-    company_query = select(RolloutCompany)
+    # Simplified approach: get companies first with their linked BDEW companies, then quota data separately
+    # Build company query with JOIN to get linked BDEW company names
+    company_query = select(
+        RolloutCompany.id,
+        RolloutCompany.bnetza_name,
+        RolloutCompany.bdew_code,
+        Company.bdew_name.label("linked_bdew_name"),
+        Company.bdew_city.label("linked_bdew_city"),
+    ).outerjoin(Company, RolloutCompany.bdew_code == Company.bdew_code)
 
     # Filter for unmatched companies (where bdew_code IS NULL)
     if unmatched_only:
@@ -156,16 +162,22 @@ async def get_rollout_entries(
 
     # Execute company query
     company_result = await db.execute(company_query)
-    companies = company_result.scalars().all()
+    company_rows = company_result.fetchall()
 
     # Get quota data for these companies
     entries = []
-    for company in companies:
+    for row in company_rows:
+        company_id = row.id
+        company_name = row.bnetza_name
+        bdew_code = row.bdew_code
+        linked_bdew_name = row.linked_bdew_name
+        linked_bdew_city = row.linked_bdew_city
+
         if show_latest_only:
             # Get latest quota for this company
             quota_query = (
                 select(RolloutQuota)
-                .where(RolloutQuota.rollout_company_id == company.id)
+                .where(RolloutQuota.rollout_company_id == company_id)
                 .order_by(RolloutQuota.reference_date.desc())
                 .limit(1)
             )
@@ -175,7 +187,7 @@ async def get_rollout_entries(
             # For simplicity, also just get the latest (we can extend this later)
             quota_query = (
                 select(RolloutQuota)
-                .where(RolloutQuota.rollout_company_id == company.id)
+                .where(RolloutQuota.rollout_company_id == company_id)
                 .order_by(RolloutQuota.reference_date.desc())
                 .limit(1)
             )
@@ -184,8 +196,10 @@ async def get_rollout_entries(
 
         entries.append(
             {
-                "id": company.id,
-                "company_name": company.bnetza_name,
+                "id": company_id,
+                "company_name": company_name,
+                "linked_bdew_name": linked_bdew_name,
+                "linked_bdew_city": linked_bdew_city,
                 "rollout_quota": float(quota.rollout_quota * 100)
                 if quota and quota.rollout_quota is not None
                 else 0.0,
@@ -194,9 +208,9 @@ async def get_rollout_entries(
                 else None,
                 "report_quarter": quota.report_quarter if quota else None,
                 "source_file": quota.source_file if quota else None,
-                "is_matched": company.bdew_code is not None,
-                "matched_company_id": company.bdew_code,
-                "bdew_company_code": company.bdew_code,
+                "is_matched": bdew_code is not None,
+                "matched_company_id": bdew_code,
+                "bdew_company_code": bdew_code,
                 "created_at": quota.created_at.isoformat()
                 if quota and quota.created_at
                 else None,
@@ -348,7 +362,6 @@ async def get_rollout_companies(
                 "bnetza_name": company.bnetza_name,
                 "normalized_name": company.normalized_name,
                 "bdew_code": company.bdew_code,
-                "is_manually_verified": company.is_manually_verified,
                 "verification_notes": company.verification_notes,
                 "created_at": company.created_at.isoformat(),
                 "updated_at": company.updated_at.isoformat(),
@@ -405,7 +418,6 @@ async def get_rollout_entry(
         "source_file": quota.source_file if quota else None,
         "is_matched": company.bdew_code is not None,
         "matched_company_id": company.bdew_code,
-        "is_manually_verified": company.is_manually_verified,
         "verification_notes": company.verification_notes,
         "created_at": quota.created_at.isoformat()
         if quota and quota.created_at
@@ -663,7 +675,6 @@ async def link_bdew_company(
 
     # Update the link
     rollout_company.bdew_code = bdew_code
-    rollout_company.is_manually_verified = True  # Mark as manually verified
 
     await db.commit()
 

@@ -68,21 +68,21 @@
     </div>
 
     <div class="col-md-3 mb-4">
-        <div class="card text-white bg-info">
+        <div class="card text-white bg-secondary">
             <div class="card-body">
                 <div class="d-flex justify-content-between">
                     <div>
-                        <h4 class="card-title">Manual Review</h4>
-                        <p class="card-text" id="manual-verification">Loading...</p>
+                        <h4 class="card-title">Service Areas</h4>
+                        <p class="card-text" id="service-areas">Loading...</p>
                     </div>
                     <div class="align-self-center">
-                        <i class="fas fa-user-check fa-2x"></i>
+                        <i class="fas fa-map fa-2x"></i>
                     </div>
                 </div>
             </div>
             <div class="card-footer">
-                <a href="/companies/?manual_verification=true" class="text-white text-decoration-none">
-                    Review Items <i class="fas fa-arrow-circle-right"></i>
+                <a href="/companies/map" class="text-white text-decoration-none">
+                    View Map <i class="fas fa-arrow-circle-right"></i>
                 </a>
             </div>
         </div>
@@ -213,7 +213,7 @@
             document.getElementById('total-companies').textContent = statsData.total_companies.toLocaleString();
             document.getElementById('matched-companies').textContent = statsData.matched_companies.toLocaleString();
             document.getElementById('unmatched-companies').textContent = statsData.unmatched_companies.toLocaleString();
-            document.getElementById('manual-verification').textContent = statsData.manual_verification.toLocaleString();
+            document.getElementById('service-areas').textContent = statsData.service_areas ? statsData.service_areas.toLocaleString() : '0';
 
             // Update database status
             const dbStatus = document.getElementById('db-status');
@@ -235,7 +235,7 @@
             console.error('Failed to load dashboard stats:', error);
 
             // Show error state
-            ['total-companies', 'matched-companies', 'unmatched-companies', 'manual-verification'].forEach(id => {
+            ['total-companies', 'matched-companies', 'unmatched-companies', 'service-areas'].forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.textContent = 'Error loading data';
             });

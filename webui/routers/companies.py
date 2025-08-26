@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from sqlalchemy import or_, select, update
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db_session
@@ -25,15 +25,12 @@ router = APIRouter()
 
 # Pydantic models for API requests
 class CompanyUpdateRequest(BaseModel):
-    rollout_report_name: str | None = None
-    rollout_name_variations: list[str] | None = None
-    manual_verification: bool | None = None
+    pass  # No updatable fields for companies anymore
 
 
 class CompanyFilterRequest(BaseModel):
     bdew_code: str | None = None
     name_filter: str | None = None
-    manual_verification: bool | None = None
     has_rollout_name: bool | None = None
 
 
@@ -183,38 +180,32 @@ async def get_companies_api(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     name_filter: str | None = Query(None),
-    manual_verification: bool | None = Query(None),
     has_rollout_name: bool | None = Query(None),
     session: AsyncSession = Depends(get_db_session),
 ):
     """API endpoint to get companies with pagination and filtering."""
     try:
-        # Build base query with specific fields
+        # Build base query with specific fields - join with rollout_companies to get rollout names
         query = select(
             Company.id,
             Company.bdew_code,
             Company.bdew_name,
             Company.bdew_city,
-            Company.rollout_report_name,
-            Company.rollout_name_variations,
-            Company.manual_verification,
             Company.network_territory_geojson,
             Company.company_latitude,
             Company.company_longitude,
-        )
+            RolloutCompany.bnetza_name.label("rollout_name"),
+        ).outerjoin(RolloutCompany, Company.bdew_code == RolloutCompany.bdew_code)
 
         # Apply filters
         if name_filter:
             query = query.where(Company.bdew_name.ilike(f"%{name_filter}%"))
 
-        if manual_verification is not None:
-            query = query.where(Company.manual_verification == manual_verification)
-
         if has_rollout_name is not None:
             if has_rollout_name:
-                query = query.where(Company.rollout_report_name.is_not(None))
+                query = query.where(RolloutCompany.bnetza_name.is_not(None))
             else:
-                query = query.where(Company.rollout_report_name.is_(None))
+                query = query.where(RolloutCompany.bnetza_name.is_(None))
 
         # Add ordering and pagination
         query = query.order_by(Company.bdew_name)
@@ -234,32 +225,33 @@ async def get_companies_api(
                     "bdew_code": row.bdew_code,
                     "bdew_name": row.bdew_name,
                     "bdew_city": row.bdew_city,
-                    "rollout_report_name": row.rollout_report_name,
-                    "rollout_name_variations": row.rollout_name_variations or [],
-                    "manual_verification": row.manual_verification or False,
+                    "rollout_name": row.rollout_name,
                     "has_service_area": bool(row.network_territory_geojson),
                     "company_latitude": row.company_latitude,
                     "company_longitude": row.company_longitude,
                 }
             )
 
-        # Get total count for pagination
-        count_query = select(Company.id)
+        # Get total count for pagination - use same join as main query
+        count_base_query = select(Company.id).outerjoin(
+            RolloutCompany, Company.bdew_code == RolloutCompany.bdew_code
+        )
+
         if name_filter:
-            count_query = count_query.where(Company.bdew_name.ilike(f"%{name_filter}%"))
-        if manual_verification is not None:
-            count_query = count_query.where(
-                Company.manual_verification == manual_verification
+            count_base_query = count_base_query.where(
+                Company.bdew_name.ilike(f"%{name_filter}%")
             )
         if has_rollout_name is not None:
             if has_rollout_name:
-                count_query = count_query.where(
-                    Company.rollout_report_name.is_not(None)
+                count_base_query = count_base_query.where(
+                    RolloutCompany.bnetza_name.is_not(None)
                 )
             else:
-                count_query = count_query.where(Company.rollout_report_name.is_(None))
+                count_base_query = count_base_query.where(
+                    RolloutCompany.bnetza_name.is_(None)
+                )
 
-        count_result = await session.execute(count_query)
+        count_result = await session.execute(count_base_query)
         total_companies = len(count_result.fetchall())
 
         return {
@@ -333,6 +325,13 @@ async def get_company_details(
                     "bnetza_name": rollout_company.bnetza_name,
                 }
 
+        # Get rollout company linked to this BDEW company
+        rollout_company_query = select(RolloutCompany).where(
+            RolloutCompany.bdew_code == company.bdew_code
+        )
+        rollout_result = await session.execute(rollout_company_query)
+        linked_rollout_company = rollout_result.scalar_one_or_none()
+
         return {
             "id": company.id,
             "bdew_code": company.bdew_code,
@@ -342,10 +341,12 @@ async def get_company_details(
             "vnbdigital_address": company.vnbdigital_address,
             "vnbdigital_postcode": company.vnbdigital_postcode,
             "vnbdigital_city": company.vnbdigital_city,
-            "rollout_report_name": company.rollout_report_name,
-            "rollout_name_variations": company.rollout_name_variations or [],
-            "manual_verification": company.manual_verification or False,
-            "name_matching_confidence": company.name_matching_confidence,
+            "rollout_name": linked_rollout_company.bnetza_name
+            if linked_rollout_company
+            else None,
+            "notes": linked_rollout_company.verification_notes
+            if linked_rollout_company
+            else None,
             "has_service_area": bool(company.network_territory_geojson),
             "company_latitude": company.company_latitude,
             "company_longitude": company.company_longitude,
@@ -361,10 +362,9 @@ async def get_company_details(
 @router.put("/api/{company_id}")
 async def update_company(
     company_id: int,
-    update_data: CompanyUpdateRequest,
     session: AsyncSession = Depends(get_db_session),
 ):
-    """Update company information."""
+    """Update company information (currently no updatable fields in companies table)."""
     try:
         # Check if company exists
         query = select(Company).where(Company.id == company_id)
@@ -374,24 +374,9 @@ async def update_company(
         if not company:
             raise HTTPException(status_code=404, detail="Company not found")
 
-        # Build update data
-        update_dict = {}
-        if update_data.rollout_report_name is not None:
-            update_dict["rollout_report_name"] = update_data.rollout_report_name
-        if update_data.rollout_name_variations is not None:
-            update_dict["rollout_name_variations"] = update_data.rollout_name_variations
-        if update_data.manual_verification is not None:
-            update_dict["manual_verification"] = update_data.manual_verification
-
-        if update_dict:
-            # Execute update
-            stmt = update(Company).where(Company.id == company_id).values(**update_dict)
-            await session.execute(stmt)
-            await session.commit()
-
         return {
-            "message": "Company updated successfully",
-            "updated_fields": list(update_dict.keys()),
+            "message": "Company table has no updatable fields - use rollout management for verification",
+            "updated_fields": [],
         }
 
     except HTTPException:

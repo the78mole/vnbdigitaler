@@ -1,0 +1,6 @@
+# act configuration for VNBdigitaler
+--platform ubuntu-latest=catthehacker/ubuntu:act-latest
+--env-file .env
+--artifact-server-path ./artifacts
+--artifact-server-port 34567
+--secret-file .secrets

@@ -94,7 +94,7 @@ repos:
       - id: bandit
         additional_dependencies: [pbr]
         args: [-ll]
-        exclude: ^(tests/|tools/bak/)
+        exclude: ^(tests/|tools/bak/|migrations/)
 
   # Security scanning for secrets
   - repo: https://github.com/Yelp/detect-secrets
