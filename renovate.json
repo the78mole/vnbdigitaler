@@ -16,7 +16,8 @@
   "prHourlyLimit": 2,
   "dependencyDashboard": true,
   "dependencyDashboardTitle": "📦 Renovate Dependency Dashboard",
-  "prTitle": "⬆️ {{#if semanticCommitType}}{{semanticCommitType}}{{#if semanticCommitScope}}({{semanticCommitScope}}){{/if}}: {{/if}}{{#if isGroup}}{{groupName}}{{else}}{{depName}}{{/if}} {{#if isMajor}}(major){{/if}}{{#if displayFrom}} from {{displayFrom}}{{/if}}{{#if displayTo}} to {{displayTo}}{{/if}}",
+  "commitMessagePrefix": "⬆️ ",
+  "commitMessageAction": "{{#if isGroup}}{{groupName}}{{else}}{{depName}}{{/if}} {{#if isMajor}}(major){{/if}}{{#if displayFrom}} from {{displayFrom}}{{/if}}{{#if displayTo}} to {{displayTo}}{{/if}}",
   "pre-commit": {
     "enabled": true
   },
