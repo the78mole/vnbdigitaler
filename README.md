@@ -1,5 +1,8 @@
 # VNBdigitaler
 
+[![CI/CD Pipeline](https://github.com/the78mole/vnbdigitaler/actions/workflows/ci.yml/badge.svg)](https://github.com/the78mole/vnbdigitaler/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/github/the78mole/vnbdigitaler/graph/badge.svg?token=F6YG4GLCMU)](https://codecov.io/github/the78mole/vnbdigitaler)
+
 Angelehnt an den Namen des Portals VNBdigital, bietet diese App eine deutlich einfachere Möglichkeit, an die Kundenrelevanten Daten der Netzbetreiber zu gelangen. Da weder diese, noch das besagte Portal einen API Zugriff bieten, basieren die Daten im wesentlichen noch auf der manuellen Recherche der Preisblätter.
 
 Helft also alle mit und steuert Daten über GitHub Pull-Requests bei.
