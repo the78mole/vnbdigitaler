@@ -30,10 +30,24 @@ class Settings(BaseSettings):
     )
 
     # Object Storage
-    r2_access_key: str = Field(default="", description="Cloudflare R2 Access Key")
-    r2_secret_key: str = Field(default="", description="Cloudflare R2 Secret Key")
-    r2_bucket_name: str = Field(default="", description="Cloudflare R2 Bucket Name")
-    r2_endpoint: str = Field(default="", description="Cloudflare R2 Endpoint")
+    r2_access_key: str = Field(
+        default="",
+        description="Cloudflare R2 Access Key",
+        alias="cloudflare_r2_access_key",
+    )
+    r2_secret_key: str = Field(
+        default="",
+        description="Cloudflare R2 Secret Key",
+        alias="cloudflare_r2_secret_key",
+    )
+    r2_bucket_name: str = Field(
+        default="",
+        description="Cloudflare R2 Bucket Name",
+        alias="cloudflare_r2_bucket_name",
+    )
+    r2_endpoint: str = Field(
+        default="", description="Cloudflare R2 Endpoint", alias="cloudflare_r2_endpoint"
+    )
 
     # Geocoding Services
     opencagedata_api_key: str = Field(default="", description="OpenCageData API Key")
@@ -66,10 +80,12 @@ class Settings(BaseSettings):
                         "roll_out_report_find_model",
                         "meta-llama/llama-3.2-3b-instruct:free",
                     ),
-                    r2_access_key=st.secrets["cloudflare_r2"]["access_key"],
-                    r2_secret_key=st.secrets["cloudflare_r2"]["secret_key"],
-                    r2_bucket_name=st.secrets["cloudflare_r2"]["bucket_name"],
-                    r2_endpoint=st.secrets["cloudflare_r2"]["endpoint"],
+                    cloudflare_r2_access_key=st.secrets["cloudflare_r2"]["access_key"],
+                    cloudflare_r2_secret_key=st.secrets["cloudflare_r2"]["secret_key"],
+                    cloudflare_r2_bucket_name=st.secrets["cloudflare_r2"][
+                        "bucket_name"
+                    ],
+                    cloudflare_r2_endpoint=st.secrets["cloudflare_r2"]["endpoint"],
                     log_level=st.secrets["app"]["log_level"],
                     environment=st.secrets["app"]["environment"],
                 )

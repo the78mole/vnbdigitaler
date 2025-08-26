@@ -20,6 +20,7 @@ def test_settings_from_environment():
             "LOG_LEVEL": "DEBUG",
             "ENVIRONMENT": "test",
         },
+        clear=True,
     ):
         reset_settings()
         settings = get_settings()
