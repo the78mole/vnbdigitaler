@@ -10,10 +10,10 @@
     ":prImmediately",
     ":updateNotScheduled",
     ":automergeDisabled",
-    ":maintainLockFilesWeekly",
-    ":prConcurrentLimit2",
-    ":prHourlyLimit2"
+    ":maintainLockFilesWeekly"
   ],
+  "prConcurrentLimit": 2,
+  "prHourlyLimit": 2,
   "dependencyDashboard": true,
   "dependencyDashboardTitle": "📦 Renovate Dependency Dashboard",
   "prTitle": "⬆️ {{semanticCommitType}}{{semanticCommitScope}}: {{prettyNewValue}}",
