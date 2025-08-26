@@ -1393,7 +1393,7 @@ def main() -> None:
                                             f"Processing failed: {e!s}",
                                         )
                                 except Exception:
-                                    pass
+                                    pass  # nosec B110 - Intentionally silent on status update failures
                         raise
 
                     print("\n   🎉 All rollout data processing completed successfully!")
