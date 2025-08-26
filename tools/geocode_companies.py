@@ -122,9 +122,7 @@ class CompanyGeocoder:
                     address_parts.append(company.vnbdigital_city)
                 return ", ".join(address_parts)
             else:
-                print(
-                    f"    ⚠️  Skipping Postfach address: {company.vnbdigital_address}"
-                )
+                print(f"    ⚠️  Skipping Postfach address: {company.vnbdigital_address}")
                 # Fall through to next priority level
 
         # Priority 2: VNBdigital city with postcode

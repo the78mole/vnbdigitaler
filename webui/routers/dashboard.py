@@ -81,9 +81,11 @@ async def dashboard_stats_api(db: AsyncSession = Depends(get_db_session)):
             "rollout_companies": rollout_companies,
             "rollout_quotas": rollout_quotas,
             "service_areas": service_areas,
-            "match_rate": round((matched_companies / total_companies * 100), 1)
-            if total_companies > 0
-            else 0.0,
+            "match_rate": (
+                round((matched_companies / total_companies * 100), 1)
+                if total_companies > 0
+                else 0.0
+            ),
             "database_status": "connected",
             "last_updated": "now",
         }
@@ -151,12 +153,16 @@ async def stats(request: Request, db: AsyncSession = Depends(get_db_session)):
             "manual_verification_needed": f"{matched_rollout:,}",
             "rollout_companies": f"{rollout_companies:,}",
             "rollout_quotas": f"{rollout_quotas:,}",
-            "match_rate": f"{(matched_companies / total_companies * 100):.1f}%"
-            if total_companies > 0
-            else "0.0%",
-            "rollout_match_rate": f"{(matched_rollout / rollout_companies * 100):.1f}%"
-            if rollout_companies > 0
-            else "0.0%",
+            "match_rate": (
+                f"{(matched_companies / total_companies * 100):.1f}%"
+                if total_companies > 0
+                else "0.0%"
+            ),
+            "rollout_match_rate": (
+                f"{(matched_rollout / rollout_companies * 100):.1f}%"
+                if rollout_companies > 0
+                else "0.0%"
+            ),
         }
 
     except Exception as e:

@@ -45,9 +45,10 @@ Respond with valid JSON in this exact format:
     HTTP_OK = 200
 
     try:
-        async with aiohttp.ClientSession() as session, session.post(
-            API_URL, headers=headers, json=payload
-        ) as response:
+        async with (
+            aiohttp.ClientSession() as session,
+            session.post(API_URL, headers=headers, json=payload) as response,
+        ):
             if response.status == HTTP_OK:
                 data = await response.json()
                 content = data["choices"][0]["message"]["content"].strip()
