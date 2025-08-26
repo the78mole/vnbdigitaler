@@ -12,6 +12,7 @@ Dieses Repository enthält ein modulares GitHub Actions Workflow-System für aut
 ### Reusable Workflow Pattern
 
 Das System nutzt GitHub's [reusable workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows) für:
+
 - **Modularität**: Einzelne Workflows können isoliert getestet werden
 - **Wiederverwendbarkeit**: Workflows können von anderen Repositories genutzt werden
 - **Wartbarkeit**: Zentrale Logik an einem Ort
@@ -20,15 +21,18 @@ Das System nutzt GitHub's [reusable workflows](https://docs.github.com/en/action
 ## 🚀 Features
 
 ### Automatische Ausführung
+
 - **Täglich um 6:00 UTC** (8:00 CEST) - optimaler Zeitpunkt nach nächtlichen BNetzA-Updates
 - **Intelligente Erkennung** neuer Reports mit bestehenden Tools
 
 ### Manuelle Kontrolle
+
 - **Update Type Selection**: all, rollout-quotas, bdew-companies, check-only
 - **Force Update**: Erzwingt Update auch ohne Änderungen
 - **Dry Run**: Zeigt Änderungen ohne sie durchzuführen
 
 ### Robuste Fehlerbehandlung
+
 - **Automatische Issue-Erstellung** bei Fehlern
 - **Detailliertes Logging** für Debugging
 - **Comprehensive Summary Reports** für jeden Run
@@ -78,19 +82,24 @@ outputs:
 ## 📊 Monitoring & Debugging
 
 ### Workflow Logs
+
 - Detaillierte Logs in GitHub Actions
 - Strukturierte Ausgabe mit Progress-Indikatoren
 - Fehler-spezifische Logs mit Kontext
 
 ### Summary Reports
+
 Jeder Workflow-Run erstellt ein Summary-Report mit:
+
 - Konfiguration und Trigger-Info
 - Ergebnisse aller Jobs
 - Links zu relevanten Ressourcen
 - Nächste Schritte
 
 ### Automatische Issue-Erstellung
+
 Bei Fehlern wird automatisch ein Issue erstellt mit:
+
 - Detaillierte Fehlerinformationen
 - Mögliche Ursachen
 - Empfohlene Lösungsschritte
@@ -101,6 +110,7 @@ Bei Fehlern wird automatisch ein Issue erstellt mit:
 ### Neuen Update-Typ hinzufügen
 
 1. **Reusable Workflow erstellen**:
+
    ```yaml
    # .github/workflows/reusable-new-update.yml
    name: Reusable New Data Update
@@ -115,6 +125,7 @@ Bei Fehlern wird automatisch ein Issue erstellt mit:
    ```
 
 2. **Im Central Workflow einbinden**:
+
    ```yaml
    # In central-data-update.yml
    new-data-update:
@@ -126,6 +137,7 @@ Bei Fehlern wird automatisch ein Issue erstellt mit:
    ```
 
 3. **Test-Script erweitern**:
+
    ```bash
    # In test-update-workflow.sh
    case "$UPDATE_TYPE" in

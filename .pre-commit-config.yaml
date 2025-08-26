@@ -71,16 +71,12 @@ repos:
   #     - id: prettier
   #       types: [yaml]
 
-  # Markdown linting
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.37.0
+  # Markdown linting with markdownlint-cli2 (more stable than markdownlint-cli)
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.13.0
     hooks:
-      - id: markdownlint
-        args: [--fix]
-        exclude: |
-          (?x)^(
-            \.github/.*\.md
-          )$
+      - id: markdownlint-cli2
+        args: ["--fix"]
 
   # Security checks with bandit
   - repo: https://github.com/PyCQA/bandit
