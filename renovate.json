@@ -29,10 +29,7 @@
       ],
       "groupName": "pre-commit hooks",
       "semanticCommitType": "chore",
-      "semanticCommitScope": "deps",
-      "schedule": [
-        "before 6am on monday"
-      ]
+      "semanticCommitScope": "deps"
     },
     {
       "description": "Auto-merge pre-commit hooks minor updates",
