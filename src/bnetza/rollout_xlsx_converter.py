@@ -202,9 +202,9 @@ class BNetzARolloutXlsx2CsvConverter:
                     "row_number": row_num,
                     "company_name": str(company_name).strip() if company_name else "",
                     "quota_raw": quota_value,
-                    "quota_original": str(quota_value)
-                    if quota_value is not None
-                    else "",
+                    "quota_original": (
+                        str(quota_value) if quota_value is not None else ""
+                    ),
                 }
             )
 
@@ -453,9 +453,11 @@ class BNetzARolloutXlsx2CsvConverter:
             "input_file_rows": len(raw_data),
             "output_csv_rows": len(processed_data),
             "rows_skipped": len(raw_data) - len(processed_data),
-            "default_reference_date": default_reference_date.strftime("%Y-%m-%d")
-            if default_reference_date
-            else None,
+            "default_reference_date": (
+                default_reference_date.strftime("%Y-%m-%d")
+                if default_reference_date
+                else None
+            ),
             "parsing_methods": {},
             "reference_dates_used": {},
             "quota_range": {"min": None, "max": None, "avg": None},

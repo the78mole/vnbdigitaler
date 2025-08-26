@@ -41,7 +41,9 @@ def convert_bdew_code_to_integer():
         trans = conn.begin()
 
         try:
-            print("🔧 Converting bdew_code to INTEGER and updating rollout_companies...")
+            print(
+                "🔧 Converting bdew_code to INTEGER and updating rollout_companies..."
+            )
 
             # Step 1: Check current state of companies.bdew_code
             print("📊 Step 1: Checking companies.bdew_code column...")

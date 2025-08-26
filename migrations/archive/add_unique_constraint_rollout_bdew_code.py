@@ -184,6 +184,4 @@ if __name__ == "__main__":
     if success:
         print("\n🎯 UNIQUE constraint erfolgreich hinzugefügt!")
     else:
-        print(
-            "\n⚠️  Migration nicht abgeschlossen - manuelle Bereinigung erforderlich!"
-        )
+        print("\n⚠️  Migration nicht abgeschlossen - manuelle Bereinigung erforderlich!")

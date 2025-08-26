@@ -341,12 +341,14 @@ async def get_company_details(
             "vnbdigital_address": company.vnbdigital_address,
             "vnbdigital_postcode": company.vnbdigital_postcode,
             "vnbdigital_city": company.vnbdigital_city,
-            "rollout_name": linked_rollout_company.bnetza_name
-            if linked_rollout_company
-            else None,
-            "notes": linked_rollout_company.verification_notes
-            if linked_rollout_company
-            else None,
+            "rollout_name": (
+                linked_rollout_company.bnetza_name if linked_rollout_company else None
+            ),
+            "notes": (
+                linked_rollout_company.verification_notes
+                if linked_rollout_company
+                else None
+            ),
             "has_service_area": bool(company.network_territory_geojson),
             "company_latitude": company.company_latitude,
             "company_longitude": company.company_longitude,

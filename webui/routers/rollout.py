@@ -200,20 +200,24 @@ async def get_rollout_entries(
                 "company_name": company_name,
                 "linked_bdew_name": linked_bdew_name,
                 "linked_bdew_city": linked_bdew_city,
-                "rollout_quota": float(quota.rollout_quota * 100)
-                if quota and quota.rollout_quota is not None
-                else 0.0,
-                "reference_date": quota.reference_date.isoformat()
-                if quota and quota.reference_date
-                else None,
+                "rollout_quota": (
+                    float(quota.rollout_quota * 100)
+                    if quota and quota.rollout_quota is not None
+                    else 0.0
+                ),
+                "reference_date": (
+                    quota.reference_date.isoformat()
+                    if quota and quota.reference_date
+                    else None
+                ),
                 "report_quarter": quota.report_quarter if quota else None,
                 "source_file": quota.source_file if quota else None,
                 "is_matched": bdew_code is not None,
                 "matched_company_id": bdew_code,
                 "bdew_company_code": bdew_code,
-                "created_at": quota.created_at.isoformat()
-                if quota and quota.created_at
-                else None,
+                "created_at": (
+                    quota.created_at.isoformat() if quota and quota.created_at else None
+                ),
                 "updated_at": None,  # We don't track updates in quota table
             }
         )
@@ -303,9 +307,9 @@ async def get_rollout_stats(
         "total_entries": total_companies,
         "matched_entries": matched_companies,
         "unmatched_entries": unmatched_companies,
-        "match_rate": (matched_companies / total_companies * 100)
-        if total_companies > 0
-        else 0,
+        "match_rate": (
+            (matched_companies / total_companies * 100) if total_companies > 0 else 0
+        ),
         "total_quota_entries": total_quota_entries,
         "entries_with_quota": companies_with_quota,
         "avg_quota": float(avg_quota) if avg_quota else 0.0,
@@ -408,20 +412,24 @@ async def get_rollout_entry(
         "id": company.id,
         "company_name": company.bnetza_name,
         "normalized_company_name": company.normalized_name,
-        "rollout_quota": float(quota.rollout_quota * 100)
-        if quota and quota.rollout_quota is not None
-        else 0.0,
-        "reference_date": quota.reference_date.isoformat()
-        if quota and quota.reference_date
-        else None,
+        "rollout_quota": (
+            float(quota.rollout_quota * 100)
+            if quota and quota.rollout_quota is not None
+            else 0.0
+        ),
+        "reference_date": (
+            quota.reference_date.isoformat() if quota and quota.reference_date else None
+        ),
         "report_quarter": quota.report_quarter if quota else None,
         "source_file": quota.source_file if quota else None,
         "is_matched": company.bdew_code is not None,
         "matched_company_id": company.bdew_code,
         "verification_notes": company.verification_notes,
-        "created_at": quota.created_at.isoformat()
-        if quota and quota.created_at
-        else company.created_at.isoformat(),
+        "created_at": (
+            quota.created_at.isoformat()
+            if quota and quota.created_at
+            else company.created_at.isoformat()
+        ),
     }
 
 
