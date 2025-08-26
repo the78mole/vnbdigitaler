@@ -1,7 +1,7 @@
 """Test configuration module."""
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from src.config import Settings, get_settings, reset_settings
 
@@ -11,7 +11,7 @@ def test_settings_from_environment():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
             "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
             "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
             "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
@@ -39,7 +39,7 @@ def test_settings_defaults():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
             "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
             "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
             "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
@@ -75,10 +75,8 @@ def test_settings_from_streamlit_secrets():
         "app": {"log_level": "INFO", "environment": "production"},
     }
 
-    mock_st = MagicMock()
-    mock_st.secrets = mock_secrets
-
-    with patch.dict("sys.modules", {"streamlit": mock_st}):
+    # Mock the entire streamlit.secrets object
+    with patch("streamlit.secrets", mock_secrets):
         reset_settings()
         settings = Settings.from_streamlit_secrets()
 
@@ -100,7 +98,7 @@ def test_settings_singleton():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
             "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
             "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
             "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
@@ -119,7 +117,7 @@ def test_reset_settings():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
             "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
             "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
             "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret
@@ -135,7 +133,7 @@ def test_reset_settings():
     with patch.dict(
         os.environ,
         {
-            "NEON_DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
+            "DATABASE_URL": "postgresql+asyncpg://test:test@localhost:5432/test",  # pragma: allowlist secret
             "OPENROUTER_API_KEY": "test-key",  # pragma: allowlist secret
             "CLOUDFLARE_R2_ACCESS_KEY": "test-access",  # pragma: allowlist secret
             "CLOUDFLARE_R2_SECRET_KEY": "test-secret",  # pragma: allowlist secret

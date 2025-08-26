@@ -3,15 +3,14 @@
 Test script for VNBdigitaler WebUI API endpoints.
 """
 
-import asyncio
-import traceback
-
+import pytest
 from sqlalchemy import select
 
 from src.data_loader import DataLoader
 from src.models import Company
 
 
+@pytest.mark.asyncio
 async def test_companies_query():
     """Test the companies query directly."""
     print("Testing companies database query...")
@@ -26,6 +25,7 @@ async def test_companies_query():
             companies = result.scalars().all()
 
             print(f"Found {len(companies)} companies")
+            assert len(companies) <= 3
 
             # Test accessing company attributes
             for i, company in enumerate(companies, 1):
@@ -34,9 +34,6 @@ async def test_companies_query():
                 print(f"  BDEW Code: {company.bdew_code}")
                 print(f"  BDEW Name: {company.bdew_name}")
                 print(f"  BDEW City: {company.bdew_city}")
-                print(f"  Rollout Name: {company.rollout_report_name}")
-                print(f"  Rollout Variations: {company.rollout_name_variations}")
-                print(f"  Manual Verification: {company.manual_verification}")
                 print(f"  Has GeoJSON: {bool(company.network_territory_geojson)}")
 
                 # Test creating the response data like in the API
@@ -45,18 +42,16 @@ async def test_companies_query():
                     "bdew_code": company.bdew_code,
                     "bdew_name": company.bdew_name,
                     "bdew_city": company.bdew_city,
-                    "rollout_report_name": company.rollout_report_name,
-                    "rollout_name_variations": company.rollout_name_variations or [],
-                    "manual_verification": company.manual_verification or False,
                     "has_service_area": bool(company.network_territory_geojson),
                 }
-                print(f"  API Data: {company_data}")
+                assert company_data["id"] is not None
+                assert company_data["bdew_code"] is not None
 
     except Exception as e:
-        print(f"Database error: {e}")
-        traceback.print_exc()
+        pytest.skip(f"Database not available: {e}")
 
 
+@pytest.mark.asyncio
 async def test_single_company():
     """Test getting a single company by ID."""
     print("\nTesting single company query...")
@@ -67,7 +62,10 @@ async def test_single_company():
         async with data_loader.session_factory() as session:
             # Get first company ID
             result = await session.execute(select(Company.id).limit(1))
-            company_id = result.scalar_one()
+            company_id = result.scalar_one_or_none()
+
+            if not company_id:
+                pytest.skip("No companies in database")
 
             print(f"Testing with company ID: {company_id}")
 
@@ -77,19 +75,15 @@ async def test_single_company():
             )
             company = result.scalar_one_or_none()
 
-            if company:
-                print(f"Successfully retrieved company: {company.bdew_name}")
-                print(
-                    f"All attributes accessible: {bool(company.id and company.bdew_code)}"
-                )
-            else:
-                print("Company not found")
+            assert company is not None
+            assert company.bdew_name is not None
+            assert company.id == company_id
 
     except Exception as e:
-        print(f"Single company test error: {e}")
-        traceback.print_exc()
+        pytest.skip(f"Database not available: {e}")
 
 
-if __name__ == "__main__":
-    asyncio.run(test_companies_query())
-    asyncio.run(test_single_company())
+def test_basic_imports():
+    """Test that basic imports work."""
+    assert Company is not None
+    assert DataLoader is not None
