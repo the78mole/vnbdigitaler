@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Test actual MVT data from VNBClient."""
 
+import pytest
+
 from src.vnbclient import VNBClient
 
 # Germany geographical bounds
@@ -18,7 +20,10 @@ def test_real_mvt_data():
     print("🔍 Fetching real MVT data for Erlanger Stadtwerke (BDEW: 179)")
     print("=" * 60)
 
-    vnb_info = client.fetch_vnb_info("179")
+    try:
+        vnb_info = client.fetch_vnb_info("179")
+    except Exception as e:
+        pytest.skip(f"VNB API not available: {e}")
 
     if vnb_info and vnb_info.geojson:
         print(f"✅ Found VNB: {vnb_info.name}")
@@ -48,6 +53,7 @@ def test_real_mvt_data():
                         print(
                             "✅ Coordinates appear to be in correct WGS84 range for Germany"
                         )
+                        assert True  # Test passed
                     else:
                         print(
                             "❌ Coordinates appear to be outside German geographic bounds"
@@ -56,8 +62,11 @@ def test_real_mvt_data():
                         print(
                             f"   Got: longitude {sample_coord[0]:.6f}, latitude {sample_coord[1]:.6f}"
                         )
+                        raise AssertionError(
+                            "Coordinates outside expected German bounds"
+                        )
     else:
-        print("❌ No VNB data found or no GeoJSON available")
+        pytest.skip("No VNB data found or no GeoJSON available")
 
 
 if __name__ == "__main__":
