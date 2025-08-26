@@ -71,11 +71,11 @@ repos:
   #     - id: prettier
   #       types: [yaml]
 
-  # Markdown linting with markdownlint-cli2 (more stable than markdownlint-cli)
-  - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.13.0
+  # Markdown linting - Using markdownlint-cli instead of cli2 to avoid npm dependency issues
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
     hooks:
-      - id: markdownlint-cli2
+      - id: markdownlint
         args: ["--fix"]
 
   # Security checks with bandit
