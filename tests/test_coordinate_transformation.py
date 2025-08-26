@@ -13,9 +13,9 @@ GERMANY_MAX_LAT = 55.0
 def test_erlangen_coordinates():
     """Test coordinate transformation with Erlangen sample data."""
 
-    # Sample MVT coordinate from your example (should be around Erlangen)
-    # This is a sample coordinate from the polygon you provided
-    sample_mvt_coordinate = [10.9368896484375, 48.29050321714064]
+    # Correct MVT tile coordinates for Erlangen (calculated from WGS84 [11.005, 49.597])
+    # These are actual tile coordinates in the 4096x4096 grid
+    sample_mvt_coordinate = [2003.3991111111113, 2236.1488369529166]
 
     # Initialize transformer with the same bbox used in VNBClient
     transformer = GeoTransformer(
@@ -41,15 +41,20 @@ def test_erlangen_coordinates():
 
     print(f"Longitude difference: {lon_diff:.6f}")
     print(f"Latitude difference: {lat_diff:.6f}")
-    if (
+
+    # Assert that coordinates are within Germany bounds
+    assert (
         GERMANY_MIN_LON <= transformed[0] <= GERMANY_MAX_LON
         and GERMANY_MIN_LAT <= transformed[1] <= GERMANY_MAX_LAT
-    ):
-        print("✅ Coordinates are within Germany bounds")
-    else:
-        print("❌ Coordinates are outside Germany bounds")
+    ), f"Coordinates {transformed} are outside Germany bounds"
 
-    return transformed
+    print("✅ Coordinates are within Germany bounds")
+
+    # Assert that transformation is accurate (within 0.001 degrees ≈ 100m)
+    assert lon_diff < 0.001, f"Longitude difference too large: {lon_diff}"
+    assert lat_diff < 0.001, f"Latitude difference too large: {lat_diff}"
+
+    print("✅ Coordinate transformation is accurate")
 
 
 if __name__ == "__main__":

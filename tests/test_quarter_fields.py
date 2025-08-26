@@ -8,6 +8,8 @@ This script tests the new quarter fields to ensure they work correctly.
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add the project root to the path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
@@ -33,6 +35,14 @@ def test_quarter_fields():
 
     engine = create_engine(database_url)
 
+    # Test database connectivity first
+    try:
+        with engine.connect() as test_conn:
+            test_conn.execute(text("SELECT 1"))
+    except Exception as e:
+        # Skip test if database is not available (e.g., in ACT environment)
+        pytest.skip(f"Database not available: {e}")
+
     try:
         with engine.connect() as connection:
             print("Testing quarter field constraints...")
@@ -46,7 +56,7 @@ def test_quarter_fields():
                         text(
                             """
                         INSERT INTO rollout_update_logs
-                        (article_url, excel_filename, excel_file_hash, report_reference_date, quarter, report_year)
+                        (article_url, excel_filename, excel_file_hash, report_reference_date, report_quarter, report_year)
                         VALUES
                         (:url, :filename, :hash, CURRENT_DATE, :quarter, 2025)
                     """
@@ -71,7 +81,7 @@ def test_quarter_fields():
                         text(
                             """
                         INSERT INTO rollout_update_logs
-                        (article_url, excel_filename, excel_file_hash, report_reference_date, quarter, report_year)
+                        (article_url, excel_filename, excel_file_hash, report_reference_date, report_quarter, report_year)
                         VALUES
                         (:url, :filename, :hash, CURRENT_DATE, :quarter, 2025)
                     """
@@ -90,22 +100,24 @@ def test_quarter_fields():
                     print(
                         f"  ✅ Quarter {invalid_quarter}: Correctly rejected - {str(e)[:60]}..."
                     )
+                    # After an error, rollback the transaction to continue
+                    connection.rollback()
 
             # Test 3: Check the data
             print("\n3. Checking inserted test data:")
             result = connection.execute(
                 text(
                     """
-                SELECT quarter, excel_filename
+                SELECT report_quarter, excel_filename
                 FROM rollout_update_logs
                 WHERE excel_filename LIKE 'test_%'
-                ORDER BY quarter
+                ORDER BY report_quarter
             """
                 )
             )
 
             for row in result:
-                print(f"  Quarter {row.quarter}: {row.excel_filename}")
+                print(f"  Quarter {row.report_quarter}: {row.excel_filename}")
 
             # Clean up test data
             connection.execute(
@@ -122,17 +134,18 @@ def test_quarter_fields():
 
         print("\n🎉 Quarter field tests completed successfully!")
         print("\nSummary:")
-        print("- rollout_update_logs.quarter: INTEGER NOT NULL (1-4)")
-        print("- rollout_quotas.quarter: INTEGER NULL (1-4)")
+        print("- rollout_update_logs.report_quarter: INTEGER NOT NULL (1-4)")
+        print("- rollout_quotas.report_quarter: INTEGER NULL (1-4)")
         print("- Both tables have proper constraints")
         print("- Invalid quarter values are rejected")
-        print("- Original report_quarter fields preserved for compatibility")
+        print("- Quarter fields are now consistent")
 
     except Exception as e:
         print(f"❌ Error during testing: {e}")
-        return False
+        # Use AssertionError instead of assert False for proper test behavior
+        raise AssertionError(f"Test failed with error: {e}")
 
-    return True
+    # Test passes - no return needed
 
 
 if __name__ == "__main__":

@@ -71,7 +71,7 @@ repos:
   #     - id: prettier
   #       types: [yaml]
 
-  # Markdown linting - Using markdownlint-cli instead of cli2 to avoid npm dependency issues
+  # Markdown linting - Skipped in act due to Node.js version requirements
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.45.0
     hooks:

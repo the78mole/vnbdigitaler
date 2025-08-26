@@ -3567,6 +3567,7 @@ ai = [
 dev = [
     { name = "bandit" },
     { name = "black" },
+    { name = "coverage", extra = ["toml"] },
     { name = "detect-secrets" },
     { name = "isort" },
     { name = "mypy" },
@@ -3606,6 +3607,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.7.0" },
     { name = "boto3", specifier = ">=1.34.0" },
+    { name = "coverage", extras = ["toml"], marker = "extra == 'dev'", specifier = ">=7.0.0" },
     { name = "detect-secrets", marker = "extra == 'dev'", specifier = ">=1.4.0" },
     { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fastapi", specifier = ">=0.104.0" },

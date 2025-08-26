@@ -16,10 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install uv
+      - name: Install uv (GitHub Actions)
+        if: ${{ !env.ACT }}
         uses: astral-sh/setup-uv@v6
-        with:
-          version: "latest"
+
+      - name: Install uv (local act)
+        if: ${{ env.ACT }}
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
@@ -34,6 +39,15 @@ jobs:
         run: |
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
 
+      - name: Upgrade Node.js for act compatibility
+        if: ${{ env.ACT }}
+        run: |
+          # Install Node.js 20 for act compatibility with markdownlint-cli
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          node --version
+          npm --version
+
       - name: Run pre-commit checks
         run: |
           uv run pre-commit run --all-files
@@ -42,10 +56,15 @@ jobs:
         env:
           DATABASE_URL: "postgresql://user:pass@localhost:5432/test_db" # pragma: allowlist secret
         run: |
-          uv run pytest
+          if [ "${{ matrix.python-version }}" = "3.11" ]; then
+            uv run coverage run -m pytest
+            uv run coverage xml
+          else
+            uv run pytest
+          fi
 
       - name: Upload coverage reports
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.11' && !env.ACT
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
@@ -53,7 +72,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && !env.ACT }}
         uses: codecov/test-results-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -63,8 +82,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install uv
+      - name: Install uv (GitHub Actions)
+        if: ${{ !env.ACT }}
         uses: astral-sh/setup-uv@v6
+
+      - name: Install uv (local act)
+        if: ${{ env.ACT }}
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Set up Python
         run: uv python install 3.11

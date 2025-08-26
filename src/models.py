@@ -20,8 +20,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import DeclarativeMeta, declarative_base
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeMeta, Mapped, declarative_base, mapped_column
 from sqlalchemy.sql import func
 
 Base: DeclarativeMeta = declarative_base()
