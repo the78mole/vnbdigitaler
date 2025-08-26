@@ -6,11 +6,15 @@ and processing BNetzA rollout reports using the BNetzAReportDiscovery service.
 
 import contextlib
 import csv
+import hashlib
 import logging
+import sys
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from docopt import docopt
 from sqlalchemy import text
 
 from src.bnetza.rollout_report_discovery import BNetzAReportDiscovery
@@ -345,8 +349,6 @@ class RolloutReportUpdater:
             # Update status to completed and set file hash
             if self._report_id:
                 # Calculate file hash of the original Excel file
-                import hashlib
-
                 with Path(self._local_file_path).open("rb") as f:
                     file_content = f.read()
                     excel_hash = hashlib.sha256(file_content).hexdigest()
@@ -534,16 +536,12 @@ class RolloutReportUpdater:
                     # Progress logging every 10% or significant milestones
                     progress = (i / total_companies) * PROGRESS_THRESHOLD
                     # Log at: 0%, 10%, 20%, 30%, ..., 90%, 100% (but avoid spam for small datasets)
-                    show_progress = (
-                        i == 1
-                        or i == total_companies  # First item (0%)
-                        or (  # Last item (100%)
-                            total_companies >= PROGRESS_INTERVAL
-                            and progress >= PROGRESS_INTERVAL
-                            and (progress % PROGRESS_INTERVAL)
-                            <= (PROGRESS_THRESHOLD / total_companies)
-                        )  # Every 10%
-                    )
+                    show_progress = i in (1, total_companies) or (
+                        total_companies >= PROGRESS_INTERVAL
+                        and progress >= PROGRESS_INTERVAL
+                        and progress % PROGRESS_INTERVAL
+                        <= PROGRESS_THRESHOLD / total_companies
+                    )  # Every 10%
                     if show_progress:
                         logger.info(
                             f"📊 Company upsert progress: {progress:.0f}% ({i}/{total_companies})"
@@ -580,16 +578,12 @@ class RolloutReportUpdater:
                     # Progress logging every 10% or significant milestones
                     progress = (i / total_quotas) * PROGRESS_THRESHOLD
                     # Log at: 0%, 10%, 20%, 30%, ..., 90%, 100% (but avoid spam for small datasets)
-                    show_progress = (
-                        i == 1
-                        or i == total_quotas  # First item (0%)
-                        or (  # Last item (100%)
-                            total_quotas >= PROGRESS_INTERVAL
-                            and progress >= PROGRESS_INTERVAL
-                            and (progress % PROGRESS_INTERVAL)
-                            <= (PROGRESS_THRESHOLD / total_quotas)
-                        )  # Every 10%
-                    )
+                    show_progress = i in (1, total_quotas) or (
+                        total_quotas >= PROGRESS_INTERVAL
+                        and progress >= PROGRESS_INTERVAL
+                        and progress % PROGRESS_INTERVAL
+                        <= PROGRESS_THRESHOLD / total_quotas
+                    )  # Every 10%
                     if show_progress:
                         logger.info(
                             f"📈 Quota insert progress: {progress:.0f}% ({i}/{total_quotas})"
@@ -694,10 +688,6 @@ def main() -> None:
         # Regular update (download and import new data)
         python -m src.bnetza.rollout_report_updater
     """
-    import sys
-
-    from docopt import docopt
-
     # Use the docstring directly to avoid type issues
     docstring = main.__doc__ or ""
     args = docopt(docstring)
@@ -819,8 +809,6 @@ def main() -> None:
     except Exception as e:
         print(f"\n❌ Error: {e}")
         if args["--verbose"]:
-            import traceback
-
             traceback.print_exc()
         sys.exit(1)
 

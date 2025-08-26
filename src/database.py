@@ -5,6 +5,7 @@ and initialization utilities for the VNBdigitaler application.
 """
 
 import os
+import urllib.parse
 from collections.abc import AsyncGenerator
 from pathlib import Path
 
@@ -40,8 +41,6 @@ class DatabaseManager:
         )
 
         # Clean SSL parameters from sync URL for psycopg2 compatibility
-        import urllib.parse
-
         parsed = urllib.parse.urlparse(sync_url)
         query_params = urllib.parse.parse_qs(parsed.query)
         # Remove problematic SSL parameters

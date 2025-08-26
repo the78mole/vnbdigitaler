@@ -210,16 +210,11 @@ class BNetzARolloutXlsx2CsvConverter:
 
             # Progress logging every 10% or significant milestones
             progress = (i / total_rows) * 100
-            show_progress = (
-                i == 1
-                or i == total_rows  # First row
-                or (  # Last row
-                    total_rows >= MIN_ROW_COUNT
-                    and progress >= MIN_ROW_COUNT
-                    and (progress % PROGRESS_INTERVAL)
-                    <= (PROGRESS_THRESHOLD / total_rows)
-                )  # Every 10%
-            )
+            show_progress = i in (1, total_rows) or (
+                total_rows >= MIN_ROW_COUNT
+                and progress >= MIN_ROW_COUNT
+                and progress % PROGRESS_INTERVAL <= PROGRESS_THRESHOLD / total_rows
+            )  # Every 10%
             if show_progress:
                 self.logger.info(
                     f"📊 Data extraction progress: {progress:.0f}% ({i}/{total_rows})"
@@ -295,16 +290,11 @@ class BNetzARolloutXlsx2CsvConverter:
 
             # Progress logging every 10% or significant milestones
             progress = (i / total_items) * 100
-            show_progress = (
-                i == 1
-                or i == total_items  # First item
-                or (  # Last item
-                    total_items >= MIN_ROW_COUNT
-                    and progress >= MIN_ROW_COUNT
-                    and (progress % PROGRESS_INTERVAL)
-                    <= (PROGRESS_THRESHOLD / total_items)
-                )  # Every 10%
-            )
+            show_progress = i in (1, total_items) or (
+                total_items >= MIN_ROW_COUNT
+                and progress >= MIN_ROW_COUNT
+                and progress % PROGRESS_INTERVAL <= PROGRESS_THRESHOLD / total_items
+            )  # Every 10%
             if show_progress:
                 self.logger.info(
                     f"🔄 Data processing progress: {progress:.0f}% ({i}/{total_items})"

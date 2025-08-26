@@ -204,10 +204,13 @@ def export_companies_to_csv(companies: list[Any], output_path: Path) -> None:
                 }
             )
         else:
-            # Handle other company types
-            data.append(
-                company.__dict__ if hasattr(company, "__dict__") else str(company)
+            # Handle other company types - ensure dict format
+            company_data = (
+                company.__dict__
+                if hasattr(company, "__dict__")
+                else {"name": str(company)}
             )
+            data.append(company_data)
 
     # Create DataFrame and save
     df = pd.DataFrame(data)
