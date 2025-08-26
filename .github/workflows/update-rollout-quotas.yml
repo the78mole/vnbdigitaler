@@ -24,165 +24,228 @@ env:
 
 jobs:
   update-quotas:
+    uses: ./.github/workflows/reusable-rollout-update.yml
+    with:
+      force_update: ${{ github.event.inputs.force_update == 'true' }}
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
+      check_only: false
+    secrets:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  create-summary:
+    needs: update-quotas
     runs-on: ubuntu-latest
+    if: always()
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          version: "latest"
-
-      - name: Install dependencies
+      - name: Create enhanced summary
         run: |
-          uv sync
+          # Get results from the reusable workflow
+          ACTION_TAKEN="${{ needs.update-quotas.outputs.action_taken }}"
+          HAS_UPDATES="${{ needs.update-quotas.outputs.has_updates }}"
+          COMPANIES_TOTAL="${{ needs.update-quotas.outputs.companies_processed }}"
+          COMPANIES_UPDATED="${{ needs.update-quotas.outputs.companies_updated }}"
+          COMPANIES_NEW="${{ needs.update-quotas.outputs.companies_new }}"
+          COMPANIES_OUTDATED="${{ needs.update-quotas.outputs.companies_outdated }}"
+          QUOTAS_TOTAL="${{ needs.update-quotas.outputs.quotas_total }}"
+          QUOTAS_ERRORS="${{ needs.update-quotas.outputs.quotas_errors }}"
+          QUOTAS_REF_DATE="${{ needs.update-quotas.outputs.quotas_reference_date }}"
 
-      - name: Configure database connection
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-        run: |
-          echo "Database configuration set from secrets"
+          cat > $GITHUB_STEP_SUMMARY << EOF
+          # 📊 BNetzA Rollout Quotas Update Summary
 
-      - name: Check for new rollout reports
-        id: check-reports
-        run: |
-          # Erstelle ein Wrapper-Script für bessere Ausgabe-Kontrolle
-          cat > check_reports.py << 'EOF'
-          import subprocess
-          import sys
-          import json
-
-          def run_check():
-              try:
-                  # Prüfe auf neue Reports
-                  result = subprocess.run([
-                      'uv', 'run', 'python',
-                      'src/bnetza/rollout_report_updater.py',
-                      '--check-update', '--verbose'
-                  ], capture_output=True, text=True, cwd='.')
-
-                  output = result.stdout + result.stderr
-
-                  # Bestimme ob Updates verfügbar sind basierend auf Exit Code und Output
-                  has_updates = result.returncode == 0 and "new reports available" not in output.lower()
-
-                  # GitHub Actions Output setzen
-                  print(f"::set-output name=has_updates::{str(has_updates).lower()}")
-                  print(f"::set-output name=check_output::{output}")
-
-                  print("=== CHECK REPORT OUTPUT ===")
-                  print(output)
-                  print("=== END OUTPUT ===")
-
-                  return has_updates
-
-              except Exception as e:
-                  print(f"Error checking reports: {e}")
-                  print("::set-output name=has_updates::false")
-                  print(f"::set-output name=check_output::Error: {e}")
-                  return False
-
-          if __name__ == "__main__":
-              has_updates = run_check()
-              sys.exit(0 if has_updates else 1)
-          EOF
-
-          python check_reports.py
-
-      - name: Run update (dry run)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: |
-          echo "🔍 Running dry run..."
-          uv run python src/bnetza/rollout_report_updater.py --dry-run --verbose
-
-      - name: Run forced update
-        if: ${{ github.event.inputs.force_update == 'true' && github.event.inputs.dry_run != 'true' }}
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-        run: |
-          echo "🚀 Running forced update..."
-          uv run python src/bnetza/rollout_report_updater.py --force-update --verbose
-
-      - name: Run regular update
-        if: ${{ steps.check-reports.outputs.has_updates == 'true' && github.event.inputs.force_update != 'true' && github.event.inputs.dry_run != 'true' }}
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-        run: |
-          echo "📊 Running regular update..."
-          uv run python src/bnetza/rollout_report_updater.py --verbose
-
-      - name: Create summary
-        if: always()
-        run: |
-          cat > $GITHUB_STEP_SUMMARY << 'EOF'
-          # BNetzA Rollout Quotas Update
-
-          ## Workflow Configuration
+          ## 🔧 Workflow Configuration
           - **Trigger**: ${{ github.event_name }}
+          - **Schedule**: Daily at 06:00 UTC (08:00 CEST)
           - **Force Update**: ${{ github.event.inputs.force_update || 'false' }}
           - **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}
 
-          ## Check Results
-          - **New reports available**: ${{ steps.check-reports.outputs.has_updates }}
+          ## 📈 Update Results
+          - **Action Taken**: $ACTION_TAKEN
+          - **New Reports Available**: $HAS_UPDATES
+          - **Workflow Status**: ${{ needs.update-quotas.result }}
 
-          ## Actions Taken
-          ${{ github.event.inputs.dry_run == 'true' && '- ✅ Dry run completed' || '' }}
-          ${{ github.event.inputs.force_update == 'true' && '- ✅ Forced update completed' || '' }}
-          ${{ steps.check-reports.outputs.has_updates == 'true' && github.event.inputs.force_update != 'true' && github.event.inputs.dry_run != 'true' && '- ✅ Regular update completed' || '' }}
-          ${{ steps.check-reports.outputs.has_updates != 'true' && github.event.inputs.force_update != 'true' && github.event.inputs.dry_run != 'true' && '- ℹ️  No updates needed' || '' }}
-
-          ## Next Steps
-          - Check the [VNBdigitaler WebUI](https://your-webui-url.com) for updated data
-          - Review the rollout companies and quotas in the dashboard
-
-          ---
-          *Automated by GitHub Actions • Last run: ${{ github.run_id }}*
           EOF
 
-      - name: Notify on failure
-        if: failure()
+          # Add detailed statistics if data was processed
+          if [[ "$COMPANIES_TOTAL" != "0" && "$COMPANIES_TOTAL" != "" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 📊 Processing Statistics
+
+          ### Company Updates
+          | Category | Count | Description |
+          |----------|-------|-------------|
+          | **Total Processed** | **$COMPANIES_TOTAL** | Companies in the current update |
+          | 🔄 Updated | $COMPANIES_UPDATED | Companies with refreshed data |
+          | 🆕 New | $COMPANIES_NEW | Companies added to database |
+          | ⚠️ Outdated | $COMPANIES_OUTDATED | Companies missing from current update |
+
+          ### Quota Statistics
+          | Category | Count | Description |
+          |----------|-------|-------------|
+          | **Total Quotas** | **$QUOTAS_TOTAL** | Quota records processed |
+          | ❌ Validation Errors | $QUOTAS_ERRORS | Quotas with validation issues |
+          | 📅 Reference Date | $QUOTAS_REF_DATE | Current quota reference period |
+
+          EOF
+          fi
+
+          # Add status-specific information
+          case "${{ needs.update-quotas.result }}" in
+            "success")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ✅ Execution Successful
+
+          The rollout quotas update completed successfully. All data has been processed and imported into the database.
+
+          EOF
+              ;;
+            "failure")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ❌ Execution Failed
+
+          The rollout quotas update encountered an error. Please check the workflow logs for details.
+
+          ### Troubleshooting Steps
+          1. 🔍 Review the workflow execution logs
+          2. 🔗 Verify database connectivity
+          3. 🌐 Check if BNetzA website structure has changed
+          4. 📊 Test the rollout updater manually
+
+          EOF
+              ;;
+            "cancelled")
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ⏹️ Execution Cancelled
+
+          The rollout quotas update was cancelled before completion.
+
+          EOF
+              ;;
+          esac
+
+          # Add actionable next steps
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🎯 Next Steps
+
+          EOF
+
+          if [[ "${{ needs.update-quotas.result }}" == "success" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 🌐 **Dashboard**: Check the [VNBdigitaler WebUI](https://your-webui-url.com) for updated data
+          - 📊 **Analytics**: Review rollout statistics and company quotas
+          - 🔗 **Integration**: Use fuzzy matching for new rollout companies with BDEW data
+
+          EOF
+
+            if [[ "$COMPANIES_NEW" != "0" && "$COMPANIES_NEW" != "" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 🆕 **New Companies**: $COMPANIES_NEW new companies require BDEW linking via the WebUI
+          EOF
+            fi
+
+            if [[ "$COMPANIES_OUTDATED" != "0" && "$COMPANIES_OUTDATED" != "" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ⚠️ **Outdated Check**: Review $COMPANIES_OUTDATED companies no longer in current rollout data
+          EOF
+            fi
+
+            if [[ "$QUOTAS_ERRORS" != "0" && "$QUOTAS_ERRORS" != "" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ❌ **Error Resolution**: Investigate $QUOTAS_ERRORS quota validation errors
+          EOF
+            fi
+          else
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 📋 **Review Logs**: Check the detailed execution logs for error information
+          - 🔄 **Retry**: Consider manually triggering the workflow with force update
+          - 🛠️ **Maintenance**: Verify system dependencies and connectivity
+          EOF
+          fi
+
+          # Add technical information
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## 🔧 Technical Details
+          - **Workflow Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Repository**: ${{ github.repository }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Commit**: [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          - **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+          ---
+          *Automated BNetzA Rollout Quotas Update • Enhanced Summary v2.0*
+          EOF
+
+  notify-on-failure:
+    needs: update-quotas
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Create failure notification issue
         uses: actions/github-script@v7
         with:
           script: |
+            const companies_total = "${{ needs.update-quotas.outputs.companies_processed }}" || "0";
+            const companies_new = "${{ needs.update-quotas.outputs.companies_new }}" || "0";
+            const quotas_errors = "${{ needs.update-quotas.outputs.quotas_errors }}" || "0";
+            const has_updates = "${{ needs.update-quotas.outputs.has_updates }}" || "false";
+
             const issue_body = `## 🚨 BNetzA Rollout Quotas Update Failed
 
             **Workflow Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
             **Trigger**: ${{ github.event_name }}
-            **Branch**: ${{ github.ref }}
-            **Commit**: ${{ github.sha }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+            **Timestamp**: ${new Date().toISOString()}
 
-            ### Details
-            The automated BNetzA rollout quotas update workflow has failed. Please check the workflow logs for details.
+            ### 📊 Execution Context
+            - **Force Update**: ${{ github.event.inputs.force_update || 'false' }}
+            - **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}
+            - **Updates Available**: ${has_updates}
+            - **Companies Processed**: ${companies_total}
+            - **New Companies**: ${companies_new}
+            - **Quota Errors**: ${quotas_errors}
 
-            ### Possible Causes
-            - Database connection issues
-            - BNetzA website changes
-            - Data format changes
-            - Network connectivity problems
+            ### 🔍 Failure Analysis
+            The automated BNetzA rollout quotas update workflow has failed during execution. This impacts the availability of current rollout quota data in the VNBdigitaler system.
 
-            ### Next Steps
-            1. Check the workflow logs
-            2. Verify database connectivity
-            3. Test the rollout updater manually
-            4. Check if BNetzA website structure has changed
+            ### 🛠️ Possible Causes
+            - **Database Issues**: Connection timeouts, authentication failures, or schema changes
+            - **BNetzA Website Changes**: Modified URLs, new file formats, or updated security measures
+            - **Data Validation**: Invalid quota values, missing required fields, or format inconsistencies
+            - **Network Issues**: Connectivity problems, firewall restrictions, or DNS resolution failures
+            - **Dependencies**: Missing Python packages, version conflicts, or environment issues
+
+            ### 📋 Immediate Actions Required
+            1. **🔍 Investigate Logs**: Review the detailed workflow execution logs
+            2. **🧪 Test Manually**: Run the rollout updater script locally to reproduce the issue
+            3. **🔗 Verify Connectivity**: Check database and BNetzA website accessibility
+            4. **📊 Validate Data**: Ensure current data formats match expected schemas
+
+            ### 🎯 Resolution Steps
+            1. Identify the root cause from the workflow logs
+            2. Apply necessary fixes to the codebase or configuration
+            3. Test the fix in a development environment
+            4. Re-run the workflow manually to verify the resolution
+            5. Monitor subsequent scheduled runs for stability
+
+            ### 📞 Escalation
+            If this issue persists or requires immediate attention:
+            - Contact the development team
+            - Check the VNBdigitaler Dashboard for system status
+            - Consider manual data updates if critical
 
             ---
-            *This issue was automatically created by the failed workflow.*`;
+            *This issue was automatically created by the failed workflow on ${new Date().toISOString()}*
+
+            **Labels**: bug, automation, rollout-quotas, high-priority`;
 
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: `🚨 BNetzA Rollout Quotas Update Failed - ${new Date().toISOString().split('T')[0]}`,
               body: issue_body,
-              labels: ['bug', 'automation', 'rollout-quotas']
+              labels: ['bug', 'automation', 'rollout-quotas', 'high-priority']
             });

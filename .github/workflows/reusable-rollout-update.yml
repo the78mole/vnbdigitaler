@@ -32,6 +32,24 @@ on:
       companies_processed:
         description: "Number of companies processed"
         value: ${{ jobs.update-rollout.outputs.companies_processed }}
+      companies_updated:
+        description: "Number of companies updated"
+        value: ${{ jobs.update-rollout.outputs.companies_updated }}
+      companies_new:
+        description: "Number of new companies added"
+        value: ${{ jobs.update-rollout.outputs.companies_new }}
+      companies_outdated:
+        description: "Number of companies marked as outdated"
+        value: ${{ jobs.update-rollout.outputs.companies_outdated }}
+      quotas_total:
+        description: "Total number of quota records"
+        value: ${{ jobs.update-rollout.outputs.quotas_total }}
+      quotas_errors:
+        description: "Number of quota validation errors"
+        value: ${{ jobs.update-rollout.outputs.quotas_errors }}
+      quotas_reference_date:
+        description: "Reference date for quota data"
+        value: ${{ jobs.update-rollout.outputs.quotas_reference_date }}
 
 env:
   PYTHON_VERSION: "3.12"
@@ -43,6 +61,12 @@ jobs:
       has_updates: ${{ steps.check-reports.outputs.has_updates }}
       action_taken: ${{ steps.determine-action.outputs.action_taken }}
       companies_processed: ${{ steps.extract-stats.outputs.companies_processed }}
+      companies_updated: ${{ steps.extract-stats.outputs.companies_updated }}
+      companies_new: ${{ steps.extract-stats.outputs.companies_new }}
+      companies_outdated: ${{ steps.extract-stats.outputs.companies_outdated }}
+      quotas_total: ${{ steps.extract-stats.outputs.quotas_total }}
+      quotas_errors: ${{ steps.extract-stats.outputs.quotas_errors }}
+      quotas_reference_date: ${{ steps.extract-stats.outputs.quotas_reference_date }}
 
     steps:
       - name: Checkout repository
@@ -149,7 +173,165 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "🚀 Running forced update..."
-          uv run python src/bnetza/rollout_report_updater.py --force-update --verbose | tee update_output.log
+
+          # Create enhanced output wrapper
+          cat > enhanced_update.py << 'EOF'
+          import subprocess
+          import sys
+          import json
+          import re
+          import os
+
+          def run_update():
+              try:
+                  # Run the updater with verbose output
+                  result = subprocess.run([
+                      'uv', 'run', 'python',
+                      'src/bnetza/rollout_report_updater.py',
+                      '--force-update', '--verbose'
+                  ], capture_output=True, text=True, cwd='.')
+
+                  output = result.stdout + result.stderr
+                  print(output)  # Show full output
+
+                  # Parse detailed summary information
+                  summary_data = extract_summary_from_output(output)
+
+                  # Save summary as JSON for GitHub Actions
+                  with open('update_summary.json', 'w') as f:
+                      json.dump(summary_data, f, indent=2)
+
+                  # Also save to log
+                  with open('update_output.log', 'w') as f:
+                      f.write(output)
+
+                  return result.returncode == 0
+
+              except Exception as e:
+                  print(f"Error running update: {e}")
+                  return False
+
+          def extract_summary_from_output(output):
+              """Extract structured data from the detailed summary output."""
+              summary = {
+                  "companies": {
+                      "total_processed": 0,
+                      "up_to_date": [],
+                      "updated": [],
+                      "new": [],
+                      "outdated": []
+                  },
+                  "quotas": {
+                      "total_quotas": 0,
+                      "current_date": 0,
+                      "outdated_date": 0,
+                      "error_count": 0,
+                      "most_recent_date": "",
+                      "errors": []
+                  }
+              }
+
+              lines = output.split('\n')
+
+              # Parse the detailed summary section
+              in_summary = False
+              current_section = None
+
+              for line in lines:
+                  stripped = line.strip()
+
+                  # Detect summary start
+                  if "DETAILED UPDATE SUMMARY" in stripped:
+                      in_summary = True
+                      continue
+
+                  if not in_summary:
+                      continue
+
+                  # End of summary
+                  if stripped.startswith("===") and in_summary and current_section:
+                      break
+
+                  # Parse company statistics
+                  if "Companies Processed:" in stripped:
+                      match = re.search(r'Companies Processed: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["total_processed"] = int(match.group(1))
+
+                  elif "Up-to-date:" in stripped:
+                      match = re.search(r'Up-to-date: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["up_to_date_count"] = int(match.group(1))
+
+                  elif "Updated:" in stripped:
+                      match = re.search(r'Updated: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["updated_count"] = int(match.group(1))
+
+                  elif "New:" in stripped:
+                      match = re.search(r'New: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["new_count"] = int(match.group(1))
+
+                  elif "Outdated (not in update):" in stripped:
+                      match = re.search(r'Outdated \(not in update\): (\d+)', stripped)
+                      if match:
+                          summary["companies"]["outdated_count"] = int(match.group(1))
+
+                  # Parse quota statistics
+                  elif "Quota Records:" in stripped:
+                      match = re.search(r'Quota Records: (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["total_quotas"] = int(match.group(1))
+
+                  elif "Current Date" in stripped:
+                      match = re.search(r'Current Date \(([^)]+)\): (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["most_recent_date"] = match.group(1)
+                          summary["quotas"]["current_date"] = int(match.group(2))
+
+                  elif "Outdated Date:" in stripped:
+                      match = re.search(r'Outdated Date: (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["outdated_date"] = int(match.group(1))
+
+                  elif "Errors:" in stripped:
+                      match = re.search(r'Errors: (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["error_count"] = int(match.group(1))
+
+                  # Track section changes for detailed lists
+                  elif "Updated Companies" in stripped:
+                      current_section = "updated_companies"
+                  elif "New Companies" in stripped:
+                      current_section = "new_companies"
+                  elif "Outdated Companies" in stripped:
+                      current_section = "outdated_companies"
+                  elif "Quota Errors" in stripped:
+                      current_section = "quota_errors"
+
+                  # Parse company lists
+                  elif current_section and re.match(r'\s*\d+\.\s+(.+)', stripped):
+                      company_match = re.match(r'\s*\d+\.\s+(.+)', stripped)
+                      if company_match:
+                          company_name = company_match.group(1)
+                          if current_section == "updated_companies":
+                              summary["companies"]["updated"].append(company_name)
+                          elif current_section == "new_companies":
+                              summary["companies"]["new"].append(company_name)
+                          elif current_section == "outdated_companies":
+                              summary["companies"]["outdated"].append(company_name)
+                          elif current_section == "quota_errors":
+                              summary["quotas"]["errors"].append(company_name)
+
+              return summary
+
+          if __name__ == "__main__":
+              success = run_update()
+              sys.exit(0 if success else 1)
+          EOF
+
+          python enhanced_update.py
 
       - name: Run regular update
         if: ${{ steps.determine-action.outputs.action == 'regular_update' }}
@@ -157,19 +339,297 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "📊 Running regular update..."
-          uv run python src/bnetza/rollout_report_updater.py --verbose | tee update_output.log
+
+          # Use the same enhanced wrapper for regular updates
+          cat > enhanced_update.py << 'EOF'
+          import subprocess
+          import sys
+          import json
+          import re
+          import os
+
+          def run_update():
+              try:
+                  # Run the updater with verbose output (no --force-update flag)
+                  result = subprocess.run([
+                      'uv', 'run', 'python',
+                      'src/bnetza/rollout_report_updater.py',
+                      '--verbose'
+                  ], capture_output=True, text=True, cwd='.')
+
+                  output = result.stdout + result.stderr
+                  print(output)  # Show full output
+
+                  # Parse detailed summary information
+                  summary_data = extract_summary_from_output(output)
+
+                  # Save summary as JSON for GitHub Actions
+                  with open('update_summary.json', 'w') as f:
+                      json.dump(summary_data, f, indent=2)
+
+                  # Also save to log
+                  with open('update_output.log', 'w') as f:
+                      f.write(output)
+
+                  return result.returncode == 0
+
+              except Exception as e:
+                  print(f"Error running update: {e}")
+                  return False
+
+          def extract_summary_from_output(output):
+              """Extract structured data from the detailed summary output."""
+              summary = {
+                  "companies": {
+                      "total_processed": 0,
+                      "up_to_date": [],
+                      "updated": [],
+                      "new": [],
+                      "outdated": []
+                  },
+                  "quotas": {
+                      "total_quotas": 0,
+                      "current_date": 0,
+                      "outdated_date": 0,
+                      "error_count": 0,
+                      "most_recent_date": "",
+                      "errors": []
+                  }
+              }
+
+              lines = output.split('\n')
+
+              # Parse the detailed summary section
+              in_summary = False
+              current_section = None
+
+              for line in lines:
+                  stripped = line.strip()
+
+                  # Detect summary start
+                  if "DETAILED UPDATE SUMMARY" in stripped:
+                      in_summary = True
+                      continue
+
+                  if not in_summary:
+                      continue
+
+                  # End of summary
+                  if stripped.startswith("===") and in_summary and current_section:
+                      break
+
+                  # Parse company statistics
+                  if "Companies Processed:" in stripped:
+                      match = re.search(r'Companies Processed: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["total_processed"] = int(match.group(1))
+
+                  elif "Up-to-date:" in stripped:
+                      match = re.search(r'Up-to-date: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["up_to_date_count"] = int(match.group(1))
+
+                  elif "Updated:" in stripped:
+                      match = re.search(r'Updated: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["updated_count"] = int(match.group(1))
+
+                  elif "New:" in stripped:
+                      match = re.search(r'New: (\d+)', stripped)
+                      if match:
+                          summary["companies"]["new_count"] = int(match.group(1))
+
+                  elif "Outdated (not in update):" in stripped:
+                      match = re.search(r'Outdated \(not in update\): (\d+)', stripped)
+                      if match:
+                          summary["companies"]["outdated_count"] = int(match.group(1))
+
+                  # Parse quota statistics
+                  elif "Quota Records:" in stripped:
+                      match = re.search(r'Quota Records: (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["total_quotas"] = int(match.group(1))
+
+                  elif "Current Date" in stripped:
+                      match = re.search(r'Current Date \(([^)]+)\): (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["most_recent_date"] = match.group(1)
+                          summary["quotas"]["current_date"] = int(match.group(2))
+
+                  elif "Outdated Date:" in stripped:
+                      match = re.search(r'Outdated Date: (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["outdated_date"] = int(match.group(1))
+
+                  elif "Errors:" in stripped:
+                      match = re.search(r'Errors: (\d+)', stripped)
+                      if match:
+                          summary["quotas"]["error_count"] = int(match.group(1))
+
+                  # Track section changes for detailed lists
+                  elif "Updated Companies" in stripped:
+                      current_section = "updated_companies"
+                  elif "New Companies" in stripped:
+                      current_section = "new_companies"
+                  elif "Outdated Companies" in stripped:
+                      current_section = "outdated_companies"
+                  elif "Quota Errors" in stripped:
+                      current_section = "quota_errors"
+
+                  # Parse company lists
+                  elif current_section and re.match(r'\s*\d+\.\s+(.+)', stripped):
+                      company_match = re.match(r'\s*\d+\.\s+(.+)', stripped)
+                      if company_match:
+                          company_name = company_match.group(1)
+                          if current_section == "updated_companies":
+                              summary["companies"]["updated"].append(company_name)
+                          elif current_section == "new_companies":
+                              summary["companies"]["new"].append(company_name)
+                          elif current_section == "outdated_companies":
+                              summary["companies"]["outdated"].append(company_name)
+                          elif current_section == "quota_errors":
+                              summary["quotas"]["errors"].append(company_name)
+
+              return summary
+
+          if __name__ == "__main__":
+              success = run_update()
+              sys.exit(0 if success else 1)
+          EOF
+
+          python enhanced_update.py
 
       - name: Extract statistics
         id: extract-stats
         if: ${{ steps.determine-action.outputs.action == 'force_update' || steps.determine-action.outputs.action == 'regular_update' }}
         run: |
-          # Extract number of companies processed from the output
-          if [[ -f "update_output.log" ]]; then
+          # Extract statistics from the JSON summary if available
+          if [[ -f "update_summary.json" ]]; then
+            echo "📊 Extracting statistics from detailed summary..."
+
+            # Create extraction script
+            cat > extract_stats.py << 'EOF'
+          import json
+          import os
+          import sys
+
+          def main():
+              try:
+                  with open('update_summary.json', 'r') as f:
+                      summary = json.load(f)
+
+                  companies = summary.get('companies', {})
+                  quotas = summary.get('quotas', {})
+
+                  # Extract company statistics
+                  total_processed = companies.get('total_processed', 0)
+                  up_to_date_count = companies.get('up_to_date_count', len(companies.get('up_to_date', [])))
+                  updated_count = companies.get('updated_count', len(companies.get('updated', [])))
+                  new_count = companies.get('new_count', len(companies.get('new', [])))
+                  outdated_count = companies.get('outdated_count', len(companies.get('outdated', [])))
+
+                  # Extract quota statistics
+                  total_quotas = quotas.get('total_quotas', 0)
+                  current_date_count = quotas.get('current_date', 0)
+                  outdated_date_count = quotas.get('outdated_date', 0)
+                  error_count = quotas.get('error_count', 0)
+                  most_recent_date = quotas.get('most_recent_date', 'Unknown')
+
+                  # Set GitHub Actions outputs
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"companies_processed={total_processed}\n")
+                      f.write(f"companies_up_to_date={up_to_date_count}\n")
+                      f.write(f"companies_updated={updated_count}\n")
+                      f.write(f"companies_new={new_count}\n")
+                      f.write(f"companies_outdated={outdated_count}\n")
+                      f.write(f"quotas_total={total_quotas}\n")
+                      f.write(f"quotas_current_date={current_date_count}\n")
+                      f.write(f"quotas_outdated_date={outdated_date_count}\n")
+                      f.write(f"quotas_errors={error_count}\n")
+                      f.write(f"quotas_reference_date={most_recent_date}\n")
+
+                  # Print summary for logs
+                  print(f"📊 Extracted Statistics:")
+                  print(f"   Companies: {total_processed} total ({up_to_date_count} up-to-date, {updated_count} updated, {new_count} new, {outdated_count} outdated)")
+                  print(f"   Quotas: {total_quotas} total ({current_date_count} current date, {outdated_date_count} outdated date, {error_count} errors)")
+                  print(f"   Reference Date: {most_recent_date}")
+
+              except Exception as e:
+                  print(f"Error extracting statistics from JSON: {e}")
+                  # Fallback to log file parsing
+                  fallback_extraction()
+
+          def fallback_extraction():
+              """Fallback to parsing the log file if JSON is not available."""
+              companies = 0
+              try:
+                  if os.path.exists("update_output.log"):
+                      with open("update_output.log", "r") as f:
+                          content = f.read()
+
+                      # Try to extract from various log patterns
+                      import re
+
+                      # Look for import messages
+                      match = re.search(r'Imported (\d+) company quota records', content)
+                      if match:
+                          companies = int(match.group(1))
+
+                      # Look for processed messages
+                      if companies == 0:
+                          match = re.search(r'Companies Processed: (\d+)', content)
+                          if match:
+                              companies = int(match.group(1))
+
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"companies_processed={companies}\n")
+                      f.write(f"companies_up_to_date=0\n")
+                      f.write(f"companies_updated=0\n")
+                      f.write(f"companies_new=0\n")
+                      f.write(f"companies_outdated=0\n")
+                      f.write(f"quotas_total={companies}\n")
+                      f.write(f"quotas_current_date=0\n")
+                      f.write(f"quotas_outdated_date=0\n")
+                      f.write(f"quotas_errors=0\n")
+                      f.write(f"quotas_reference_date=Unknown\n")
+
+                  print(f"📊 Fallback extraction: {companies} companies processed")
+
+              except Exception as e:
+                  print(f"Error in fallback extraction: {e}")
+                  # Set defaults
+                  with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                      f.write(f"companies_processed=0\n")
+                      f.write(f"companies_up_to_date=0\n")
+                      f.write(f"companies_updated=0\n")
+                      f.write(f"companies_new=0\n")
+                      f.write(f"companies_outdated=0\n")
+                      f.write(f"quotas_total=0\n")
+                      f.write(f"quotas_current_date=0\n")
+                      f.write(f"quotas_outdated_date=0\n")
+                      f.write(f"quotas_errors=0\n")
+                      f.write(f"quotas_reference_date=Unknown\n")
+
+          if __name__ == "__main__":
+              main()
+          EOF
+
+            python extract_stats.py
+          else
+            echo "❌ No summary JSON found, using fallback method..."
+            # Original fallback method
             companies=$(grep -o "Imported [0-9]* company quota records" update_output.log | grep -o "[0-9]*" || echo "0")
             echo "companies_processed=$companies" >> $GITHUB_OUTPUT
-            echo "📊 Processed $companies companies"
-          else
-            echo "companies_processed=0" >> $GITHUB_OUTPUT
+            echo "companies_up_to_date=0" >> $GITHUB_OUTPUT
+            echo "companies_updated=0" >> $GITHUB_OUTPUT
+            echo "companies_new=0" >> $GITHUB_OUTPUT
+            echo "companies_outdated=0" >> $GITHUB_OUTPUT
+            echo "quotas_total=$companies" >> $GITHUB_OUTPUT
+            echo "quotas_current_date=0" >> $GITHUB_OUTPUT
+            echo "quotas_outdated_date=0" >> $GITHUB_OUTPUT
+            echo "quotas_errors=0" >> $GITHUB_OUTPUT
+            echo "quotas_reference_date=Unknown" >> $GITHUB_OUTPUT
+            echo "📊 Fallback: Processed $companies companies"
           fi
 
       - name: Upload artifacts
@@ -181,6 +641,7 @@ jobs:
             tmp/Roll-out-Quoten*.xlsx
             tmp/Roll-out-Quoten*.csv
             update_output.log
+            update_summary.json
           retention-days: 30
           if-no-files-found: ignore
 
@@ -190,7 +651,20 @@ jobs:
           # Determine summary content based on action
           ACTION="${{ steps.determine-action.outputs.action || 'unknown' }}"
           HAS_UPDATES="${{ steps.check-reports.outputs.has_updates || 'false' }}"
-          COMPANIES="${{ steps.extract-stats.outputs.companies_processed || '0' }}"
+
+          # Company statistics
+          COMPANIES_TOTAL="${{ steps.extract-stats.outputs.companies_processed || '0' }}"
+          COMPANIES_UP_TO_DATE="${{ steps.extract-stats.outputs.companies_up_to_date || '0' }}"
+          COMPANIES_UPDATED="${{ steps.extract-stats.outputs.companies_updated || '0' }}"
+          COMPANIES_NEW="${{ steps.extract-stats.outputs.companies_new || '0' }}"
+          COMPANIES_OUTDATED="${{ steps.extract-stats.outputs.companies_outdated || '0' }}"
+
+          # Quota statistics
+          QUOTAS_TOTAL="${{ steps.extract-stats.outputs.quotas_total || '0' }}"
+          QUOTAS_CURRENT="${{ steps.extract-stats.outputs.quotas_current_date || '0' }}"
+          QUOTAS_OUTDATED="${{ steps.extract-stats.outputs.quotas_outdated_date || '0' }}"
+          QUOTAS_ERRORS="${{ steps.extract-stats.outputs.quotas_errors || '0' }}"
+          QUOTAS_REF_DATE="${{ steps.extract-stats.outputs.quotas_reference_date || 'Unknown' }}"
 
           cat > $GITHUB_STEP_SUMMARY << EOF
           # 📊 BNetzA Rollout Update Results
@@ -230,9 +704,25 @@ jobs:
 
           ### 🚀 Database Update Completed
           - **New Updates Available**: $HAS_UPDATES
-          - **Companies Processed**: $COMPANIES
           - **Database**: Rollout quotas table updated successfully
           - **Files**: Excel and CSV files processed and archived
+
+          ## 📈 Company Statistics
+          | Category | Count | Description |
+          |----------|-------|-------------|
+          | **Total Processed** | **$COMPANIES_TOTAL** | Total companies in the update |
+          | ✅ Up-to-date | $COMPANIES_UP_TO_DATE | Companies already current in database |
+          | 🔄 Updated | $COMPANIES_UPDATED | Companies with refreshed data |
+          | 🆕 New | $COMPANIES_NEW | Companies added to database |
+          | ⚠️ Outdated | $COMPANIES_OUTDATED | Companies in DB but not in current update |
+
+          ## 📊 Quota Statistics
+          | Category | Count | Description |
+          |----------|-------|-------------|
+          | **Total Quotas** | **$QUOTAS_TOTAL** | Total quota records processed |
+          | ✅ Current Date | $QUOTAS_CURRENT | Quotas with reference date: $QUOTAS_REF_DATE |
+          | ⚠️ Outdated Date | $QUOTAS_OUTDATED | Quotas with older reference dates |
+          | ❌ Errors | $QUOTAS_ERRORS | Quotas with validation errors |
 
           EOF
               ;;
@@ -247,15 +737,103 @@ jobs:
               ;;
           esac
 
+          # Add detailed company breakdown for updates
+          if [[ "$ACTION" == "force_update" || "$ACTION" == "regular_update" ]] && [[ -f "update_summary.json" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## 📋 Detailed Company Breakdown
+          EOF
+
+            # Create script to extract and format company lists
+            cat > format_companies.py << 'EOF'
+          import json
+          import sys
+
+          def format_company_section(companies, title, emoji, description):
+              if not companies:
+                  return ""
+
+              result = f"\n### {emoji} {title} ({len(companies)})\n"
+              result += f"*{description}*\n\n"
+
+              if len(companies) <= 10:
+                  # Show all companies for small lists
+                  for i, company in enumerate(companies, 1):
+                      result += f"{i}. `{company}`\n"
+              else:
+                  # Show first 8 and last 2 for large lists
+                  for i, company in enumerate(companies[:8], 1):
+                      result += f"{i}. `{company}`\n"
+                  result += f"... ({len(companies) - 10} more companies) ...\n"
+                  for i, company in enumerate(companies[-2:], len(companies) - 1):
+                      result += f"{i}. `{company}`\n"
+
+              return result
+
+          try:
+              with open('update_summary.json', 'r') as f:
+                  summary = json.load(f)
+
+              companies = summary.get('companies', {})
+              quotas = summary.get('quotas', {})
+
+              # Format company sections
+              sections = []
+
+              if companies.get('updated'):
+                  sections.append(format_company_section(
+                      companies['updated'],
+                      "Updated Companies",
+                      "🔄",
+                      "Companies with refreshed data from the current update"
+                  ))
+
+              if companies.get('new'):
+                  sections.append(format_company_section(
+                      companies['new'],
+                      "New Companies",
+                      "🆕",
+                      "Companies added to the database for the first time"
+                  ))
+
+              if companies.get('outdated'):
+                  sections.append(format_company_section(
+                      companies['outdated'],
+                      "Outdated Companies",
+                      "⚠️",
+                      "Companies in database but missing from current update"
+                  ))
+
+              if quotas.get('errors'):
+                  sections.append(format_company_section(
+                      quotas['errors'],
+                      "Quota Validation Errors",
+                      "❌",
+                      "Companies with quota validation issues"
+                  ))
+
+              # Print all sections
+              for section in sections:
+                  print(section)
+
+          except Exception as e:
+              print(f"\n*Could not load detailed company information: {e}*\n")
+          EOF
+
+            python format_companies.py >> $GITHUB_STEP_SUMMARY
+          fi
+
           # Add files section for non-check actions
           if [[ "$ACTION" != "check_only" && "$ACTION" != "no_action" ]]; then
             cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## Files Processed
+
+          ## 📁 Files Processed
 
           The following files were processed during this run:
           - **Excel File**: \`tmp/Roll-out-Quoten_Q1_2025.xlsx\` (downloaded from BNetzA)
           - **CSV File**: \`tmp/Roll-out-Quoten_Q1_2025.csv\` (converted for import)
           - **Log File**: \`update_output.log\` (detailed execution log)
+          - **Summary JSON**: \`update_summary.json\` (structured statistics and company lists)
 
           These files are available as workflow artifacts for 30 days.
 
@@ -264,7 +842,7 @@ jobs:
 
           # Add next steps section
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## Next Steps
+          ## 🎯 Next Steps
           EOF
 
           case "$ACTION" in
@@ -275,6 +853,24 @@ jobs:
           - 🔗 **BDEW Linking**: Use the fuzzy matching system for new rollout companies
           - 📈 **Validation**: Verify data integrity using the dashboard statistics
           EOF
+
+              if [[ "$COMPANIES_NEW" -gt "0" ]]; then
+                cat >> $GITHUB_STEP_SUMMARY << EOF
+          - 🆕 **New Companies**: $COMPANIES_NEW new companies need BDEW linking
+          EOF
+              fi
+
+              if [[ "$COMPANIES_OUTDATED" -gt "0" ]]; then
+                cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ⚠️ **Outdated Companies**: Review $COMPANIES_OUTDATED companies missing from current update
+          EOF
+              fi
+
+              if [[ "$QUOTAS_ERRORS" -gt "0" ]]; then
+                cat >> $GITHUB_STEP_SUMMARY << EOF
+          - ❌ **Quota Errors**: Investigate $QUOTAS_ERRORS quota validation issues
+          EOF
+              fi
               ;;
             "dry_run")
               cat >> $GITHUB_STEP_SUMMARY << EOF
@@ -299,7 +895,7 @@ jobs:
           # Add technical details
           cat >> $GITHUB_STEP_SUMMARY << EOF
 
-          ## Technical Details
+          ## 🔧 Technical Details
           - **Workflow**: Reusable BNetzA Rollout Update
           - **Run ID**: ${{ github.run_id }}
           - **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
@@ -307,5 +903,5 @@ jobs:
           - **Ref**: ${{ github.ref }}
 
           ---
-          *Generated by VNBdigitaler Reusable Rollout Update Workflow*
+          *Generated by VNBdigitaler Enhanced Rollout Update Workflow*
           EOF

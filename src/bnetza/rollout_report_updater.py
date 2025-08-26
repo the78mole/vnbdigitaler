@@ -16,6 +16,7 @@ from typing import Any
 
 from docopt import docopt
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from src.bnetza.rollout_report_discovery import BNetzAReportDiscovery
 from src.bnetza.rollout_xlsx_converter import BNetzARolloutXlsx2CsvConverter
@@ -28,6 +29,7 @@ MAX_STRING_LENGTH = 60
 PROGRESS_INTERVAL = 10.0  # Progress logging interval in percentage
 PROGRESS_THRESHOLD = 100.0  # Total progress percentage
 SUBSTRING_ELLIPSIS_LENGTH = 3  # Length of "..."
+UPDATE_TIME_THRESHOLD = 300  # 5 minutes in seconds for detecting recent updates
 
 # Setup module logger
 logger = logging.getLogger("rollout_updater")
@@ -551,6 +553,9 @@ class RolloutReportUpdater:
                     f"✅ Company upsert completed: {total_companies} companies processed"
                 )
 
+                # Collect detailed summary information before quotas
+                upsert_summary = self._analyze_company_updates(session, companies_data)
+
                 # Step 2: Insert quotas with company IDs
                 total_quotas = len(quotas_data)
                 logger.info(f"📈 Inserting {total_quotas} quota records...")
@@ -593,8 +598,14 @@ class RolloutReportUpdater:
                     f"✅ Quota insert completed: {total_quotas} quota records processed"
                 )
 
+                # Analyze quota data for detailed summary
+                quota_summary = self._analyze_quota_updates(quotas_data)
+
                 session.commit()
                 logger.info("✅ Database import completed successfully")
+
+                # Print detailed summary
+                self._print_detailed_summary(upsert_summary, quota_summary)
 
             finally:
                 session.close()
@@ -604,6 +615,209 @@ class RolloutReportUpdater:
         except Exception as e:
             logger.error(f"❌ Database import failed: {e}")
             return False
+
+    def _analyze_company_updates(
+        self, session: Session, companies_data: list[dict]
+    ) -> dict:
+        """Analyze company updates and categorize them into up-to-date, updated, new, and outdated.
+
+        Args:
+            session: Database session
+            companies_data: List of companies being processed
+            quotas_data: Optional list of quota data for reference
+
+        Returns:
+            Dictionary with detailed analysis of company updates
+        """
+        # Get all companies currently in the database
+        existing_companies_result = session.execute(
+            text(
+                """
+                SELECT bnetza_name, updated_at, created_at
+                FROM rollout_companies
+                ORDER BY bnetza_name
+            """
+            )
+        )
+        existing_companies = {
+            row.bnetza_name: {
+                "updated_at": row.updated_at,
+                "created_at": row.created_at,
+            }
+            for row in existing_companies_result
+        }
+
+        # Get companies from current update batch
+        update_company_names = {company["bnetza_name"] for company in companies_data}
+
+        # Categorize companies
+        up_to_date = []
+        updated = []
+        new = []
+        outdated = []
+
+        # Current timestamp for comparison (approximate)
+        import_time = datetime.now()
+
+        for company in companies_data:
+            company_name = company["bnetza_name"]
+
+            if company_name in existing_companies:
+                existing_info = existing_companies[company_name]
+
+                # Check if this is a new company (created recently) or updated
+                time_since_created = import_time - existing_info["created_at"].replace(
+                    tzinfo=None
+                )
+                time_since_updated = import_time - existing_info["updated_at"].replace(
+                    tzinfo=None
+                )
+
+                # If created less than 5 minutes ago, consider it new
+                if time_since_created.total_seconds() < UPDATE_TIME_THRESHOLD:
+                    new.append(company_name)
+                # If updated less than 5 minutes ago but not new, consider it updated
+                elif time_since_updated.total_seconds() < UPDATE_TIME_THRESHOLD:
+                    updated.append(company_name)
+                else:
+                    up_to_date.append(company_name)
+            else:
+                new.append(company_name)
+
+        # Find outdated companies (in database but not in current update)
+        for existing_name in existing_companies:
+            if existing_name not in update_company_names:
+                outdated.append(existing_name)
+
+        return {
+            "up_to_date": sorted(up_to_date),
+            "updated": sorted(updated),
+            "new": sorted(new),
+            "outdated": sorted(outdated),
+            "total_processed": len(companies_data),
+            "total_existing": len(existing_companies),
+        }
+
+    def _analyze_quota_updates(self, quotas_data: list[dict]) -> dict:
+        """Analyze quota data for reference date consistency and validity.
+
+        Args:
+            quotas_data: List of quota records being processed
+
+        Returns:
+            Dictionary with quota analysis including current/outdated dates and errors
+        """
+        if not quotas_data:
+            return {
+                "total_quotas": 0,
+                "current_date": 0,
+                "outdated_date": 0,
+                "error_count": 0,
+                "current_date_list": [],
+                "outdated_date_list": [],
+                "error_list": [],
+            }
+
+        # Get the most recent reference date (assume it's the current one)
+        reference_dates = [q["reference_date"] for q in quotas_data]
+        most_recent_date = max(reference_dates)
+
+        current_date_quotas = []
+        outdated_date_quotas = []
+        error_quotas = []
+
+        for quota in quotas_data:
+            try:
+                ref_date = quota["reference_date"]
+                company_name = quota["company_name"]
+
+                if ref_date == most_recent_date:
+                    current_date_quotas.append(company_name)
+                else:
+                    outdated_date_quotas.append(f"{company_name} ({ref_date})")
+
+                # Basic validation
+                quota_value = quota["rollout_quota"]
+                if not (0.0 <= quota_value <= 1.0):
+                    error_quotas.append(f"{company_name}: Invalid quota {quota_value}")
+
+            except Exception as e:
+                error_quotas.append(f"{quota.get('company_name', 'Unknown')}: {e}")
+
+        return {
+            "total_quotas": len(quotas_data),
+            "current_date": len(current_date_quotas),
+            "outdated_date": len(outdated_date_quotas),
+            "error_count": len(error_quotas),
+            "most_recent_date": most_recent_date,
+            "current_date_list": sorted(current_date_quotas),
+            "outdated_date_list": sorted(outdated_date_quotas),
+            "error_list": sorted(error_quotas),
+        }
+
+    def _print_detailed_summary(
+        self, upsert_summary: dict, quota_summary: dict
+    ) -> None:
+        """Print detailed summary of the update process.
+
+        Args:
+            upsert_summary: Summary from _analyze_company_updates
+            quota_summary: Summary from _analyze_quota_updates
+        """
+        logger.info("\n" + "=" * 60)
+        logger.info("📊 DETAILED UPDATE SUMMARY")
+        logger.info("=" * 60)
+
+        # Company statistics
+        logger.info(f"📈 Companies Processed: {upsert_summary['total_processed']}")
+        logger.info(f"   ├─ ✅ Up-to-date: {len(upsert_summary['up_to_date'])}")
+        logger.info(f"   ├─ 🔄 Updated: {len(upsert_summary['updated'])}")
+        logger.info(f"   ├─ 🆕 New: {len(upsert_summary['new'])}")
+        logger.info(
+            f"   └─ ⚠️  Outdated (not in update): {len(upsert_summary['outdated'])}"
+        )
+
+        # Quota statistics
+        logger.info(f"\n📊 Quota Records: {quota_summary['total_quotas']}")
+        logger.info(
+            f"   ├─ ✅ Current Date ({quota_summary.get('most_recent_date', 'Unknown')}): {quota_summary['current_date']}"
+        )
+        logger.info(f"   ├─ ⚠️  Outdated Date: {quota_summary['outdated_date']}")
+        logger.info(f"   └─ ❌ Errors: {quota_summary['error_count']}")
+
+        # Detailed company lists
+        if upsert_summary["updated"]:
+            logger.info(f"\n🔄 Updated Companies ({len(upsert_summary['updated'])}):")
+            for i, company in enumerate(upsert_summary["updated"], 1):
+                logger.info(f"   {i:2d}. {company}")
+
+        if upsert_summary["new"]:
+            logger.info(f"\n🆕 New Companies ({len(upsert_summary['new'])}):")
+            for i, company in enumerate(upsert_summary["new"], 1):
+                logger.info(f"   {i:2d}. {company}")
+
+        if upsert_summary["outdated"]:
+            logger.info(f"\n⚠️  Outdated Companies ({len(upsert_summary['outdated'])}):")
+            logger.info(
+                "   (These companies are in the database but not in the current update)"
+            )
+            for i, company in enumerate(upsert_summary["outdated"], 1):
+                logger.info(f"   {i:2d}. {company}")
+
+        # Detailed quota information
+        if quota_summary["outdated_date_list"]:
+            logger.info(
+                f"\n⚠️  Quotas with Outdated Dates ({quota_summary['outdated_date']}):"
+            )
+            for i, entry in enumerate(quota_summary["outdated_date_list"], 1):
+                logger.info(f"   {i:2d}. {entry}")
+
+        if quota_summary["error_list"]:
+            logger.info(f"\n❌ Quota Errors ({quota_summary['error_count']}):")
+            for i, error in enumerate(quota_summary["error_list"], 1):
+                logger.info(f"   {i:2d}. {error}")
+
+        logger.info("\n" + "=" * 60)
 
     def discover_download_convert_and_import(
         self, force_download: bool = False, clear_existing: bool = True
