@@ -101,7 +101,7 @@ jobs:
         id: check-reports
         run: |
           echo "🔍 Checking for new BNetzA rollout reports..."
-          python .github/scripts/check_reports.py
+          uv run python .github/scripts/check_reports.py
 
       - name: Determine action
         id: determine-action
@@ -135,7 +135,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "🚀 Running forced update..."
-          python .github/scripts/enhanced_update.py --force-update
+          uv run python .github/scripts/enhanced_update.py --force-update
 
       - name: Run regular update
         if: ${{ steps.determine-action.outputs.action == 'regular_update' }}
@@ -143,7 +143,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           echo "📊 Running regular update..."
-          python .github/scripts/enhanced_update.py
+          uv run python .github/scripts/enhanced_update.py
 
       - name: Extract statistics
         id: extract-stats
@@ -152,7 +152,7 @@ jobs:
           # Extract statistics from the JSON summary if available
           if [[ -f "update_summary.json" ]]; then
             echo "📊 Extracting statistics from detailed summary..."
-            python .github/scripts/extract_stats.py
+            uv run python .github/scripts/extract_stats.py
           else
             echo "⚠️ No update_summary.json found, using fallback extraction"
             # Set basic defaults
@@ -249,7 +249,7 @@ jobs:
           EOF
 
               # Extract and format company lists
-              python .github/scripts/format_companies.py >> $GITHUB_STEP_SUMMARY
+              uv run python .github/scripts/format_companies.py >> $GITHUB_STEP_SUMMARY
             fi
 
             # Add files section for non-check actions

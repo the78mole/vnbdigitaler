@@ -107,7 +107,7 @@ jobs:
           echo "🏢 Processing company data..."
 
           # Run the company updater script
-          python .github/scripts/company_updater.py ${{ inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ inputs.force_update == 'true' && '--force-update' || '' }}
+          uv run python .github/scripts/company_updater.py ${{ inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ inputs.force_update == 'true' && '--force-update' || '' }}
 
       - name: Create Company Summary
         if: ${{ steps.determine-action.outputs.action != 'check_only' }}
@@ -138,37 +138,8 @@ jobs:
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "### 📊 Match Details" >> $GITHUB_STEP_SUMMARY
 
-              python3 << 'PYTHON_EOF'
-          import json
-          import sys
-
-          try:
-              with open('company_results.json', 'r') as f:
-                  data = json.load(f)
-
-              # Show some matched companies
-              matched_companies = data.get('matched_companies', [])
-              if matched_companies:
-                  print("#### ✅ Recently Matched Companies")
-                  for match in matched_companies[:5]:  # Show first 5
-                      print(f"- **{match['bnetza_name']}** → {match['bdew_name']} (Score: {match['match_score']})")
-                  if len(matched_companies) > 5:
-                      print(f"- *... and {len(matched_companies) - 5} more matches*")
-              else:
-                  print("#### ℹ️ No new matches found in this run")
-
-              # Show some unmatched companies
-              unmatched_companies = data.get('unmatched_companies', [])
-              if unmatched_companies:
-                  print("\n#### ❓ Sample Unmatched Companies")
-                  for company in unmatched_companies[:3]:  # Show first 3
-                      print(f"- {company}")
-                  if len(unmatched_companies) > 3:
-                      print(f"- *... and {len(unmatched_companies) - 3} more unmatched*")
-
-          except Exception as e:
-              print(f"Could not load detailed results: {e}")
-          PYTHON_EOF
+              # Use external script to format results
+              uv run python .github/scripts/format_company_results.py >> $GITHUB_STEP_SUMMARY
           fi
 
           cat >> $GITHUB_STEP_SUMMARY << EOF
