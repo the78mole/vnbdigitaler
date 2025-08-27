@@ -43,7 +43,9 @@ def extract_from_json() -> None:
     )
     updated_count = companies.get("updated_count", len(companies.get("updated", [])))
     new_count = companies.get("new_count", len(companies.get("new", [])))
-    outdated_count = companies.get("outdated_count", len(companies.get("outdated", [])))
+    not_in_current_count = companies.get(
+        "not_in_current_count", len(companies.get("not_in_current", []))
+    )
 
     # Extract quota statistics
     total_quotas = quotas.get("total_quotas", 0)
@@ -58,7 +60,7 @@ def extract_from_json() -> None:
         companies_up_to_date=up_to_date_count,
         companies_updated=updated_count,
         companies_new=new_count,
-        companies_outdated=outdated_count,
+        companies_not_in_current=not_in_current_count,
         quotas_total=total_quotas,
         quotas_current_date=current_date_count,
         quotas_outdated_date=outdated_date_count,
@@ -69,7 +71,7 @@ def extract_from_json() -> None:
     # Print summary for logs
     print("📊 Extracted Statistics:")
     print(
-        f"   Companies: {total_processed} total ({up_to_date_count} up-to-date, {updated_count} updated, {new_count} new, {outdated_count} outdated)"
+        f"   Companies: {total_processed} total ({up_to_date_count} up-to-date, {updated_count} updated, {new_count} new, {not_in_current_count} not in current report)"
     )
     print(
         f"   Quotas: {total_quotas} total ({current_date_count} current date, {outdated_date_count} outdated date, {error_count} errors)"
@@ -102,7 +104,7 @@ def extract_from_log() -> None:
             companies_up_to_date=0,
             companies_updated=0,
             companies_new=0,
-            companies_outdated=0,
+            companies_not_in_current=0,
             quotas_total=companies,
             quotas_current_date=0,
             quotas_outdated_date=0,
@@ -124,7 +126,7 @@ def set_default_outputs() -> None:
         companies_up_to_date=0,
         companies_updated=0,
         companies_new=0,
-        companies_outdated=0,
+        companies_not_in_current=0,
         quotas_total=0,
         quotas_current_date=0,
         quotas_outdated_date=0,

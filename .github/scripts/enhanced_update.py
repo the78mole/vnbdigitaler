@@ -69,7 +69,7 @@ def extract_summary_from_output(output: str) -> dict:
             "up_to_date": [],
             "updated": [],
             "new": [],
-            "outdated": [],
+            "not_in_current": [],
         },
         "quotas": {
             "total_quotas": 0,
@@ -123,10 +123,12 @@ def extract_summary_from_output(output: str) -> dict:
             if match:
                 summary["companies"]["new_count"] = int(match.group(1))
 
-        elif "Outdated (not in update):" in stripped:
-            match = re.search(r"Outdated \(not in update\): (\d+)", stripped)
+        elif "Not in current report (not in update):" in stripped:
+            match = re.search(
+                r"Not in current report \(not in update\): (\d+)", stripped
+            )
             if match:
-                summary["companies"]["outdated_count"] = int(match.group(1))
+                summary["companies"]["not_in_current_count"] = int(match.group(1))
 
         # Parse quota statistics
         elif "Quota Records:" in stripped:
@@ -155,8 +157,8 @@ def extract_summary_from_output(output: str) -> dict:
             current_section = "updated_companies"
         elif "New Companies" in stripped:
             current_section = "new_companies"
-        elif "Outdated Companies" in stripped:
-            current_section = "outdated_companies"
+        elif "Not in Current Report Companies" in stripped:
+            current_section = "not_in_current_companies"
         elif "Quota Errors" in stripped:
             current_section = "quota_errors"
 
@@ -169,8 +171,8 @@ def extract_summary_from_output(output: str) -> dict:
                     summary["companies"]["updated"].append(company_name)
                 elif current_section == "new_companies":
                     summary["companies"]["new"].append(company_name)
-                elif current_section == "outdated_companies":
-                    summary["companies"]["outdated"].append(company_name)
+                elif current_section == "not_in_current_companies":
+                    summary["companies"]["not_in_current"].append(company_name)
                 elif current_section == "quota_errors":
                     summary["quotas"]["errors"].append(company_name)
 

@@ -106,94 +106,8 @@ jobs:
         run: |
           echo "🏢 Processing company data..."
 
-          # Create a simple company processing script for now
-          cat > process_companies.py << 'EOF'
-          #!/usr/bin/env python3
-          """
-          Company Data Processing Script
-
-          This script processes BNetzA rollout companies and matches them
-          with existing database entries using string comparison.
-          """
-
-          import sys
-          import os
-          import json
-          from pathlib import Path
-
-          def process_companies():
-              """Process company data and return statistics."""
-              # Placeholder implementation
-              # TODO: Implement actual company matching logic
-
-              stats = {
-                  "companies_processed": 0,
-                  "companies_updated": 0,
-                  "companies_new": 0,
-                  "companies_matched": 0,
-                  "companies_unmatched": 0,
-                  "new_companies": [],
-                  "updated_companies": [],
-                  "unmatched_companies": []
-              }
-
-              dry_run = "--dry-run" in sys.argv
-              force_update = "--force-update" in sys.argv
-
-              if dry_run:
-                  print("🔍 DRY RUN: Company processing simulation")
-                  # Simulate some processing
-                  stats["companies_processed"] = 5
-                  stats["companies_matched"] = 3
-                  stats["companies_unmatched"] = 2
-                  stats["new_companies"] = ["Example New Company"]
-              else:
-                  print("🏢 Processing companies for real...")
-                  # TODO: Implement actual processing
-                  pass
-
-              # Save results
-              with open('company_results.json', 'w') as f:
-                  json.dump(stats, f, indent=2)
-
-              return stats
-
-          def set_github_outputs(stats):
-              """Set GitHub Actions outputs."""
-              output_file = os.environ.get('GITHUB_OUTPUT')
-              if output_file:
-                  with open(output_file, 'a') as f:
-                      f.write(f"companies_processed={stats['companies_processed']}\n")
-                      f.write(f"companies_updated={stats['companies_updated']}\n")
-                      f.write(f"companies_new={stats['companies_new']}\n")
-                      f.write(f"companies_matched={stats['companies_matched']}\n")
-                      f.write(f"companies_unmatched={stats['companies_unmatched']}\n")
-
-          def main():
-              """Main entry point."""
-              try:
-                  stats = process_companies()
-                  set_github_outputs(stats)
-
-                  print(f"📊 Company Processing Results:")
-                  print(f"   Processed: {stats['companies_processed']}")
-                  print(f"   Updated: {stats['companies_updated']}")
-                  print(f"   New: {stats['companies_new']}")
-                  print(f"   Matched: {stats['companies_matched']}")
-                  print(f"   Unmatched: {stats['companies_unmatched']}")
-
-                  return True
-              except Exception as e:
-                  print(f"Error processing companies: {e}")
-                  return False
-
-          if __name__ == "__main__":
-              success = main()
-              sys.exit(0 if success else 1)
-          EOF
-
-          # Run the company processing
-          python process_companies.py ${{ inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ inputs.force_update == 'true' && '--force-update' || '' }}
+          # Run the company updater script
+          python .github/scripts/company_updater.py ${{ inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ inputs.force_update == 'true' && '--force-update' || '' }}
 
       - name: Create Company Summary
         if: ${{ steps.determine-action.outputs.action != 'check_only' }}
@@ -207,34 +121,54 @@ jobs:
           - **Action Type**: $ACTION
           - **Companies Processed**: ${{ steps.process-companies.outputs.companies_processed || '0' }}
           - **Companies Updated**: ${{ steps.process-companies.outputs.companies_updated || '0' }}
-          - **New Companies Added**: ${{ steps.process-companies.outputs.companies_new || '0' }}
-          - **Companies Matched**: ${{ steps.process-companies.outputs.companies_matched || '0' }}
-          - **Companies Unmatched**: ${{ steps.process-companies.outputs.companies_unmatched || '0' }}
+          - **New Matches Found**: ${{ steps.process-companies.outputs.companies_matched || '0' }}
+          - **Companies Still Unmatched**: ${{ steps.process-companies.outputs.companies_unmatched || '0' }}
 
-          ## 📋 Processing Details
+          ## 📋 Processing Summary
+
+          | Metric | Count |
+          |--------|--------|
+          | Total Processed | ${{ steps.process-companies.outputs.companies_processed || '0' }} |
+          | Successfully Matched | ${{ steps.process-companies.outputs.companies_matched || '0' }} |
+          | Still Unmatched | ${{ steps.process-companies.outputs.companies_unmatched || '0' }} |
+          | Database Updates | ${{ steps.process-companies.outputs.companies_updated || '0' }} |
           EOF
 
           if [[ -f "company_results.json" ]]; then
-              cat >> $GITHUB_STEP_SUMMARY << EOF
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 📊 Match Details" >> $GITHUB_STEP_SUMMARY
 
-          ### New Companies Added
-          EOF
-              python -c "
+              python3 << 'PYTHON_EOF'
           import json
+          import sys
+
           try:
               with open('company_results.json', 'r') as f:
                   data = json.load(f)
-              new_companies = data.get('new_companies', [])
-              if new_companies:
-                  for i, company in enumerate(new_companies[:10], 1):
-                      print(f'{i}. \`{company}\`')
-                  if len(new_companies) > 10:
-                      print(f'... and {len(new_companies) - 10} more')
+
+              # Show some matched companies
+              matched_companies = data.get('matched_companies', [])
+              if matched_companies:
+                  print("#### ✅ Recently Matched Companies")
+                  for match in matched_companies[:5]:  # Show first 5
+                      print(f"- **{match['bnetza_name']}** → {match['bdew_name']} (Score: {match['match_score']})")
+                  if len(matched_companies) > 5:
+                      print(f"- *... and {len(matched_companies) - 5} more matches*")
               else:
-                  print('*No new companies added*')
-          except:
-              print('*Could not load company details*')
-          " >> $GITHUB_STEP_SUMMARY
+                  print("#### ℹ️ No new matches found in this run")
+
+              # Show some unmatched companies
+              unmatched_companies = data.get('unmatched_companies', [])
+              if unmatched_companies:
+                  print("\n#### ❓ Sample Unmatched Companies")
+                  for company in unmatched_companies[:3]:  # Show first 3
+                      print(f"- {company}")
+                  if len(unmatched_companies) > 3:
+                      print(f"- *... and {len(unmatched_companies) - 3} more unmatched*")
+
+          except Exception as e:
+              print(f"Could not load detailed results: {e}")
+          PYTHON_EOF
           fi
 
           cat >> $GITHUB_STEP_SUMMARY << EOF

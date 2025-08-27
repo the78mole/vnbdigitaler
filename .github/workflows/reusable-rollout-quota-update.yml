@@ -32,9 +32,9 @@ on:
       companies_updated:
         description: 'Number of companies updated'
         value: ${{ jobs.update-quotas.outputs.companies_updated }}
-      companies_new:
-        description: 'Number of new companies added'
-        value: ${{ jobs.update-quotas.outputs.companies_new }}
+      companies_not_in_current:
+        description: 'Number of companies not in current report'
+        value: ${{ jobs.update-quotas.outputs.companies_not_in_current }}
       quotas_total:
         description: 'Total number of quota records'
         value: ${{ jobs.update-quotas.outputs.quotas_total }}
@@ -57,7 +57,7 @@ jobs:
       companies_up_to_date: ${{ steps.extract-stats.outputs.companies_up_to_date }}
       companies_updated: ${{ steps.extract-stats.outputs.companies_updated }}
       companies_new: ${{ steps.extract-stats.outputs.companies_new }}
-      companies_outdated: ${{ steps.extract-stats.outputs.companies_outdated }}
+      companies_not_in_current: ${{ steps.extract-stats.outputs.companies_not_in_current }}
       quotas_total: ${{ steps.extract-stats.outputs.quotas_total }}
       quotas_current_date: ${{ steps.extract-stats.outputs.quotas_current_date }}
       quotas_outdated_date: ${{ steps.extract-stats.outputs.quotas_outdated_date }}
@@ -160,7 +160,7 @@ jobs:
             echo "companies_up_to_date=0" >> $GITHUB_OUTPUT
             echo "companies_updated=0" >> $GITHUB_OUTPUT
             echo "companies_new=0" >> $GITHUB_OUTPUT
-            echo "companies_outdated=0" >> $GITHUB_OUTPUT
+            echo "companies_not_in_current=0" >> $GITHUB_OUTPUT
             echo "quotas_total=0" >> $GITHUB_OUTPUT
             echo "quotas_current_date=0" >> $GITHUB_OUTPUT
             echo "quotas_outdated_date=0" >> $GITHUB_OUTPUT
@@ -179,7 +179,7 @@ jobs:
           COMPANIES_UP_TO_DATE="${{ steps.extract-stats.outputs.companies_up_to_date || '0' }}"
           COMPANIES_UPDATED="${{ steps.extract-stats.outputs.companies_updated || '0' }}"
           COMPANIES_NEW="${{ steps.extract-stats.outputs.companies_new || '0' }}"
-          COMPANIES_OUTDATED="${{ steps.extract-stats.outputs.companies_outdated || '0' }}"
+          COMPANIES_NOT_IN_CURRENT="${{ steps.extract-stats.outputs.companies_not_in_current || '0' }}"
           QUOTAS_TOTAL="${{ steps.extract-stats.outputs.quotas_total || '0' }}"
           QUOTAS_CURRENT="${{ steps.extract-stats.outputs.quotas_current_date || '0' }}"
           QUOTAS_OUTDATED="${{ steps.extract-stats.outputs.quotas_outdated_date || '0' }}"
@@ -229,7 +229,7 @@ jobs:
           | **Up-to-date** | $COMPANIES_UP_TO_DATE |
           | **Updated** | $COMPANIES_UPDATED |
           | **New** | $COMPANIES_NEW |
-          | **Outdated** | $COMPANIES_OUTDATED |
+          | **Not in Current Report** | $COMPANIES_NOT_IN_CURRENT |
 
           ## 📈 Quota Statistics
           | Metric | Value |
@@ -298,7 +298,7 @@ jobs:
           echo "action_taken=${{ steps.determine-action.outputs.action_taken }}" >> $GITHUB_OUTPUT
           echo "companies_processed=${{ steps.extract-stats.outputs.companies_processed || '0' }}" >> $GITHUB_OUTPUT
           echo "companies_updated=${{ steps.extract-stats.outputs.companies_updated || '0' }}" >> $GITHUB_OUTPUT
-          echo "companies_new=${{ steps.extract-stats.outputs.companies_new || '0' }}" >> $GITHUB_OUTPUT
+          echo "companies_not_in_current=${{ steps.extract-stats.outputs.companies_not_in_current || '0' }}" >> $GITHUB_OUTPUT
           echo "quotas_total=${{ steps.extract-stats.outputs.quotas_total || '0' }}" >> $GITHUB_OUTPUT
           echo "quotas_current_date=${{ steps.extract-stats.outputs.quotas_current_date || '0' }}" >> $GITHUB_OUTPUT
           echo "quotas_outdated_date=${{ steps.extract-stats.outputs.quotas_outdated_date || '0' }}" >> $GITHUB_OUTPUT

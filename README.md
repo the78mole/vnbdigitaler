@@ -146,4 +146,30 @@ Den Text dann einfach als Statement in PostgreSQL ausführen (z.B. im SQL-Editor
 
 ## Rollout-Quoten
 
-Dies muss ich noch machen 😜
+Die Rollout-Quoten werden automatisch über GitHub Actions verwaltet:
+
+### 🤖 Automatisierte Verarbeitung
+
+- **Entdeckung**: Neue BNetzA-Berichte werden automatisch erkannt und heruntergeladen
+- **Verarbeitung**: Excel-Dateien werden zu CSV konvertiert und in die Datenbank importiert
+- **Company-Matching**: BNetzA-Unternehmen werden automatisch mit BDEW-Einträgen abgeglichen
+- **Aktualisierung**: Quartalsweise Aktualisierung der Rollout-Quoten in der Datenbank
+
+### 📊 Status-Kategorien
+
+Nach der Verarbeitung werden Unternehmen in folgende Kategorien eingeordnet:
+
+- **Up-to-date**: Unternehmen mit aktuellen Daten (keine Änderung gegenüber vorherigem Lauf)
+- **Updated**: Unternehmen mit geänderten Rollout-Quoten
+- **New**: Neu hinzugekommene Unternehmen in den BNetzA-Berichten
+- **Not in current report**: Unternehmen, die im aktuellen Bericht nicht mehr enthalten sind
+
+### � Workflow-Konfiguration
+
+Die Automatisierung läuft über GitHub Actions Workflows in `.github/workflows/`:
+
+- `reusable-rollout-update.yml` - Hauptkoordinator
+- `reusable-rollout-quota-update.yml` - Rollout-Quoten-Verarbeitung
+- `reusable-rollout-company-update.yml` - Company-Matching
+
+Manuelle Ausführung über die GitHub Actions Weboberfläche möglich.

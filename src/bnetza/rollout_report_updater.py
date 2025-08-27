@@ -689,7 +689,7 @@ class RolloutReportUpdater:
         up_to_date = []
         updated = []
         new = []
-        outdated = []
+        not_in_current = []
 
         for company in companies_data:
             company_name = company["bnetza_name"]
@@ -709,16 +709,16 @@ class RolloutReportUpdater:
                 # Company doesn't exist in database - it's new
                 new.append(company_name)
 
-        # Find outdated companies (in database but not in current update)
+        # Find companies not in current report (in database but not in current update)
         for existing_name in existing_companies:
             if existing_name not in update_company_names:
-                outdated.append(existing_name)
+                not_in_current.append(existing_name)
 
         return {
             "up_to_date": sorted(up_to_date),
             "updated": sorted(updated),
             "new": sorted(new),
-            "outdated": sorted(outdated),
+            "not_in_current": sorted(not_in_current),
             "total_processed": len(companies_data),
             "total_existing": len(existing_companies),
         }
@@ -799,7 +799,7 @@ class RolloutReportUpdater:
         logger.info(f"   ├─ 🔄 Updated: {len(upsert_summary['updated'])}")
         logger.info(f"   ├─ 🆕 New: {len(upsert_summary['new'])}")
         logger.info(
-            f"   └─ ⚠️  Outdated (not in update): {len(upsert_summary['outdated'])}"
+            f"   └─ ⚠️  Not in current report (not in update): {len(upsert_summary['not_in_current'])}"
         )
 
         # Quota statistics
@@ -821,12 +821,14 @@ class RolloutReportUpdater:
             for i, company in enumerate(upsert_summary["new"], 1):
                 logger.info(f"   {i:2d}. {company}")
 
-        if upsert_summary["outdated"]:
-            logger.info(f"\n⚠️  Outdated Companies ({len(upsert_summary['outdated'])}):")
+        if upsert_summary["not_in_current"]:
+            logger.info(
+                f"\n⚠️  Companies Not in Current Report ({len(upsert_summary['not_in_current'])}):"
+            )
             logger.info(
                 "   (These companies are in the database but not in the current update)"
             )
-            for i, company in enumerate(upsert_summary["outdated"], 1):
+            for i, company in enumerate(upsert_summary["not_in_current"], 1):
                 logger.info(f"   {i:2d}. {company}")
 
         # Detailed quota information
