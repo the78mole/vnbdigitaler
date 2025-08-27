@@ -496,6 +496,9 @@ class RolloutReportUpdater:
             # Import to database
             session = db_manager.get_sync_session()
             try:
+                # Collect detailed summary information BEFORE any updates
+                upsert_summary = self._analyze_company_updates(session, companies_data)
+
                 if clear_existing and self._report_id:
                     # Clear existing quota data for this report period
                     # We'll match by reference_date since we don't have report_id in rollout_quotas
@@ -518,20 +521,54 @@ class RolloutReportUpdater:
                 company_id_map = {}
 
                 for i, company in enumerate(companies_data, 1):
-                    # Insert or update company
-                    result = session.execute(
+                    # Check if company exists first to properly categorize the operation
+                    existing_check = session.execute(
                         text(
-                            """
-                            INSERT INTO rollout_companies (bnetza_name, normalized_name, created_at, updated_at)
-                            VALUES (:bnetza_name, :normalized_name, :created_at, :updated_at)
-                            ON CONFLICT (bnetza_name) DO UPDATE SET
-                                normalized_name = EXCLUDED.normalized_name,
-                                updated_at = EXCLUDED.updated_at
-                            RETURNING id
-                        """
+                            "SELECT id, normalized_name FROM rollout_companies WHERE bnetza_name = :bnetza_name"
                         ),
-                        company,
-                    )
+                        {"bnetza_name": company["bnetza_name"]},
+                    ).fetchone()
+
+                    if existing_check:
+                        # Company exists - check if data actually changed
+                        if existing_check.normalized_name != company["normalized_name"]:
+                            # Data changed - do update
+                            result = session.execute(
+                                text(
+                                    """
+                                    UPDATE rollout_companies
+                                    SET normalized_name = :normalized_name, updated_at = :updated_at
+                                    WHERE bnetza_name = :bnetza_name
+                                    RETURNING id
+                                """
+                                ),
+                                {
+                                    "bnetza_name": company["bnetza_name"],
+                                    "normalized_name": company["normalized_name"],
+                                    "updated_at": company["updated_at"],
+                                },
+                            )
+                        else:
+                            # Data unchanged - just get the ID without updating timestamps
+                            result = session.execute(
+                                text(
+                                    "SELECT id FROM rollout_companies WHERE bnetza_name = :bnetza_name"
+                                ),
+                                {"bnetza_name": company["bnetza_name"]},
+                            )
+                    else:
+                        # Company doesn't exist - insert new
+                        result = session.execute(
+                            text(
+                                """
+                                INSERT INTO rollout_companies (bnetza_name, normalized_name, created_at, updated_at)
+                                VALUES (:bnetza_name, :normalized_name, :created_at, :updated_at)
+                                RETURNING id
+                            """
+                            ),
+                            company,
+                        )
+
                     company_id = result.scalar()
                     company_id_map[company["bnetza_name"]] = company_id
 
@@ -552,9 +589,6 @@ class RolloutReportUpdater:
                 logger.info(
                     f"✅ Company upsert completed: {total_companies} companies processed"
                 )
-
-                # Collect detailed summary information before quotas
-                upsert_summary = self._analyze_company_updates(session, companies_data)
 
                 # Step 2: Insert quotas with company IDs
                 total_quotas = len(quotas_data)
@@ -624,16 +658,16 @@ class RolloutReportUpdater:
         Args:
             session: Database session
             companies_data: List of companies being processed
-            quotas_data: Optional list of quota data for reference
 
         Returns:
             Dictionary with detailed analysis of company updates
         """
-        # Get all companies currently in the database
+        # Get all companies currently in the database BEFORE this update
+        # We need to check the state before the upsert operation
         existing_companies_result = session.execute(
             text(
                 """
-                SELECT bnetza_name, updated_at, created_at
+                SELECT bnetza_name, normalized_name, created_at, updated_at
                 FROM rollout_companies
                 ORDER BY bnetza_name
             """
@@ -641,8 +675,9 @@ class RolloutReportUpdater:
         )
         existing_companies = {
             row.bnetza_name: {
-                "updated_at": row.updated_at,
+                "normalized_name": row.normalized_name,
                 "created_at": row.created_at,
+                "updated_at": row.updated_at,
             }
             for row in existing_companies_result
         }
@@ -650,38 +685,28 @@ class RolloutReportUpdater:
         # Get companies from current update batch
         update_company_names = {company["bnetza_name"] for company in companies_data}
 
-        # Categorize companies
+        # Categorize companies based on actual data changes
         up_to_date = []
         updated = []
         new = []
         outdated = []
 
-        # Current timestamp for comparison (approximate)
-        import_time = datetime.now()
-
         for company in companies_data:
             company_name = company["bnetza_name"]
+            new_normalized_name = company["normalized_name"]
 
             if company_name in existing_companies:
                 existing_info = existing_companies[company_name]
+                existing_normalized_name = existing_info["normalized_name"]
 
-                # Check if this is a new company (created recently) or updated
-                time_since_created = import_time - existing_info["created_at"].replace(
-                    tzinfo=None
-                )
-                time_since_updated = import_time - existing_info["updated_at"].replace(
-                    tzinfo=None
-                )
-
-                # If created less than 5 minutes ago, consider it new
-                if time_since_created.total_seconds() < UPDATE_TIME_THRESHOLD:
-                    new.append(company_name)
-                # If updated less than 5 minutes ago but not new, consider it updated
-                elif time_since_updated.total_seconds() < UPDATE_TIME_THRESHOLD:
+                # Check if the normalized name has changed (indicating an actual update)
+                if existing_normalized_name != new_normalized_name:
                     updated.append(company_name)
                 else:
+                    # No data change - company is up-to-date
                     up_to_date.append(company_name)
             else:
+                # Company doesn't exist in database - it's new
                 new.append(company_name)
 
         # Find outdated companies (in database but not in current update)

@@ -1,4 +1,4 @@
-name: BNetzA Rollout Quota Update
+name: BNetzA Rollout Update (Reusable)
 
 on:
   workflow_call:
@@ -25,31 +25,31 @@ on:
     outputs:
       action_taken:
         description: 'Description of the action taken'
-        value: ${{ jobs.update-quotas.outputs.action_taken }}
+        value: ${{ jobs.update-rollout.outputs.action_taken }}
       companies_processed:
         description: 'Number of companies processed'
-        value: ${{ jobs.update-quotas.outputs.companies_processed }}
+        value: ${{ jobs.update-rollout.outputs.companies_processed }}
       companies_updated:
         description: 'Number of companies updated'
-        value: ${{ jobs.update-quotas.outputs.companies_updated }}
+        value: ${{ jobs.update-rollout.outputs.companies_updated }}
       companies_new:
         description: 'Number of new companies added'
-        value: ${{ jobs.update-quotas.outputs.companies_new }}
+        value: ${{ jobs.update-rollout.outputs.companies_new }}
       quotas_total:
         description: 'Total number of quota records'
-        value: ${{ jobs.update-quotas.outputs.quotas_total }}
+        value: ${{ jobs.update-rollout.outputs.quotas_total }}
       quotas_current_date:
         description: 'Number of quotas with current date'
-        value: ${{ jobs.update-quotas.outputs.quotas_current_date }}
+        value: ${{ jobs.update-rollout.outputs.quotas_current_date }}
       quotas_outdated_date:
         description: 'Number of quotas with outdated date'
-        value: ${{ jobs.update-quotas.outputs.quotas_outdated_date }}
+        value: ${{ jobs.update-rollout.outputs.quotas_outdated_date }}
       quotas_errors:
         description: 'Number of quota validation errors'
-        value: ${{ jobs.update-quotas.outputs.quotas_errors }}
+        value: ${{ jobs.update-rollout.outputs.quotas_errors }}
 
 jobs:
-  update-quotas:
+  update-rollout:
     runs-on: ubuntu-latest
     outputs:
       action_taken: ${{ steps.determine-action.outputs.action_taken }}
@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up uv
         if: ${{ !env.ACT }}
@@ -187,7 +187,7 @@ jobs:
           QUOTAS_REF_DATE="${{ steps.extract-stats.outputs.quotas_reference_date || 'Unknown' }}"
 
           cat > $GITHUB_STEP_SUMMARY << EOF
-          # 📊 BNetzA Rollout Quota Update Results
+          # 📊 BNetzA Rollout Update Results
 
           ## Configuration
           - **Action Type**: $ACTION
