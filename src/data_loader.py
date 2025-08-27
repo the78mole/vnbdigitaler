@@ -223,3 +223,94 @@ def export_companies_to_csv(companies: list[Any], output_path: Path) -> None:
     df.to_csv(output_path, index=False)
 
     logger.info(f"Successfully exported companies to {output_path}")
+
+
+if __name__ == "__main__":
+    import argparse
+    import subprocess
+    import sys
+
+    def main() -> None:
+        """Main function with CLI argument support."""
+        parser = argparse.ArgumentParser(description="Data loader for VNBdigitaler")
+        parser.add_argument(
+            "--rollout-quota-update",
+            action="store_true",
+            help="Download and convert BNetzA rollout quota reports",
+        )
+
+        args = parser.parse_args()
+
+        if args.rollout_quota_update:
+            print("📥 Starting BNetzA rollout quota reports download and conversion...")
+            print("🔍 Step 1: Discovering available reports...")
+
+            # Use the existing BNetzA rollout report updater
+            try:
+                print(
+                    "⏳ Step 2: Downloading and processing reports (this may take a few minutes)..."
+                )
+
+                # Run with timeout (10 minutes) and real-time output
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        "-m",
+                        "src.bnetza.rollout_report_updater",
+                        "--download-dir=data",
+                        "--force-update",
+                        "--verbose",
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                )
+
+                print("✅ Step 3: Processing completed successfully!")
+
+                # Parse and display relevant output
+                output_lines = result.stdout.split("\n")
+                for line in output_lines:
+                    # Show important progress messages
+                    if any(
+                        keyword in line.lower()
+                        for keyword in [
+                            "downloading",
+                            "processing",
+                            "imported",
+                            "final state",
+                            "report:",
+                            "records",
+                            "completed",
+                        ]
+                    ):
+                        print(f"  📊 {line.strip()}")
+
+                print("🎯 Rollout quota data successfully updated!")
+
+            except subprocess.TimeoutExpired:
+                print(
+                    "⏰ Download timed out after 10 minutes - BNetzA server may be slow"
+                )
+                print(
+                    "💡 Try running the command again or check your internet connection"
+                )
+                sys.exit(1)
+            except subprocess.CalledProcessError as e:
+                print(
+                    f"❌ Failed to download rollout reports (exit code: {e.returncode})"
+                )
+                if e.stdout:
+                    print("📋 Output:")
+                    print(e.stdout)
+                if e.stderr:
+                    print("🚨 Error details:")
+                    print(e.stderr)
+                sys.exit(1)
+        else:
+            print(
+                "No action specified. Use --rollout-quota-update to download reports."
+            )
+
+    main()

@@ -156,6 +156,40 @@ class BNetzARolloutXlsx2CsvConverter:
             if "workbook" in locals():
                 workbook.close()
 
+    def _find_quota_column(self, worksheet: Any) -> str:
+        """Find the column containing Ausstattungsquote data.
+
+        Args:
+            worksheet: OpenPyXL worksheet object
+
+        Returns:
+            Column letter (e.g., 'C') of the quota column
+        """
+        # Check header rows (1-3) for Ausstattungsquote pattern
+        for row_num in range(1, 4):
+            for col_num in range(
+                1, min(10, worksheet.max_column + 1)
+            ):  # Check first 10 columns
+                col_letter = chr(64 + col_num)  # A=1, B=2, C=3, etc.
+                cell_value = worksheet[f"{col_letter}{row_num}"].value
+
+                # Match "Ausstattungsquote" with any following text
+                if (
+                    cell_value
+                    and isinstance(cell_value, str)
+                    and re.search(r"ausstattungsquote", cell_value.lower())
+                ):
+                    self.logger.info(
+                        f"📍 Found Ausstattungsquote column at {col_letter}"
+                    )
+                    return col_letter
+
+        # Fallback: Use column C as default
+        self.logger.warning(
+            "⚠️  Could not find Ausstattungsquote column header, using column C as fallback"
+        )
+        return "C"
+
     def _extract_raw_data(self, worksheet: Any) -> list[dict[str, Any]]:
         """Extract raw data from Excel worksheet starting from row 3.
 
@@ -163,17 +197,22 @@ class BNetzARolloutXlsx2CsvConverter:
             worksheet: OpenPyXL worksheet object
 
         Returns:
-            List of dictionaries with raw data from columns A and C
+            List of dictionaries with raw data from columns A and the quota column
         """
         raw_data = []
         total_rows = worksheet.max_row - 2  # Subtract 2 for header rows
 
-        self.logger.info(f"📊 Extracting data from {total_rows} rows...")
+        # Find the correct quota column
+        quota_column = self._find_quota_column(worksheet)
+
+        self.logger.info(
+            f"📊 Extracting data from {total_rows} rows using column {quota_column} for quotas..."
+        )
 
         # Start from row 3 (1-indexed), skip header rows
         for i, row_num in enumerate(range(3, worksheet.max_row + 1), 1):
             company_cell = worksheet[f"A{row_num}"]
-            quota_cell = worksheet[f"C{row_num}"]
+            quota_cell = worksheet[f"{quota_column}{row_num}"]
 
             # Get cell values
             company_name = company_cell.value
@@ -337,6 +376,11 @@ class BNetzARolloutXlsx2CsvConverter:
         # Case 2: String value (e.g., "0% (Stichtag 31.12.2024)")
         if isinstance(quota_value, str):
             quota_str = quota_value.strip()
+
+            # Skip header-like strings that contain "Ausstattungsquote"
+            if re.search(r"ausstattungsquote", quota_str.lower()):
+                self.logger.debug(f"Skipping header string: '{quota_str}'")
+                return None
 
             # Try to parse string with regex
             match = self.quota_pattern.match(quota_str)
