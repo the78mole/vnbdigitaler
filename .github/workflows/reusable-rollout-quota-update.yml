@@ -18,10 +18,23 @@ on:
         required: false
         type: boolean
         default: false
+      release_id:
+        description: 'GitHub Release ID to upload files to'
+        required: false
+        type: string
+        default: ''
+      release_version:
+        description: 'Release version tag'
+        required: false
+        type: string
+        default: ''
     secrets:
       DATABASE_URL:
         description: 'Database connection URL'
         required: true
+      GITHUB_TOKEN:
+        description: 'GitHub token for release uploads'
+        required: false
     outputs:
       action_taken:
         description: 'Description of the action taken'
@@ -285,6 +298,52 @@ jobs:
             *.csv
           retention-days: 30
           if-no-files-found: ignore
+
+      - name: Upload files to GitHub Release
+        if: ${{ (steps.determine-action.outputs.action == 'force_update' || steps.determine-action.outputs.action == 'regular_update') && inputs.release_id != '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📦 Uploading rollout data files to release ${{ inputs.release_version }}"
+
+          # Function to upload file to release
+          upload_file() {
+            local file_path="$1"
+            local file_name="$2"
+
+            if [[ -f "$file_path" ]]; then
+              echo "Uploading: $file_name"
+              gh release upload "${{ inputs.release_version }}" "$file_path" --clobber || true
+            else
+              echo "File not found: $file_path"
+            fi
+          }
+
+          # Upload Excel files
+          for file in data/*.xlsx *.xlsx; do
+            if [[ -f "$file" ]]; then
+              filename=$(basename "$file")
+              upload_file "$file" "rollout-${filename}"
+            fi
+          done
+
+          # Upload CSV files
+          for file in data/*.csv *.csv; do
+            if [[ -f "$file" ]]; then
+              filename=$(basename "$file")
+              upload_file "$file" "rollout-${filename}"
+            fi
+          done
+
+          # Upload summary JSON files
+          for file in data/*summary*.json *summary*.json; do
+            if [[ -f "$file" ]]; then
+              filename=$(basename "$file")
+              upload_file "$file" "rollout-${filename}"
+            fi
+          done
+
+          echo "✅ Release upload completed"
 
       - name: Archive any error logs
         if: ${{ failure() }}

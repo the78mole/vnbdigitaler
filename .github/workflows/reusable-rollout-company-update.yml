@@ -18,10 +18,21 @@ on:
         required: false
         type: boolean
         default: false
+      release_id:
+        description: 'GitHub release ID to upload files to'
+        required: false
+        type: string
+      release_version:
+        description: 'Release version tag'
+        required: false
+        type: string
     secrets:
       DATABASE_URL:
         description: 'Database connection URL'
         required: true
+      GITHUB_TOKEN:
+        description: 'GitHub token for release uploads'
+        required: false
     outputs:
       action_taken:
         description: 'Description of the action taken'
@@ -147,6 +158,22 @@ jobs:
           ---
           *Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
           EOF
+
+      - name: Upload Company Results to Release
+        if: ${{ steps.determine-action.outputs.action != 'check_only' && inputs.release_id && inputs.release_version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📤 Uploading company results to release ${{ inputs.release_version }}..."
+
+          # Check if company_results.json exists
+          if [[ -f "company_results.json" ]]; then
+            echo "Found company_results.json, uploading to release..."
+            gh release upload ${{ inputs.release_version }} company_results.json --clobber
+            echo "✅ Successfully uploaded company_results.json to release"
+          else
+            echo "⚠️ No company_results.json found, skipping upload"
+          fi
 
       - name: Upload Company Results
         if: ${{ steps.determine-action.outputs.action != 'check_only' }}

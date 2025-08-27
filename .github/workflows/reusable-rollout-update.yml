@@ -18,10 +18,23 @@ on:
         required: false
         type: boolean
         default: false
+      release_id:
+        description: 'GitHub Release ID to upload files to'
+        required: false
+        type: string
+        default: ''
+      release_version:
+        description: 'Release version tag'
+        required: false
+        type: string
+        default: ''
     secrets:
       DATABASE_URL:
         description: 'Database connection URL'
         required: true
+      GITHUB_TOKEN:
+        description: 'GitHub token for release uploads'
+        required: false
     outputs:
       action_taken:
         description: 'Description of the action taken'
@@ -47,8 +60,11 @@ jobs:
       force_update: ${{ inputs.force_update }}
       dry_run: ${{ inputs.dry_run }}
       check_only: ${{ inputs.check_only }}
+      release_id: ${{ inputs.release_id }}
+      release_version: ${{ inputs.release_version }}
     secrets:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   quota-update:
     name: Update Quota Data
@@ -58,8 +74,11 @@ jobs:
       force_update: ${{ inputs.force_update }}
       dry_run: ${{ inputs.dry_run }}
       check_only: ${{ inputs.check_only }}
+      release_id: ${{ inputs.release_id }}
+      release_version: ${{ inputs.release_version }}
     secrets:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   coordinate-rollout-update:
     name: Coordinate & Summarize

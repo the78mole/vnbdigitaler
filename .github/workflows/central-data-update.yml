@@ -30,19 +30,104 @@ on:
         type: boolean
 
 jobs:
-  # Job 1: Update BNetzA Rollout Quotas (using new coordinated workflow)
+  # Job 1: Create initial release with semantic versioning
+  create-release:
+    if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.update_type != 'check-only' }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semantic-version.outputs.version_tag }}
+      release_id: ${{ steps.create-release.outputs.id }}
+      release_url: ${{ steps.create-release.outputs.url }}
+      upload_url: ${{ steps.create-release.outputs.upload_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Determine semantic version
+        id: semantic-version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          major_pattern: "(BREAKING CHANGE|!:|!\\))"
+          minor_pattern: "(feat:|refactor:|fix:)"
+          version_format: "${major}.${minor}.${patch}"
+          bump_each_commit: true
+          search_commit_body: true
+
+      - name: Generate initial release notes
+        id: release-notes
+        run: |
+          cat > release-notes.md << EOF
+          # VNBdigitaler Data Update Release ${{ steps.semantic-version.outputs.version_tag }}
+
+          Automated data update release containing the latest BNetzA rollout quota information and company data.
+
+          ## 📊 Update Process
+
+          This release is currently being populated with updated data files. The following components are being processed:
+
+          - 🔄 BNetzA Rollout Quota Data (in progress...)
+          - 🔄 Company Matching Updates (in progress...)
+          - 🔄 BDEW Company Integration (planned...)
+
+          ## 🔧 Technical Details
+
+          - **Workflow Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Trigger**: ${{ github.event_name }}${{ github.event.inputs.update_type && format(' ({0})', github.event.inputs.update_type) || '' }}
+          - **Repository**: ${{ github.repository }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Release Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+          ## 📈 Data Quality
+
+          This release contains validated data from official BNetzA sources:
+          - Smart meter rollout quota reports
+          - Company identification and BDEW linkage data
+          - Time-series quota progression data
+
+          ## 🔗 Integration
+
+          To use this data in your applications:
+          1. Download the CSV files for direct data integration
+          2. Use the Excel files for manual analysis and reporting
+          3. Import JSON summaries for metadata and statistics
+
+          ---
+          *Automated release created by VNBdigitaler Central Data Update System*
+          *Data files will be added as the update processes complete...*
+          EOF
+
+      - name: Create GitHub Release
+        id: create-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.semantic-version.outputs.version_tag }}
+          name: "Data Update ${{ steps.semantic-version.outputs.version_tag }}"
+          body_path: release-notes.md
+          draft: true  # Start as draft, will be published after all files are uploaded
+          prerelease: false
+
+  # Job 2: Update BNetzA Rollout Quotas and upload to release
   update-rollout-quotas:
+    needs: create-release
     if: ${{ github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'rollout-quotas' || github.event.inputs.update_type == 'check-only' || github.event.inputs.update_type == '' }}
     uses: ./.github/workflows/reusable-rollout-update.yml
     with:
       force_update: ${{ github.event.inputs.force_update == 'true' }}
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
       check_only: ${{ github.event.inputs.update_type == 'check-only' }}
+      # Pass release information for file uploads
+      release_id: ${{ needs.create-release.outputs.release_id }}
+      release_version: ${{ needs.create-release.outputs.version }}
     secrets:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Job 2: Update BDEW Companies (Placeholder for future implementation)
+  # Job 3: Update BDEW Companies and upload to release
   update-bdew-companies:
+    needs: create-release
     if: ${{ (github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'bdew-companies') && github.event.inputs.update_type != 'check-only' }}
     runs-on: ubuntu-latest
     steps:
@@ -55,119 +140,55 @@ jobs:
           echo "- Download latest BDEW company data"
           echo "- Update companies table with new information"
           echo "- Merge with existing rollout company mappings"
+          echo "- Upload BDEW data files to release ${{ needs.create-release.outputs.version }}"
 
-  # Job 3: Create release with semantic versioning
-  create-release:
-    needs: [update-rollout-quotas, update-bdew-companies]
-    if: ${{ needs.update-rollout-quotas.result == 'success' && github.event.inputs.dry_run != 'true' && github.event.inputs.update_type != 'check-only' }}
+      # Future: Upload BDEW files to release
+      # - name: Upload BDEW files to release
+      #   if: needs.create-release.outputs.release_id
+      #   uses: actions/upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ needs.create-release.outputs.upload_url }}
+      #     asset_path: ./bdew-companies.csv
+      #     asset_name: bdew-companies-${{ needs.create-release.outputs.version }}.csv
+      #     asset_content_type: text/csv
+
+  # Job 4: Finalize release and update release notes
+  finalize-release:
+    needs: [create-release, update-rollout-quotas, update-bdew-companies]
+    if: ${{ always() && needs.create-release.result == 'success' }}
     runs-on: ubuntu-latest
-    outputs:
-      release_created: ${{ steps.check-changes.outputs.has_changes }}
-      version: ${{ steps.semantic-version.outputs.version_tag }}
-      release_url: ${{ steps.create-release.outputs.url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
 
-      - name: Check for meaningful changes
-        id: check-changes
+      - name: Generate final release notes
         run: |
-          # Check if we have actual updates (not just "check-only" or "dry-run")
-          COMPANIES_NEW="${{ needs.update-rollout-quotas.outputs.companies_new || '0' }}"
-          COMPANIES_UPDATED="${{ needs.update-rollout-quotas.outputs.companies_updated || '0' }}"
-          QUOTAS_TOTAL="${{ needs.update-rollout-quotas.outputs.quotas_total || '0' }}"
-
-          if [[ "$COMPANIES_NEW" != "0" || "$COMPANIES_UPDATED" != "0" || "$QUOTAS_TOTAL" != "0" ]]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            echo "🎯 Meaningful changes detected - will create release"
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No meaningful changes detected - skipping release"
-          fi
-
-      - name: Determine semantic version
-        id: semantic-version
-        if: steps.check-changes.outputs.has_changes == 'true'
-        uses: paulhatch/semantic-version@v5.4.0
-        with:
-          tag_prefix: "v"
-          major_pattern: "(BREAKING CHANGE|!:|!\\))"
-          minor_pattern: "(feat:|refactor:|fix:)"
-          version_format: "${major}.${minor}.${patch}"
-          bump_each_commit: true
-          search_commit_body: true
-
-      - name: Download release assets from rollout update
-        if: steps.check-changes.outputs.has_changes == 'true'
-        uses: actions/download-artifact@v5
-        with:
-          pattern: rollout-*
-          merge-multiple: true
-          path: release-assets
-
-      - name: Prepare release assets
-        if: steps.check-changes.outputs.has_changes == 'true'
-        run: |
-          mkdir -p release-ready
-
-          # Find and organize release files
-          if [[ -d "release-assets" ]]; then
-            echo "📁 Found release assets:"
-            find release-assets -type f -name "*.xlsx" -o -name "*.csv" -o -name "*.json" | head -10
-
-            # Copy Excel and CSV files to release directory
-            find release-assets -name "*.xlsx" -exec cp {} release-ready/ \;
-            find release-assets -name "*.csv" -exec cp {} release-ready/ \;
-            find release-assets -name "*summary.json" -exec cp {} release-ready/ \;
-
-            echo "📦 Release assets prepared:"
-            ls -la release-ready/
-          else
-            echo "⚠️ No release assets found"
-          fi
-
-      - name: Generate release notes
-        if: steps.check-changes.outputs.has_changes == 'true'
-        id: release-notes
-        run: |
-          # Create comprehensive release notes from workflow summary
-          cat > release-notes.md << EOF
-          # VNBdigitaler Data Update Release ${{ steps.semantic-version.outputs.version_tag }}
+          cat > final-release-notes.md << EOF
+          # VNBdigitaler Data Update Release ${{ needs.create-release.outputs.version }}
 
           Automated data update release containing the latest BNetzA rollout quota information and company data.
 
           ## 📊 Update Summary
 
           ### BNetzA Rollout Quotas
+          **Status**: ${{ needs.update-rollout-quotas.result == 'success' && '✅ Completed' || needs.update-rollout-quotas.result == 'skipped' && '⏭️ Skipped' || needs.update-rollout-quotas.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
+          EOF
+
+          # Add detailed rollout statistics if available
+          if [[ "${{ needs.update-rollout-quotas.result }}" == "success" ]]; then
+            cat >> final-release-notes.md << EOF
           - **Action Taken**: ${{ needs.update-rollout-quotas.outputs.action_taken }}
           - **Companies Processed**: ${{ needs.update-rollout-quotas.outputs.companies_processed || '0' }}
           - **Companies Updated**: ${{ needs.update-rollout-quotas.outputs.companies_updated || '0' }}
           - **New Companies**: ${{ needs.update-rollout-quotas.outputs.companies_new || '0' }}
           - **Total Quota Records**: ${{ needs.update-rollout-quotas.outputs.quotas_total || '0' }}
-
-          ### Data Files Included
-
-          This release contains the following data files:
-
           EOF
-
-          # List actual files that will be included
-          if [[ -d "release-ready" && $(ls -A release-ready) ]]; then
-            echo "📁 **Release Assets:**" >> release-notes.md
-            for file in release-ready/*; do
-              if [[ -f "$file" ]]; then
-                filename=$(basename "$file")
-                size=$(du -h "$file" | cut -f1)
-                echo "- \`$filename\` ($size)" >> release-notes.md
-              fi
-            done
-          else
-            echo "ℹ️ **Note**: No data files available for this release." >> release-notes.md
           fi
 
-          cat >> release-notes.md << EOF
+          cat >> final-release-notes.md << EOF
+
+          ### BDEW Companies
+          **Status**: ${{ needs.update-bdew-companies.result == 'success' && '✅ Completed' || needs.update-bdew-companies.result == 'skipped' && '⏭️ Skipped (Not implemented)' || needs.update-bdew-companies.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
 
           ## 🔧 Technical Details
 
@@ -195,24 +216,17 @@ jobs:
           *Automated release created by VNBdigitaler Central Data Update System*
           EOF
 
-          echo "release_notes_file=release-notes.md" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        if: steps.check-changes.outputs.has_changes == 'true'
-        id: create-release
+      - name: Update release with final notes and publish
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.semantic-version.outputs.version_tag }}
-          name: "Data Update ${{ steps.semantic-version.outputs.version_tag }}"
-          body_path: release-notes.md
-          draft: false
+          tag_name: ${{ needs.create-release.outputs.version }}
+          body_path: final-release-notes.md
+          draft: false  # Publish the release
           prerelease: false
-          files: |
-            release-ready/*
 
-  # Job 4: Create comprehensive summary
+  # Job 5: Create comprehensive summary
   create-summary:
-    needs: [update-rollout-quotas, update-bdew-companies, create-release]
+    needs: [create-release, update-rollout-quotas, update-bdew-companies, finalize-release]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -227,11 +241,23 @@ jobs:
           - **Force Update**: ${{ github.event.inputs.force_update || 'false' }}
           - **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}
 
+          ## 📦 Release Information
+          EOF
+
+          if [[ "${{ needs.create-release.result }}" == "success" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - **Version**: ${{ needs.create-release.outputs.version }}
+          - **Release URL**: [${{ needs.create-release.outputs.version }}](${{ needs.create-release.outputs.release_url }})
+          - **Release Status**: ${{ needs.finalize-release.result == 'success' && '✅ Published' || needs.finalize-release.result == 'failure' && '❌ Failed to finalize' || '⏳ Draft' }}
+
+          EOF
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
           ## 📊 Update Results
 
           ### BNetzA Rollout Quotas
           **Status**: ${{ needs.update-rollout-quotas.result == 'success' && '✅ Success' || needs.update-rollout-quotas.result == 'skipped' && '⏭️ Skipped' || needs.update-rollout-quotas.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
-
           EOF
 
           # Add detailed rollout statistics if available
@@ -242,32 +268,15 @@ jobs:
           - **New Companies**: ${{ needs.update-rollout-quotas.outputs.companies_new }}
           - **Updated Companies**: ${{ needs.update-rollout-quotas.outputs.companies_updated }}
           - **Total Quota Records**: ${{ needs.update-rollout-quotas.outputs.quotas_total }}
-
           EOF
           fi
 
           cat >> $GITHUB_STEP_SUMMARY << EOF
+
           ### BDEW Companies
           **Status**: ${{ needs.update-bdew-companies.result == 'success' && '✅ Success' || needs.update-bdew-companies.result == 'skipped' && '⏭️ Skipped (Not implemented)' || needs.update-bdew-companies.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
 
-          ### Release Creation
-          **Status**: ${{ needs.create-release.result == 'success' && '✅ Release Created' || needs.create-release.result == 'skipped' && '⏭️ Skipped (No changes)' || needs.create-release.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
-
-          EOF
-
-          # Add release information if created
-          if [[ "${{ needs.create-release.outputs.release_created }}" == "true" ]]; then
-            cat >> $GITHUB_STEP_SUMMARY << EOF
-          - **Version**: ${{ needs.create-release.outputs.version }}
-          - **Release URL**: [${{ needs.create-release.outputs.version }}](${{ needs.create-release.outputs.release_url }})
-          - **Assets**: Excel, CSV, and JSON data files included
-
-          EOF
-          fi
-
-          cat >> $GITHUB_STEP_SUMMARY << EOF
           ## 🎯 Next Steps
-
           EOF
 
           # Add context-specific next steps
@@ -276,21 +285,20 @@ jobs:
           ### Immediate Actions Required
           - 🏢 **New Companies**: ${{ needs.update-rollout-quotas.outputs.companies_new }} new rollout companies need BDEW linking
           - 🔗 **WebUI Action**: Use the [Company Matching Interface](https://your-webui-url.com/matching) to link new companies
-
           EOF
           fi
 
-          if [[ "${{ needs.create-release.outputs.release_created }}" == "true" ]]; then
+          if [[ "${{ needs.create-release.result }}" == "success" ]]; then
             cat >> $GITHUB_STEP_SUMMARY << EOF
           ### Data Access
           - 📦 **Latest Release**: Download data files from [${{ needs.create-release.outputs.version }}](${{ needs.create-release.outputs.release_url }})
           - 📊 **Integration**: Use CSV files for programmatic access
           - 📈 **Analysis**: Use Excel files for manual analysis
-
           EOF
           fi
 
           cat >> $GITHUB_STEP_SUMMARY << EOF
+
           ### Regular Monitoring
           - 🌐 **Dashboard**: Check the [VNBdigitaler WebUI](https://your-webui-url.com) for updated data
           - 📈 **Statistics**: Review [Database Statistics](https://your-webui-url.com/stats)
@@ -307,9 +315,9 @@ jobs:
           *VNBdigitaler Central Data Update Orchestrator • Run ID: ${{ github.run_id }}*
           EOF
 
-  # Job 5: Handle failures and create issues (only for scheduled runs)
+  # Job 6: Handle failures and create issues (only for scheduled runs)
   handle-failure:
-    needs: [update-rollout-quotas, update-bdew-companies, create-release]
+    needs: [create-release, update-rollout-quotas, update-bdew-companies, finalize-release]
     if: ${{ failure() && github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     steps:
@@ -317,12 +325,21 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const releaseStatus = '${{ needs.create-release.result }}';
             const rolloutStatus = '${{ needs.update-rollout-quotas.result }}';
             const bdewStatus = '${{ needs.update-bdew-companies.result }}';
+            const finalizeStatus = '${{ needs.finalize-release.result }}';
 
             let failedJobs = [];
+            if (releaseStatus === 'failure') failedJobs.push('Release Creation');
             if (rolloutStatus === 'failure') failedJobs.push('BNetzA Rollout Quotas');
             if (bdewStatus === 'failure') failedJobs.push('BDEW Companies');
+            if (finalizeStatus === 'failure') failedJobs.push('Release Finalization');
+
+            const releaseInfo = releaseStatus === 'success' ? {
+              version: '${{ needs.create-release.outputs.version }}',
+              url: '${{ needs.create-release.outputs.release_url }}'
+            } : null;
 
             const rolloutStats = {
               companies_processed: '${{ needs.update-rollout-quotas.outputs.companies_processed }}' || '0',
@@ -336,11 +353,15 @@ jobs:
             **Trigger**: Scheduled daily update (6:00 UTC)
             **Timestamp**: ${new Date().toISOString()}
 
+            ${releaseInfo ? `**Partial Release**: [${releaseInfo.version}](${releaseInfo.url}) (may be incomplete)` : ''}
+
             ### 📊 System Status Overview
             | Component | Status | Details |
             |-----------|--------|---------|
+            | **Release Creation** | ${releaseStatus === 'failure' ? '❌ Failed' : releaseStatus === 'success' ? '✅ Success' : '⏭️ Skipped'} | ${releaseInfo ? `Version: ${releaseInfo.version}` : 'No release created'} |
             | **BNetzA Rollout Quotas** | ${rolloutStatus === 'failure' ? '❌ Failed' : rolloutStatus === 'success' ? '✅ Success' : '⏭️ Skipped'} | Companies: ${rolloutStats.companies_processed}, New: ${rolloutStats.companies_new} |
             | **BDEW Companies** | ${bdewStatus === 'failure' ? '❌ Failed' : bdewStatus === 'success' ? '✅ Success' : '⏭️ Not Implemented'} | Placeholder component |
+            | **Release Finalization** | ${finalizeStatus === 'failure' ? '❌ Failed' : finalizeStatus === 'success' ? '✅ Success' : '⏭️ Skipped'} | Publication status |
 
             ### 🔍 Impact Assessment
             The failure of the scheduled data update affects:
@@ -348,6 +369,7 @@ jobs:
             - 🔗 **Integration**: New company linking may be incomplete
             - 🌐 **WebUI**: Dashboard statistics may not reflect latest data
             - 📈 **Reporting**: Analytics and reports may be stale
+            ${releaseInfo ? `- 📦 **Release**: Partial release ${releaseInfo.version} may contain incomplete data` : '- 📦 **Release**: No release was created'}
 
             ### 🛠️ Diagnostic Information
             **Possible Root Causes:**
@@ -355,6 +377,7 @@ jobs:
             - **Database Problems**: Connection timeouts, schema changes, capacity issues
             - **Data Quality**: Format changes, validation failures, corrupted data
             - **Infrastructure**: Runner failures, timeout issues, resource constraints
+            - **GitHub API**: Release creation or file upload issues
 
             ### 📋 Recovery Procedures
             **Immediate Actions:**
@@ -362,12 +385,14 @@ jobs:
             2. 🧪 **Manual Testing**: Run update scripts locally to reproduce issues
             3. 🔗 **Connectivity Check**: Verify database and external service access
             4. 📊 **Data Validation**: Check recent data for format consistency
+            ${releaseInfo ? `5. 📦 **Release Review**: Check if [${releaseInfo.version}](${releaseInfo.url}) needs manual completion` : ''}
 
             **Recovery Options:**
             - **Automatic Retry**: Next scheduled run is in 24 hours
             - **Manual Trigger**: Use workflow_dispatch with appropriate parameters
             - **Component Testing**: Test individual components separately
             - **Emergency Update**: Use WebUI for critical manual updates
+            ${releaseInfo ? `- **Manual Release**: Complete release ${releaseInfo.version} manually if needed` : ''}
 
             ### 🎯 Resolution Timeline
             - **Immediate**: Investigate and identify root cause
