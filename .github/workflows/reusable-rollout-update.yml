@@ -50,8 +50,61 @@ on:
         value: ${{ jobs.coordinate-rollout-update.outputs.quotas_total }}
 
 jobs:
+  # New job: Download and upload source files first, independently
+  download-and-upload-sources:
+    name: Download & Upload Source Files
+    if: ${{ inputs.check_only != 'true' && inputs.release_version != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up Python environment
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          uv sync --frozen
+
+      - name: Download BNetzA rollout reports
+        run: |
+          echo "📥 Downloading rollout reports and converting to CSV..."
+          uv run python src/data_loader.py --rollout-quota-update
+
+      - name: Upload source files to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📤 Uploading source files to release ${{ inputs.release_version }}..."
+
+          # Upload Excel source files from data/ directory
+          for file in data/Roll-out-Quoten_Q1_2025.xlsx data/*.xlsx; do
+            if [[ -f "$file" ]]; then
+              filename=$(basename "$file")
+              echo "📄 Uploading: $filename"
+              gh release upload "${{ inputs.release_version }}" "$file" --clobber || echo "Failed to upload $file"
+            fi
+          done
+
+          # Upload CSV files from data/ directory
+          for file in data/Roll-out-Quoten_Q1_2025.csv data/*.csv; do
+            if [[ -f "$file" ]]; then
+              filename=$(basename "$file")
+              echo "📄 Uploading: $filename"
+              gh release upload "${{ inputs.release_version }}" "$file" --clobber || echo "Failed to upload $file"
+            fi
+          done
+
+          echo "✅ Source files uploaded to release"
+
   company-update:
     name: Update Company Data
+    needs: [download-and-upload-sources]
+    if: ${{ always() }}  # Run even if source upload fails
     uses: ./.github/workflows/reusable-rollout-company-update.yml
     with:
       force_update: ${{ inputs.force_update }}
@@ -64,7 +117,8 @@ jobs:
 
   quota-update:
     name: Update Quota Data
-    needs: company-update
+    needs: [download-and-upload-sources]
+    if: ${{ always() }}  # Run even if source upload or company update fails
     uses: ./.github/workflows/reusable-rollout-quota-update.yml
     with:
       force_update: ${{ inputs.force_update }}
@@ -77,7 +131,8 @@ jobs:
 
   coordinate-rollout-update:
     name: Coordinate & Summarize
-    needs: [company-update, quota-update]
+    needs: [download-and-upload-sources, company-update, quota-update]
+    if: ${{ always() }}  # Run even if some jobs failed
     runs-on: ubuntu-latest
     outputs:
       action_taken: ${{ steps.create-summary.outputs.action_taken }}
@@ -93,7 +148,8 @@ jobs:
       - name: Create Combined Summary
         id: create-summary
         run: |
-          # Combine results from both workflows
+          # Combine results from all workflows
+          SOURCE_UPLOAD_STATUS="${{ needs.download-and-upload-sources.result }}"
           COMPANY_ACTION_TAKEN="${{ needs.company-update.outputs.action_taken }}"
           QUOTA_ACTION_TAKEN="${{ needs.quota-update.outputs.action_taken }}"
 
@@ -123,13 +179,19 @@ jobs:
           - **Action Type**: ${{ inputs.dry_run == 'true' && 'Dry Run' || inputs.check_only == 'true' && 'Check Only' || inputs.force_update == 'true' && 'Forced Update' || 'Regular Update' }}
           - **Overall Result**: $ACTION_TAKEN
 
+          ## 📥 Source File Upload
+          - **Status**: ${{ needs.download-and-upload-sources.result == 'success' && '✅ Success' || needs.download-and-upload-sources.result == 'failure' && '❌ Failed' || needs.download-and-upload-sources.result == 'skipped' && '⏭️ Skipped' || '❓ Unknown' }}
+          - **Release**: ${{ inputs.release_version || 'Not specified' }}
+
           ## 🏢 Company Update Results
+          - **Status**: ${{ needs.company-update.result == 'success' && '✅ Success' || needs.company-update.result == 'failure' && '❌ Failed' || needs.company-update.result == 'skipped' && '⏭️ Skipped' || '❓ Unknown' }}
           - **Action**: $COMPANY_ACTION_TAKEN
           - **Companies Processed**: $COMPANIES_PROCESSED
           - **Companies Updated**: $COMPANIES_UPDATED
           - **New Companies Added**: $COMPANIES_NEW
 
           ## 📊 Quota Update Results
+          - **Status**: ${{ needs.quota-update.result == 'success' && '✅ Success' || needs.quota-update.result == 'failure' && '❌ Failed' || needs.quota-update.result == 'skipped' && '⏭️ Skipped' || '❓ Unknown' }}
           - **Action**: $QUOTA_ACTION_TAKEN
           - **Total Quotas**: $QUOTAS_TOTAL
           - **Current Date**: $QUOTAS_CURRENT
