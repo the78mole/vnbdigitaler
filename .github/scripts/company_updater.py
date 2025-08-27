@@ -21,6 +21,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -282,6 +283,49 @@ async def main():
 
     except Exception as e:
         logger.error(f"Error processing companies: {e}")
+
+        # Create detailed error results
+        error_results = {
+            "companies_processed": 0,
+            "companies_updated": 0,
+            "companies_new": 0,
+            "companies_matched": 0,
+            "companies_unmatched": 0,
+            "new_companies": [],
+            "updated_companies": [],
+            "matched_companies": [],
+            "unmatched_companies": [],
+            "error": str(e),
+            "error_type": type(e).__name__,
+            "dry_run": args.dry_run,
+            "force_update": args.force_update,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        # Add specific details for database errors
+        try:
+            if hasattr(e, "orig") and hasattr(e.orig, "args"):
+                error_results["database_error_detail"] = str(e.orig.args)
+        except AttributeError:
+            pass
+
+        # Log specific constraint violation details
+        if "duplicate key value violates unique constraint" in str(e):
+            logger.error("🚨 Database constraint violation detected!")
+            if "bdew_code" in str(e):
+                logger.error(
+                    "💡 BDEW code conflict - another company already has this code"
+                )
+                # Extract the conflicting code if possible
+                code_match = re.search(r"Key \(bdew_code\)=\((\d+)\)", str(e))
+                if code_match:
+                    conflicting_code = code_match.group(1)
+                    logger.error(f"📊 Conflicting BDEW code: {conflicting_code}")
+                    error_results["conflicting_bdew_code"] = conflicting_code
+
+        with Path("company_results.json").open("w") as f:
+            json.dump(error_results, f, indent=2)
+
         return False
     finally:
         if "engine" in locals():
