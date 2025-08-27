@@ -81,12 +81,23 @@ jobs:
         run: |
           echo "📤 Uploading source files to release ${{ inputs.release_version }}..."
 
+          # List files before upload
+          echo "📋 Files available for upload:"
+          ls -la data/Roll-out-Quoten_Q1_2025.* data/*.xlsx data/*.csv 2>/dev/null || echo "No matching files found"
+
+          upload_success=true
+
           # Upload Excel source files from data/ directory
           for file in data/Roll-out-Quoten_Q1_2025.xlsx data/*.xlsx; do
             if [[ -f "$file" ]]; then
               filename=$(basename "$file")
               echo "📄 Uploading: $filename"
-              gh release upload "${{ inputs.release_version }}" "$file" --clobber || echo "Failed to upload $file"
+              if gh release upload "${{ inputs.release_version }}" "$file" --clobber; then
+                echo "✅ Successfully uploaded: $filename"
+              else
+                echo "❌ Failed to upload: $filename"
+                upload_success=false
+              fi
             fi
           done
 
@@ -95,11 +106,25 @@ jobs:
             if [[ -f "$file" ]]; then
               filename=$(basename "$file")
               echo "📄 Uploading: $filename"
-              gh release upload "${{ inputs.release_version }}" "$file" --clobber || echo "Failed to upload $file"
+              if gh release upload "${{ inputs.release_version }}" "$file" --clobber; then
+                echo "✅ Successfully uploaded: $filename"
+              else
+                echo "❌ Failed to upload: $filename"
+                upload_success=false
+              fi
             fi
           done
 
-          echo "✅ Source files uploaded to release"
+          # Verify uploads
+          echo "🔍 Verifying uploads..."
+          gh release view "${{ inputs.release_version }}" --json assets --jq '.assets[].name' | grep -E '\.(xlsx|csv)$' || echo "No assets found"
+
+          if [ "$upload_success" = true ]; then
+            echo "✅ All source files uploaded successfully"
+          else
+            echo "❌ Some uploads failed"
+            exit 1
+          fi
 
   company-update:
     name: Update Company Data
