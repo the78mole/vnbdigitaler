@@ -8,9 +8,15 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from .config import get_settings
-from .matching_models import BDEWCompany, BNetzACompany
-from .models import Company
+try:
+    from .config import get_settings
+    from .matching_models import BDEWCompany, BNetzACompany
+    from .models import Company
+except ImportError:
+    # When run as script, use absolute imports
+    from src.config import get_settings
+    from src.matching_models import BDEWCompany, BNetzACompany
+    from src.models import Company
 
 logger = logging.getLogger(__name__)
 
