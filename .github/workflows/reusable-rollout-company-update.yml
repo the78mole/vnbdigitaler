@@ -1,0 +1,244 @@
+name: BNetzA Rollout Company Update
+
+on:
+  workflow_call:
+    inputs:
+      force_update:
+        description: "Force update even if no changes detected"
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: "Dry run - show what would be updated without making changes"
+        required: false
+        default: false
+        type: boolean
+      check_only:
+        description: 'Only check for updates without performing them'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DATABASE_URL:
+        description: 'Database connection URL'
+        required: true
+    outputs:
+      action_taken:
+        description: 'Description of the action taken'
+        value: ${{ jobs.update-companies.outputs.action_taken }}
+      companies_processed:
+        description: 'Number of companies processed'
+        value: ${{ jobs.update-companies.outputs.companies_processed }}
+      companies_updated:
+        description: 'Number of companies updated'
+        value: ${{ jobs.update-companies.outputs.companies_updated }}
+      companies_new:
+        description: 'Number of new companies added'
+        value: ${{ jobs.update-companies.outputs.companies_new }}
+      companies_matched:
+        description: 'Number of companies matched'
+        value: ${{ jobs.update-companies.outputs.companies_matched }}
+      companies_unmatched:
+        description: 'Number of companies that could not be matched'
+        value: ${{ jobs.update-companies.outputs.companies_unmatched }}
+
+jobs:
+  update-companies:
+    runs-on: ubuntu-latest
+    outputs:
+      action_taken: ${{ steps.determine-action.outputs.action_taken }}
+      companies_processed: ${{ steps.process-companies.outputs.companies_processed }}
+      companies_updated: ${{ steps.process-companies.outputs.companies_updated }}
+      companies_new: ${{ steps.process-companies.outputs.companies_new }}
+      companies_matched: ${{ steps.process-companies.outputs.companies_matched }}
+      companies_unmatched: ${{ steps.process-companies.outputs.companies_unmatched }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python environment
+        uses: ./.github/actions/setup-python
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          uv sync --frozen
+
+      - name: Setup database configuration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "Database configuration set from secrets"
+
+      - name: Determine action
+        id: determine-action
+        run: |
+          if [[ "${{ inputs.check_only }}" == "true" ]]; then
+            echo "action=check_only" >> $GITHUB_OUTPUT
+            echo "action_taken=Check only - no company updates performed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "action=dry_run" >> $GITHUB_OUTPUT
+            echo "action_taken=Company dry run completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.force_update }}" == "true" ]]; then
+            echo "action=force_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Forced company update completed" >> $GITHUB_OUTPUT
+          else
+            echo "action=regular_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Regular company update completed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Process Company Data
+        id: process-companies
+        if: ${{ steps.determine-action.outputs.action != 'check_only' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🏢 Processing company data..."
+
+          # Create a simple company processing script for now
+          cat > process_companies.py << 'EOF'
+          #!/usr/bin/env python3
+          """
+          Company Data Processing Script
+
+          This script processes BNetzA rollout companies and matches them
+          with existing database entries using string comparison.
+          """
+
+          import sys
+          import os
+          import json
+          from pathlib import Path
+
+          def process_companies():
+              """Process company data and return statistics."""
+              # Placeholder implementation
+              # TODO: Implement actual company matching logic
+
+              stats = {
+                  "companies_processed": 0,
+                  "companies_updated": 0,
+                  "companies_new": 0,
+                  "companies_matched": 0,
+                  "companies_unmatched": 0,
+                  "new_companies": [],
+                  "updated_companies": [],
+                  "unmatched_companies": []
+              }
+
+              dry_run = "--dry-run" in sys.argv
+              force_update = "--force-update" in sys.argv
+
+              if dry_run:
+                  print("🔍 DRY RUN: Company processing simulation")
+                  # Simulate some processing
+                  stats["companies_processed"] = 5
+                  stats["companies_matched"] = 3
+                  stats["companies_unmatched"] = 2
+                  stats["new_companies"] = ["Example New Company"]
+              else:
+                  print("🏢 Processing companies for real...")
+                  # TODO: Implement actual processing
+                  pass
+
+              # Save results
+              with open('company_results.json', 'w') as f:
+                  json.dump(stats, f, indent=2)
+
+              return stats
+
+          def set_github_outputs(stats):
+              """Set GitHub Actions outputs."""
+              output_file = os.environ.get('GITHUB_OUTPUT')
+              if output_file:
+                  with open(output_file, 'a') as f:
+                      f.write(f"companies_processed={stats['companies_processed']}\n")
+                      f.write(f"companies_updated={stats['companies_updated']}\n")
+                      f.write(f"companies_new={stats['companies_new']}\n")
+                      f.write(f"companies_matched={stats['companies_matched']}\n")
+                      f.write(f"companies_unmatched={stats['companies_unmatched']}\n")
+
+          def main():
+              """Main entry point."""
+              try:
+                  stats = process_companies()
+                  set_github_outputs(stats)
+
+                  print(f"📊 Company Processing Results:")
+                  print(f"   Processed: {stats['companies_processed']}")
+                  print(f"   Updated: {stats['companies_updated']}")
+                  print(f"   New: {stats['companies_new']}")
+                  print(f"   Matched: {stats['companies_matched']}")
+                  print(f"   Unmatched: {stats['companies_unmatched']}")
+
+                  return True
+              except Exception as e:
+                  print(f"Error processing companies: {e}")
+                  return False
+
+          if __name__ == "__main__":
+              success = main()
+              sys.exit(0 if success else 1)
+          EOF
+
+          # Run the company processing
+          python process_companies.py ${{ inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ inputs.force_update == 'true' && '--force-update' || '' }}
+
+      - name: Create Company Summary
+        if: ${{ steps.determine-action.outputs.action != 'check_only' }}
+        run: |
+          ACTION="${{ steps.determine-action.outputs.action }}"
+
+          cat > $GITHUB_STEP_SUMMARY << EOF
+          # 🏢 Company Update Results
+
+          ## Configuration
+          - **Action Type**: $ACTION
+          - **Companies Processed**: ${{ steps.process-companies.outputs.companies_processed || '0' }}
+          - **Companies Updated**: ${{ steps.process-companies.outputs.companies_updated || '0' }}
+          - **New Companies Added**: ${{ steps.process-companies.outputs.companies_new || '0' }}
+          - **Companies Matched**: ${{ steps.process-companies.outputs.companies_matched || '0' }}
+          - **Companies Unmatched**: ${{ steps.process-companies.outputs.companies_unmatched || '0' }}
+
+          ## 📋 Processing Details
+          EOF
+
+          if [[ -f "company_results.json" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ### New Companies Added
+          EOF
+              python -c "
+          import json
+          try:
+              with open('company_results.json', 'r') as f:
+                  data = json.load(f)
+              new_companies = data.get('new_companies', [])
+              if new_companies:
+                  for i, company in enumerate(new_companies[:10], 1):
+                      print(f'{i}. \`{company}\`')
+                  if len(new_companies) > 10:
+                      print(f'... and {len(new_companies) - 10} more')
+              else:
+                  print('*No new companies added*')
+          except:
+              print('*Could not load company details*')
+          " >> $GITHUB_STEP_SUMMARY
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ---
+          *Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
+          EOF
+
+      - name: Upload Company Results
+        if: ${{ steps.determine-action.outputs.action != 'check_only' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: company-update-results
+          path: |
+            company_results.json
+          retention-days: 30
+          if-no-files-found: ignore

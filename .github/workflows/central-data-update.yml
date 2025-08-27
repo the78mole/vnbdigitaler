@@ -30,45 +30,9 @@ on:
         type: boolean
 
 jobs:
-  # Job 1: Check for any updates
-  check-all-updates:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run_rollout: ${{ steps.determine-updates.outputs.should_run_rollout }}
-      should_run_bdew: ${{ steps.determine-updates.outputs.should_run_bdew }}
-    steps:
-      - name: Determine which updates to run
-        id: determine-updates
-        run: |
-          UPDATE_TYPE="${{ github.event.inputs.update_type || 'all' }}"
-
-          case "$UPDATE_TYPE" in
-            "all")
-              echo "should_run_rollout=true" >> $GITHUB_OUTPUT
-              echo "should_run_bdew=true" >> $GITHUB_OUTPUT
-              ;;
-            "rollout-quotas")
-              echo "should_run_rollout=true" >> $GITHUB_OUTPUT
-              echo "should_run_bdew=false" >> $GITHUB_OUTPUT
-              ;;
-            "bdew-companies")
-              echo "should_run_rollout=false" >> $GITHUB_OUTPUT
-              echo "should_run_bdew=true" >> $GITHUB_OUTPUT
-              ;;
-            "check-only")
-              echo "should_run_rollout=true" >> $GITHUB_OUTPUT
-              echo "should_run_bdew=true" >> $GITHUB_OUTPUT
-              ;;
-            *)
-              echo "should_run_rollout=false" >> $GITHUB_OUTPUT
-              echo "should_run_bdew=false" >> $GITHUB_OUTPUT
-              ;;
-          esac
-
-  # Job 2: Update BNetzA Rollout Quotas
+  # Job 1: Update BNetzA Rollout Quotas (using new coordinated workflow)
   update-rollout-quotas:
-    needs: check-all-updates
-    if: ${{ needs.check-all-updates.outputs.should_run_rollout == 'true' }}
+    if: ${{ github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'rollout-quotas' || github.event.inputs.update_type == 'check-only' || github.event.inputs.update_type == '' }}
     uses: ./.github/workflows/reusable-rollout-update.yml
     with:
       force_update: ${{ github.event.inputs.force_update == 'true' }}
@@ -77,10 +41,9 @@ jobs:
     secrets:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-  # Job 3: Update BDEW Companies (Placeholder for future implementation)
+  # Job 2: Update BDEW Companies (Placeholder for future implementation)
   update-bdew-companies:
-    needs: check-all-updates
-    if: ${{ needs.check-all-updates.outputs.should_run_bdew == 'true' && github.event.inputs.update_type != 'check-only' }}
+    if: ${{ (github.event.inputs.update_type == 'all' || github.event.inputs.update_type == 'bdew-companies') && github.event.inputs.update_type != 'check-only' }}
     runs-on: ubuntu-latest
     steps:
       - name: Placeholder for BDEW update
@@ -93,56 +56,94 @@ jobs:
           echo "- Update companies table with new information"
           echo "- Merge with existing rollout company mappings"
 
-  # Job 4: Create comprehensive summary
+  # Job 3: Create comprehensive summary
   create-summary:
-    needs: [check-all-updates, update-rollout-quotas, update-bdew-companies]
+    needs: [update-rollout-quotas, update-bdew-companies]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: Create workflow summary
+      - name: Create comprehensive workflow summary
         run: |
-          cat > $GITHUB_STEP_SUMMARY << 'EOF'
-          # 🔄 VNBdigitaler Data Update Summary
+          cat > $GITHUB_STEP_SUMMARY << EOF
+          # 🔄 VNBdigitaler Central Data Update Summary
 
-          ## Workflow Configuration
+          ## 🔧 Workflow Configuration
           - **Trigger**: ${{ github.event_name }}
           - **Update Type**: ${{ github.event.inputs.update_type || 'all (scheduled)' }}
           - **Force Update**: ${{ github.event.inputs.force_update || 'false' }}
           - **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}
 
-          ## Update Results
+          ## 📊 Update Results
 
-          ### 📊 BNetzA Rollout Quotas
-          ${{ needs.update-rollout-quotas.result == 'success' && '✅ **Success**' || needs.update-rollout-quotas.result == 'skipped' && '⏭️ **Skipped**' || '❌ **Failed**' }}
-          - **Action**: ${{ needs.update-rollout-quotas.outputs.action_taken || 'Not executed' }}
-          - **Updates Available**: ${{ needs.update-rollout-quotas.outputs.has_updates || 'Unknown' }}
-          - **Companies Processed**: ${{ needs.update-rollout-quotas.outputs.companies_processed || '0' }}
+          ### BNetzA Rollout Quotas
+          **Status**: ${{ needs.update-rollout-quotas.result == 'success' && '✅ Success' || needs.update-rollout-quotas.result == 'skipped' && '⏭️ Skipped' || needs.update-rollout-quotas.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
 
-          ### 🏢 BDEW Companies
-          ${{ needs.update-bdew-companies.result == 'success' && '✅ **Success**' || needs.update-bdew-companies.result == 'skipped' && '⏭️ **Skipped**' || '❌ **Failed**' }}
-          - **Status**: ${{ needs.update-bdew-companies.result == 'skipped' && 'Not implemented yet' || needs.update-bdew-companies.result }}
-
-          ## Next Steps
-          - 🌐 Check the [VNBdigitaler WebUI](https://your-webui-url.com) for updated data
-          - 📋 Review rollout companies and quotas in the dashboard
-          - 🔗 Use the BDEW linking functionality for new entries
-
-          ## Monitoring
-          - 📈 [Database Statistics](https://your-webui-url.com/stats)
-          - 🗃️ [Rollout Companies](https://your-webui-url.com/rollout/)
-          - 🏢 [BDEW Companies](https://your-webui-url.com/companies/)
-
-          ---
-          *Automated by GitHub Actions • Run ID: ${{ github.run_id }} • $(date '+%Y-%m-%d %H:%M:%S UTC')*
           EOF
 
-  # Job 5: Handle failures and create issues
+          # Add detailed rollout statistics if available
+          if [[ "${{ needs.update-rollout-quotas.result }}" == "success" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - **Action Taken**: ${{ needs.update-rollout-quotas.outputs.action_taken }}
+          - **Updates Available**: ${{ needs.update-rollout-quotas.outputs.has_updates }}
+          - **Companies Processed**: ${{ needs.update-rollout-quotas.outputs.companies_processed }}
+          - **New Companies**: ${{ needs.update-rollout-quotas.outputs.companies_new }}
+          - **Updated Companies**: ${{ needs.update-rollout-quotas.outputs.companies_updated }}
+          - **Quota Errors**: ${{ needs.update-rollout-quotas.outputs.quotas_errors }}
+
+          EOF
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ### BDEW Companies
+          **Status**: ${{ needs.update-bdew-companies.result == 'success' && '✅ Success' || needs.update-bdew-companies.result == 'skipped' && '⏭️ Skipped (Not implemented)' || needs.update-bdew-companies.result == 'failure' && '❌ Failed' || '❓ Unknown' }}
+
+          ## 🎯 Next Steps
+
+          EOF
+
+          # Add context-specific next steps
+          if [[ "${{ needs.update-rollout-quotas.result }}" == "success" && "${{ needs.update-rollout-quotas.outputs.companies_new }}" != "0" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ### Immediate Actions Required
+          - � **New Companies**: ${{ needs.update-rollout-quotas.outputs.companies_new }} new rollout companies need BDEW linking
+          - 🔗 **WebUI Action**: Use the [Company Matching Interface](https://your-webui-url.com/matching) to link new companies
+
+          EOF
+          fi
+
+          if [[ "${{ needs.update-rollout-quotas.outputs.quotas_errors }}" != "0" ]]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ### Validation Issues
+          - ❌ **Quota Errors**: ${{ needs.update-rollout-quotas.outputs.quotas_errors }} quota validation errors detected
+          - � **Investigation**: Review error details in the rollout update logs
+
+          EOF
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ### Regular Monitoring
+          - 🌐 **Dashboard**: Check the [VNBdigitaler WebUI](https://your-webui-url.com) for updated data
+          - 📈 **Statistics**: Review [Database Statistics](https://your-webui-url.com/stats)
+          - 🗃️ **Rollout Data**: Monitor [Rollout Companies](https://your-webui-url.com/rollout/)
+          - 🏢 **BDEW Data**: Check [BDEW Companies](https://your-webui-url.com/companies/)
+
+          ## 🔧 Technical Details
+          - **Workflow Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          - **Repository**: ${{ github.repository }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Timestamp**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+          ---
+          *VNBdigitaler Central Data Update Orchestrator • Run ID: ${{ github.run_id }}*
+          EOF
+
+  # Job 4: Handle failures and create issues (only for scheduled runs)
   handle-failure:
     needs: [update-rollout-quotas, update-bdew-companies]
     if: ${{ failure() && github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Create failure issue
+      - name: Create comprehensive failure issue
         uses: actions/github-script@v7
         with:
           script: |
@@ -150,57 +151,74 @@ jobs:
             const bdewStatus = '${{ needs.update-bdew-companies.result }}';
 
             let failedJobs = [];
-            if (rolloutStatus === 'failure') failedJobs.push('BNetzA Rollout Quotas Update');
-            if (bdewStatus === 'failure') failedJobs.push('BDEW Companies Update');
+            if (rolloutStatus === 'failure') failedJobs.push('BNetzA Rollout Quotas');
+            if (bdewStatus === 'failure') failedJobs.push('BDEW Companies');
 
-            const issue_body = `## 🚨 VNBdigitaler Data Update Failed
+            const rolloutStats = {
+              companies_processed: '${{ needs.update-rollout-quotas.outputs.companies_processed }}' || '0',
+              companies_new: '${{ needs.update-rollout-quotas.outputs.companies_new }}' || '0',
+              quotas_errors: '${{ needs.update-rollout-quotas.outputs.quotas_errors }}' || '0'
+            };
 
-            **Failed Jobs**: ${failedJobs.join(', ')}
+            const issue_body = `## 🚨 VNBdigitaler Central Data Update Failed
+
+            **Failed Components**: ${failedJobs.length > 0 ? failedJobs.join(', ') : 'Multiple systems'}
             **Workflow Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            **Trigger**: ${{ github.event_name }}
-            **Branch**: ${{ github.ref }}
-            **Commit**: ${{ github.sha }}
+            **Trigger**: Scheduled daily update (6:00 UTC)
+            **Timestamp**: ${new Date().toISOString()}
 
-            ### Job Status Summary
-            - **BNetzA Rollout Quotas**: ${rolloutStatus}
-            - **BDEW Companies**: ${bdewStatus}
+            ### 📊 System Status Overview
+            | Component | Status | Details |
+            |-----------|--------|---------|
+            | **BNetzA Rollout Quotas** | ${rolloutStatus === 'failure' ? '❌ Failed' : rolloutStatus === 'success' ? '✅ Success' : '⏭️ Skipped'} | Companies: ${rolloutStats.companies_processed}, New: ${rolloutStats.companies_new}, Errors: ${rolloutStats.quotas_errors} |
+            | **BDEW Companies** | ${bdewStatus === 'failure' ? '❌ Failed' : bdewStatus === 'success' ? '✅ Success' : '⏭️ Not Implemented'} | Placeholder component |
 
-            ### Possible Causes
-            - Database connection issues
-            - External data source changes (BNetzA website, BDEW data)
-            - Network connectivity problems
-            - Data format or schema changes
-            - Dependency or environment issues
+            ### 🔍 Impact Assessment
+            The failure of the scheduled data update affects:
+            - 📊 **Data Freshness**: Rollout quota data may be outdated
+            - 🔗 **Integration**: New company linking may be incomplete
+            - 🌐 **WebUI**: Dashboard statistics may not reflect latest data
+            - 📈 **Reporting**: Analytics and reports may be stale
 
-            ### Recommended Actions
-            1. 🔍 **Check the workflow logs** for detailed error messages
-            2. 🗄️ **Verify database connectivity** and credentials
-            3. 🧪 **Test the update scripts manually** using the test scripts
-            4. 🌐 **Check external data sources** for changes or availability
-            5. 📊 **Review recent data** for format or schema changes
+            ### 🛠️ Diagnostic Information
+            **Possible Root Causes:**
+            - **External Dependencies**: BNetzA website changes, network issues
+            - **Database Problems**: Connection timeouts, schema changes, capacity issues
+            - **Data Quality**: Format changes, validation failures, corrupted data
+            - **Infrastructure**: Runner failures, timeout issues, resource constraints
 
-            ### Manual Testing
-            \`\`\`bash
-            # Test rollout update locally
-            ./test-update-workflow.sh --dry-run
+            ### 📋 Recovery Procedures
+            **Immediate Actions:**
+            1. 🔍 **Review Logs**: Check detailed logs in the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            2. 🧪 **Manual Testing**: Run update scripts locally to reproduce issues
+            3. 🔗 **Connectivity Check**: Verify database and external service access
+            4. 📊 **Data Validation**: Check recent data for format consistency
 
-            # Check specific components
-            uv run python src/bnetza/rollout_report_updater.py --check-update --verbose
-            \`\`\`
+            **Recovery Options:**
+            - **Automatic Retry**: Next scheduled run is in 24 hours
+            - **Manual Trigger**: Use workflow_dispatch with appropriate parameters
+            - **Component Testing**: Test individual components separately
+            - **Emergency Update**: Use WebUI for critical manual updates
 
-            ### Recovery Steps
-            If the issue is resolved, you can:
-            - Re-run the failed workflow manually
-            - Wait for the next scheduled run (daily at 6:00 UTC)
-            - Use the WebUI for manual data management
+            ### 🎯 Resolution Timeline
+            - **Immediate**: Investigate and identify root cause
+            - **Short-term**: Apply fixes and test resolution
+            - **Long-term**: Monitor stability and improve error handling
+
+            ### 📞 Escalation
+            **Contact Information:**
+            - Development Team: Check repository maintainers
+            - System Status: Monitor [VNBdigitaler Dashboard](https://your-webui-url.com)
+            - Emergency Procedures: Use manual data management via WebUI
 
             ---
-            *This issue was automatically created by the failed workflow on ${new Date().toISOString()}*`;
+            *Automated issue created by Central Data Update failure detection*
+            *Issue ID: Scheduled-${new Date().toISOString().split('T')[0]}*`;
 
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `🚨 Data Update Failure - ${new Date().toISOString().split('T')[0]}`,
+              title: `🚨 Central Data Update System Failure - ${new Date().toISOString().split('T')[0]}`,
               body: issue_body,
-              labels: ['bug', 'automation', 'data-update', 'priority-high']
+              labels: ['bug', 'automation', 'data-update', 'system-failure', 'priority-critical']
             });

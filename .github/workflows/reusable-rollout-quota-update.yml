@@ -1,0 +1,295 @@
+name: BNetzA Rollout Quota Update
+
+on:
+  workflow_call:
+    inputs:
+      check_only:
+        description: 'Only check for updates without performing them'
+        required: false
+        type: boolean
+        default: false
+      force_update:
+        description: 'Force update even if no new data detected'
+        required: false
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Perform a dry run without updating the database'
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      DATABASE_URL:
+        description: 'Database connection URL'
+        required: true
+    outputs:
+      action_taken:
+        description: 'Description of the action taken'
+        value: ${{ jobs.update-quotas.outputs.action_taken }}
+      companies_processed:
+        description: 'Number of companies processed'
+        value: ${{ jobs.update-quotas.outputs.companies_processed }}
+      companies_updated:
+        description: 'Number of companies updated'
+        value: ${{ jobs.update-quotas.outputs.companies_updated }}
+      companies_new:
+        description: 'Number of new companies added'
+        value: ${{ jobs.update-quotas.outputs.companies_new }}
+      quotas_total:
+        description: 'Total number of quota records'
+        value: ${{ jobs.update-quotas.outputs.quotas_total }}
+      quotas_current_date:
+        description: 'Number of quotas with current date'
+        value: ${{ jobs.update-quotas.outputs.quotas_current_date }}
+      quotas_outdated_date:
+        description: 'Number of quotas with outdated date'
+        value: ${{ jobs.update-quotas.outputs.quotas_outdated_date }}
+      quotas_errors:
+        description: 'Number of quota validation errors'
+        value: ${{ jobs.update-quotas.outputs.quotas_errors }}
+
+jobs:
+  update-quotas:
+    runs-on: ubuntu-latest
+    outputs:
+      action_taken: ${{ steps.determine-action.outputs.action_taken }}
+      companies_processed: ${{ steps.extract-stats.outputs.companies_processed }}
+      companies_up_to_date: ${{ steps.extract-stats.outputs.companies_up_to_date }}
+      companies_updated: ${{ steps.extract-stats.outputs.companies_updated }}
+      companies_new: ${{ steps.extract-stats.outputs.companies_new }}
+      companies_outdated: ${{ steps.extract-stats.outputs.companies_outdated }}
+      quotas_total: ${{ steps.extract-stats.outputs.quotas_total }}
+      quotas_current_date: ${{ steps.extract-stats.outputs.quotas_current_date }}
+      quotas_outdated_date: ${{ steps.extract-stats.outputs.quotas_outdated_date }}
+      quotas_errors: ${{ steps.extract-stats.outputs.quotas_errors }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python environment
+        uses: ./.github/actions/setup-python
+
+      - name: Validate environment
+        run: |
+          echo "Python version: $(python --version)"
+          echo "UV version: $(uv --version)"
+          echo "Working directory: $(pwd)"
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing dependencies..."
+          uv sync --frozen
+
+      - name: Setup database configuration
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "Database configuration set from secrets"
+
+      - name: Check for new rollout reports
+        id: check-reports
+        run: |
+          echo "🔍 Checking for new BNetzA rollout reports..."
+          python .github/scripts/check_reports.py
+
+      - name: Determine action
+        id: determine-action
+        run: |
+          if [[ "${{ inputs.check_only }}" == "true" ]]; then
+            echo "action=check_only" >> $GITHUB_OUTPUT
+            echo "action_taken=Check only - no updates performed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.dry_run }}" == "true" ]]; then
+            echo "action=dry_run" >> $GITHUB_OUTPUT
+            echo "action_taken=Dry run completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ inputs.force_update }}" == "true" ]]; then
+            echo "action=force_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Forced update completed" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.check-reports.outputs.has_updates }}" == "true" ]]; then
+            echo "action=regular_update" >> $GITHUB_OUTPUT
+            echo "action_taken=Regular update completed" >> $GITHUB_OUTPUT
+          else
+            echo "action=no_action" >> $GITHUB_OUTPUT
+            echo "action_taken=No updates needed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run dry run
+        if: ${{ steps.determine-action.outputs.action == 'dry_run' }}
+        run: |
+          echo "🔍 Running dry run..."
+          uv run python src/bnetza/rollout_report_updater.py --dry-run --verbose
+
+      - name: Run forced update
+        if: ${{ steps.determine-action.outputs.action == 'force_update' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "🚀 Running forced update..."
+          python .github/scripts/enhanced_update.py --force-update
+
+      - name: Run regular update
+        if: ${{ steps.determine-action.outputs.action == 'regular_update' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "📊 Running regular update..."
+          python .github/scripts/enhanced_update.py
+
+      - name: Extract statistics
+        id: extract-stats
+        if: ${{ steps.determine-action.outputs.action == 'force_update' || steps.determine-action.outputs.action == 'regular_update' }}
+        run: |
+          # Extract statistics from the JSON summary if available
+          if [[ -f "update_summary.json" ]]; then
+            echo "📊 Extracting statistics from detailed summary..."
+            python .github/scripts/extract_stats.py
+          else
+            echo "⚠️ No update_summary.json found, using fallback extraction"
+            # Set basic defaults
+            echo "companies_processed=0" >> $GITHUB_OUTPUT
+            echo "companies_up_to_date=0" >> $GITHUB_OUTPUT
+            echo "companies_updated=0" >> $GITHUB_OUTPUT
+            echo "companies_new=0" >> $GITHUB_OUTPUT
+            echo "companies_outdated=0" >> $GITHUB_OUTPUT
+            echo "quotas_total=0" >> $GITHUB_OUTPUT
+            echo "quotas_current_date=0" >> $GITHUB_OUTPUT
+            echo "quotas_outdated_date=0" >> $GITHUB_OUTPUT
+            echo "quotas_errors=0" >> $GITHUB_OUTPUT
+            echo "quotas_reference_date=Unknown" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create update summary
+        if: ${{ steps.determine-action.outputs.action != 'no_action' }}
+        run: |
+          ACTION="${{ steps.determine-action.outputs.action }}"
+          ACTION_TAKEN="${{ steps.determine-action.outputs.action_taken }}"
+
+          # Get statistics from extract-stats step
+          COMPANIES_PROCESSED="${{ steps.extract-stats.outputs.companies_processed || '0' }}"
+          COMPANIES_UP_TO_DATE="${{ steps.extract-stats.outputs.companies_up_to_date || '0' }}"
+          COMPANIES_UPDATED="${{ steps.extract-stats.outputs.companies_updated || '0' }}"
+          COMPANIES_NEW="${{ steps.extract-stats.outputs.companies_new || '0' }}"
+          COMPANIES_OUTDATED="${{ steps.extract-stats.outputs.companies_outdated || '0' }}"
+          QUOTAS_TOTAL="${{ steps.extract-stats.outputs.quotas_total || '0' }}"
+          QUOTAS_CURRENT="${{ steps.extract-stats.outputs.quotas_current_date || '0' }}"
+          QUOTAS_OUTDATED="${{ steps.extract-stats.outputs.quotas_outdated_date || '0' }}"
+          QUOTAS_ERRORS="${{ steps.extract-stats.outputs.quotas_errors || '0' }}"
+          QUOTAS_REF_DATE="${{ steps.extract-stats.outputs.quotas_reference_date || 'Unknown' }}"
+
+          cat > $GITHUB_STEP_SUMMARY << EOF
+          # 📊 BNetzA Rollout Quota Update Results
+
+          ## Configuration
+          - **Action Type**: $ACTION
+          - **Action Taken**: $ACTION_TAKEN
+
+          ## 🏢 Company Statistics
+          EOF
+
+          if [[ "$ACTION" == "check_only" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ✅ **Check completed successfully**
+          - Check Output: ${{ steps.check-reports.outputs.check_output }}
+          - Updates Available: ${{ steps.check-reports.outputs.has_updates }}
+
+          EOF
+          elif [[ "$ACTION" == "dry_run" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          🔍 **Dry run completed**
+          - No actual changes were made to the database
+          - The update process was simulated successfully
+
+          EOF
+          elif [[ "$ACTION" == "no_action" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ℹ️ **No action required**
+          - Check Output: ${{ steps.check-reports.outputs.check_output }}
+          - No new updates available at this time
+
+          EOF
+          else
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          | Metric | Value |
+          |--------|-------|
+          | **Total Processed** | $COMPANIES_PROCESSED |
+          | **Up-to-date** | $COMPANIES_UP_TO_DATE |
+          | **Updated** | $COMPANIES_UPDATED |
+          | **New** | $COMPANIES_NEW |
+          | **Outdated** | $COMPANIES_OUTDATED |
+
+          ## 📈 Quota Statistics
+          | Metric | Value |
+          |--------|-------|
+          | **Total Quotas** | $QUOTAS_TOTAL |
+          | **Current Date** | $QUOTAS_CURRENT |
+          | **Outdated Date** | $QUOTAS_OUTDATED |
+          | **Validation Errors** | $QUOTAS_ERRORS |
+          | **Reference Date** | $QUOTAS_REF_DATE |
+
+          EOF
+
+            if [[ -f "update_summary.json" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## 📋 Detailed Company Breakdown
+          EOF
+
+              # Extract and format company lists
+              python .github/scripts/format_companies.py >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Add files section for non-check actions
+            if [[ "$ACTION" != "check_only" && "$ACTION" != "no_action" ]]; then
+              cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ## 📁 Generated Files
+          - \`update_summary.json\` - Detailed update results
+          - \`update_output.log\` - Complete command output
+
+          EOF
+            fi
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+
+          ---
+          *Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*
+          EOF
+
+      - name: Upload artifacts
+        if: ${{ steps.determine-action.outputs.action == 'force_update' || steps.determine-action.outputs.action == 'regular_update' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollout-update-results
+          path: |
+            update_summary.json
+            update_output.log
+          retention-days: 30
+
+      - name: Archive any error logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: error-logs
+          path: |
+            *.log
+            *.json
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Set outputs
+        if: always()
+        run: |
+          # Set job outputs for use by other workflows
+          echo "action_taken=${{ steps.determine-action.outputs.action_taken }}" >> $GITHUB_OUTPUT
+          echo "companies_processed=${{ steps.extract-stats.outputs.companies_processed || '0' }}" >> $GITHUB_OUTPUT
+          echo "companies_updated=${{ steps.extract-stats.outputs.companies_updated || '0' }}" >> $GITHUB_OUTPUT
+          echo "companies_new=${{ steps.extract-stats.outputs.companies_new || '0' }}" >> $GITHUB_OUTPUT
+          echo "quotas_total=${{ steps.extract-stats.outputs.quotas_total || '0' }}" >> $GITHUB_OUTPUT
+          echo "quotas_current_date=${{ steps.extract-stats.outputs.quotas_current_date || '0' }}" >> $GITHUB_OUTPUT
+          echo "quotas_outdated_date=${{ steps.extract-stats.outputs.quotas_outdated_date || '0' }}" >> $GITHUB_OUTPUT
+          echo "quotas_errors=${{ steps.extract-stats.outputs.quotas_errors || '0' }}" >> $GITHUB_OUTPUT

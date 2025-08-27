@@ -44,6 +44,41 @@ Das Projekt enthält automatisierte Tools zum Download und zur Analyse von BNetz
 1. **`01_download_bnetza_data.py`** - Lädt BNetzA Artikel-Seite herunter und extrahiert Excel-URLs
 2. **`02_find_roll_out_report.py`** - Verwendet KI zur Identifikation von Roll-Out-Quoten-Berichten
 
+### Automatisierte GitHub Actions Workflows
+
+Das Projekt nutzt eine modulare GitHub Actions Architektur für automatisierte Datenaktualisierungen:
+
+#### 🔄 Central Data Update
+
+- **Zeitplan**: Täglich um 6:00 UTC (8:00 CEST)
+- **Manuell**: Über GitHub Actions Workflow Dispatch
+- **Orchestriert**: Alle automatisierten Datenaktualisierungen
+
+#### 📊 Rollout Update System
+
+Modulare Architektur mit spezialisierten Workflows:
+
+- **`reusable-rollout-update.yml`** - Hauptkoordinator für BNetzA Rollout-Daten
+  - **`reusable-rollout-company-update.yml`** - Company Matching & Management
+  - **`reusable-rollout-quota-update.yml`** - Rollout-Quoten-Verarbeitung
+
+#### 🛠️ Supporting Scripts
+
+- **`.github/scripts/check_reports.py`** - BNetzA Report-Überprüfung
+- **`.github/scripts/enhanced_update.py`** - Erweiterte Update-Verarbeitung
+- **`.github/scripts/extract_stats.py`** - Statistik-Extraktion
+- **`.github/scripts/format_companies.py`** - Company-Listen-Formatierung
+
+#### 📋 Features
+
+- ✅ **Automatische Datenaktualisierung** aus BNetzA Quellen
+- ✅ **String-basiertes Company Matching** (in Entwicklung)
+- ✅ **Detaillierte Berichterstattung** mit GitHub Actions Summaries
+- ✅ **Fehlerbehandlung** mit automatischen Issue-Erstellungen
+- ✅ **Modulare Architektur** für einfache Wartung und Tests
+
+Weitere Details: [GitHub Actions Architecture Documentation](docs/GITHUB_ACTIONS_ARCHITECTURE.md)
+
 ### Verwendung
 
 ```bash
