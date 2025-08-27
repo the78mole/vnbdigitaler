@@ -1,5 +1,10 @@
 name: Central Data Update Workflows
 
+permissions:
+  contents: write  # Needed for creating releases
+  pull-requests: read
+  issues: write    # Needed for creating failure issues
+
 on:
   # Täglich um 6:00 UTC (8:00 CEST) - alle automatischen Updates
   schedule:
