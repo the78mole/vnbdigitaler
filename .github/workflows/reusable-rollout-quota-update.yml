@@ -278,7 +278,13 @@ jobs:
           path: |
             update_summary.json
             update_output.log
+            data/*.xlsx
+            data/*.csv
+            data/*summary*.json
+            *.xlsx
+            *.csv
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Archive any error logs
         if: ${{ failure() }}

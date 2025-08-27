@@ -76,6 +76,24 @@ Modulare Architektur mit spezialisierten Workflows:
 - ✅ **Detaillierte Berichterstattung** mit GitHub Actions Summaries
 - ✅ **Fehlerbehandlung** mit automatischen Issue-Erstellungen
 - ✅ **Modulare Architektur** für einfache Wartung und Tests
+- ✅ **Semantic Versioning** mit automatischen Releases
+
+#### 🏷️ Automatic Releases
+
+Das System erstellt automatisch semantische Versionen basierend auf Commit-Messages:
+
+- **Major Releases** (v1.x.x → v2.0.0): Breaking Changes mit `!` oder `BREAKING CHANGE`
+- **Minor Releases** (v1.2.x → v1.3.0): Features mit `feat:`, `fix:`, `refactor:`
+- **Patch Releases** (v1.2.3 → v1.2.4): Dokumentation, Wartung, Tests
+
+**Release Contents:**
+
+- 📊 Excel-Dateien (Original BNetzA-Berichte)
+- 📄 CSV-Dateien (Konvertierte Daten für API-Integration)
+- 📋 JSON-Zusammenfassungen (Metadaten und Statistiken)
+- 📝 Automatische Release-Notes mit Update-Details
+
+Siehe: [Semantic Versioning Guide](.github/SEMANTIC_VERSIONING.md)
 
 Weitere Details: [GitHub Actions Architecture Documentation](docs/GITHUB_ACTIONS_ARCHITECTURE.md)
 

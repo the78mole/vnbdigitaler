@@ -1,0 +1,30 @@
+# 📝 Commit Template
+#
+# Use conventional commit format with semantic versioning patterns:
+#
+# 🚀 Major version bump (BREAKING CHANGE):
+#   feat!: description (BREAKING CHANGE)
+#   fix!: description (BREAKING CHANGE)
+#
+# 🎯 Minor version bump (new features/fixes):
+#   feat: add new feature
+#   fix: resolve issue
+#   refactor: improve code
+#
+# 🐛 Patch version bump (default):
+#   docs: update documentation
+#   chore: maintenance tasks
+#   test: add tests
+#   style: formatting
+#
+# Examples:
+#   feat: add automatic company matching system
+#   fix: resolve database timeout issues
+#   feat!: change API response format (BREAKING CHANGE)
+#   refactor: improve rollout quota processing
+#   docs: update setup guide
+#
+# The commit type determines version bump:
+# - feat|fix|refactor → minor version (1.2.3 → 1.3.0)
+# - ! suffix or BREAKING CHANGE → major version (1.2.3 → 2.0.0)
+# - others → patch version (1.2.3 → 1.2.4)
