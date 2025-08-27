@@ -30,9 +30,6 @@ on:
       DATABASE_URL:
         description: 'Database connection URL'
         required: true
-      GITHUB_TOKEN:
-        description: 'GitHub token for release uploads'
-        required: false
     outputs:
       action_taken:
         description: 'Description of the action taken'
