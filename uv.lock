@@ -3617,6 +3617,7 @@ dev = [
     { name = "mypy" },
     { name = "pydocstyle" },
     { name = "ruff" },
+    { name = "safety" },
 ]
 
 [package.metadata]
@@ -3682,6 +3683,7 @@ dev = [
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "pydocstyle", specifier = ">=6.3.0" },
     { name = "ruff", specifier = ">=0.12.9" },
+    { name = "safety", specifier = ">=3.6.1" },
 ]
 
 [[package]]

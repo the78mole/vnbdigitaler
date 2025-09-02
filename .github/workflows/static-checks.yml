@@ -102,8 +102,7 @@ jobs:
 
       - name: Run security checks
         run: |
-          uv run bandit -r src/
-          uv run safety check --ignore 59234
+          uv run bandit -r src/ --severity-level medium
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'

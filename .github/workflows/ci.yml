@@ -1,0 +1,12 @@
+# Placeholder CI workflow - currently using static-checks.yml for CI/CD
+name: CI Placeholder
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder step
+        run: echo "CI functionality moved to static-checks.yml"
