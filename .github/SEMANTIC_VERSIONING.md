@@ -12,14 +12,13 @@ Triggers a major version increment (e.g., v1.2.3 → v2.0.0)
 
 **Patterns:**
 
-- `BREAKING CHANGE:` in commit message or body
-- `!:` at the end of the commit type
-- `!)` at the end of the commit type
+- `BREAKING CHANGE` in commit message or body
+- `/^(fix|feat|refactor)!:/` in commit message
 
 **Examples:**
 
 ```
-feat!: redesign database schema (BREAKING CHANGE)
+feat: redesign database schema (BREAKING CHANGE)
 refactor!: remove deprecated API endpoints
 fix!: change configuration format (BREAKING CHANGE)
 ```
@@ -30,9 +29,10 @@ Triggers a minor version increment (e.g., v1.2.3 → v1.3.0)
 
 **Patterns:**
 
-- `feat:` - New features
-- `refactor:` - Code refactoring
-- `fix:` - Bug fixes
+- `data:` in commit message - New data has been integrated
+- `feat:` in commit message - New features
+- `refactor:` in commit message - Code refactoring
+- `fix:` in commit message - Bug fixes
 
 **Examples:**
 
@@ -52,6 +52,7 @@ Triggers a patch version increment (e.g., v1.2.3 → v1.2.4)
 - Documentation updates
 - Minor improvements
 - Configuration changes
+- --> On every push to main
 
 **Examples:**
 
@@ -75,9 +76,8 @@ The semantic versioning is configured with:
 
 Releases are automatically created when:
 
-1. The central data update workflow runs successfully
-2. Meaningful changes are detected (new companies, updated quotas, etc.)
-3. The workflow is not in dry-run or check-only mode
+1. The central data update workflow started
+2. The workflow is not in dry-run or check-only mode
 
 ### Release Contents
 
@@ -93,7 +93,7 @@ Each release includes:
 ### For Data Updates (Minor Bump)
 
 ```
-feat: update Q1 2025 rollout quotas
+data: update Q1 2025 rollout quotas
 feat: add support for new BNetzA report format
 fix: resolve company matching accuracy issues
 refactor: improve rollout data processing pipeline
@@ -127,6 +127,7 @@ fix!: update configuration structure (BREAKING CHANGE)
 ## Monitoring Releases
 
 - **Automatic Creation**: Releases are created automatically during scheduled data updates
+- **Semi-Automatic Creation**: Releases are created automatically when the update data workflow was manually triggered
 - **GitHub Releases**: Check the [Releases page](../../releases) for the latest data
 - **Workflow Summaries**: Review GitHub Actions summaries for detailed update information
 
@@ -138,6 +139,7 @@ While releases are primarily automated, you can manually trigger the central dat
 2. Select "Central Data Update Workflows"
 3. Click "Run workflow"
 4. Choose appropriate options (update type, force update, etc.)
+5. Select "Create Release" if you wish to create a new Release with this data
 
 ---
 

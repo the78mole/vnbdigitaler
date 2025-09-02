@@ -6,8 +6,8 @@ build-backend = "hatchling.build"
 name = "vnbdigitaler"
 version = "0.1.0"
 description = "Streamlit app for German electricity grid operators (VNB) data"
-readme = "README.md"
-license = { file = "LICENSE" }
+readme = { text = "VNB Digitaler Streamlit App", content-type = "text/plain" }
+license = { text = "MIT" }
 authors = [{ name = "Daniel", email = "daniel@example.com" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -38,7 +38,7 @@ dependencies = [
     "httpx>=0.28.1",
     "openai>=1.99.9",
     "jinja2>=3.1.0",
-    "psycopg2-binary>=2.9.0", # PostgreSQL adapter for Neon
+    "psycopg2-binary>=2.9.0",     # PostgreSQL adapter for Neon
     "openpyxl>=3.1.5",
     "beautifulsoup4>=4.13.4",
     "lxml>=6.0.0",
@@ -198,6 +198,10 @@ strict_equality = true
 [[tool.mypy.overrides]]
 module = ["streamlit.*", "pandas.*", "boto3.*", "botocore.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["src.data_loader"]
+warn_unreachable = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

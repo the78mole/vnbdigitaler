@@ -6,7 +6,10 @@ sudo apt update && \
 sudo apt upgrade -y && \
 sudo xargs apt install -y <packages.txt;
 
-# Install Python dependencies with uv (now installed via DevContainer feature)
+# Ensure uv is in PATH
+export PATH="$HOME/.local/bin:$PATH"
+
+# Install dependencies using uv
 echo "Updating Python dependencies with uv..."
 uv sync
 

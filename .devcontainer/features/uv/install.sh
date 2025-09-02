@@ -37,11 +37,17 @@ cd "$TEMP_DIR"
 if [ "${VERSION}" = "latest" ]; then
     echo "Downloading latest uv version..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
-    # The install script puts uv in ~/.cargo/bin, so we need to move it
-    if [ -f "$HOME/.cargo/bin/uv" ]; then
+    # The install script puts uv in ~/.local/bin, so we need to move it
+    if [ -f "$HOME/.local/bin/uv" ]; then
+        mv "$HOME/.local/bin/uv" "${INSTALL_PATH}/uv"
+        echo "✅ Moved uv from ~/.local/bin to ${INSTALL_PATH}"
+    elif [ -f "$HOME/.cargo/bin/uv" ]; then
         mv "$HOME/.cargo/bin/uv" "${INSTALL_PATH}/uv"
+        echo "✅ Moved uv from ~/.cargo/bin to ${INSTALL_PATH}"
     else
-        echo "Error: uv installation failed - binary not found"
+        echo "Error: uv installation failed - binary not found in ~/.local/bin or ~/.cargo/bin"
+        ls -la "$HOME/.local/bin/" || echo "~/.local/bin does not exist"
+        ls -la "$HOME/.cargo/bin/" || echo "~/.cargo/bin does not exist"
         exit 1
     fi
 else

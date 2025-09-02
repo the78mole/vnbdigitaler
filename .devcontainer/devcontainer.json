@@ -1,11 +1,13 @@
 {
   "name": "Python 3 with uv",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bullseye",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "features": {
-    "./features/uv": {
-      "version": "latest",
-      "installPath": "/usr/local/bin",
-      "enableShellCompletion": true
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": "true",
+      "configureZshAsDefaultShell": "true",
+      "installOhMyZsh": "true"
     },
     "ghcr.io/devcontainers/features/docker-in-docker": {}
   },
@@ -19,7 +21,8 @@
     "vscode": {
       "settings": {
         "terminal.integrated.env.linux": {
-          "PYTHONPATH": "${workspaceFolder}/src"
+          "PYTHONPATH": "${workspaceFolder}/src",
+          "PATH": "/home/vscode/.local/bin:${env:PATH}"
         }
       },
       "extensions": [
@@ -30,7 +33,7 @@
   },
   "updateContentCommand": ".devcontainer/updateContentCommand.sh",
   "postAttachCommand": {
-    "server": "uv run streamlit run streamlit_app.py --server.enableCORS false --server.enableXsrfProtection false --server.headless true --server.address 0.0.0.0 --server.port 8501"
+    "server": "export PATH=\"$HOME/.local/bin:$PATH\" && uv run streamlit run streamlit_app.py --server.enableCORS false --server.enableXsrfProtection false --server.headless true --server.address 0.0.0.0 --server.port 8501"
   },
   "portsAttributes": {
     "8501": {

@@ -182,5 +182,8 @@ cython_debug/
 
 /tmp
 /data
+/data_old
+/archive
 nohup.out
 .secrets
+rollout_workflow_state.json
