@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# ruff: noqa: E402
 """
 VNBdigitaler - Raw Data Fetcher
 
@@ -347,32 +346,36 @@ class RawDataFetcher:
                 "operator_data_found": operator_data is not None,
                 "geojson_data_found": geojson_data is not None,
             },
-            "operator_data_summary": {
-                "name": operator_data.get("name") if operator_data else None,
-                "city": operator_data.get("city") if operator_data else None,
-                "types": operator_data.get("types", []) if operator_data else [],
-                "services_count": len(operator_data.get("services", []))
+            "operator_data_summary": (
+                {
+                    "name": operator_data.get("name") if operator_data else None,
+                    "city": operator_data.get("city") if operator_data else None,
+                    "types": operator_data.get("types", []) if operator_data else [],
+                    "services_count": (
+                        len(operator_data.get("services", [])) if operator_data else 0
+                    ),
+                    "documents_count": (
+                        len(operator_data.get("documents", [])) if operator_data else 0
+                    ),
+                }
                 if operator_data
-                else 0,
-                "documents_count": len(operator_data.get("documents", []))
-                if operator_data
-                else 0,
-            }
-            if operator_data
-            else None,
-            "geojson_data_summary": {
-                "features_count": len(geojson_data.get("features", []))
+                else None
+            ),
+            "geojson_data_summary": (
+                {
+                    "features_count": (
+                        len(geojson_data.get("features", [])) if geojson_data else 0
+                    ),
+                    "coordinate_system": (
+                        geojson_data.get("crs", {}).get("properties", {}).get("name")
+                        if geojson_data
+                        else None
+                    ),
+                    "bbox": geojson_data.get("bbox") if geojson_data else None,
+                }
                 if geojson_data
-                else 0,
-                "coordinate_system": geojson_data.get("crs", {})
-                .get("properties", {})
-                .get("name")
-                if geojson_data
-                else None,
-                "bbox": geojson_data.get("bbox") if geojson_data else None,
-            }
-            if geojson_data
-            else None,
+                else None
+            ),
         }
 
         summary_file = TMP_DIR / f"{safe_name}_{bdew_code}_summary_{timestamp}.json"

@@ -1,313 +1,179 @@
-# GitHub Copilot Instructions für VNBdigitaler
+# VNB Digitaler - Copilot Instructions
 
-## Projektübersicht
+## 🎯 Projekt-Überblick
 
-VNBdigitaler ist eine Streamlit-basierte Web-Anwendung zur Vereinfachung des Zugangs zu Daten deutscher Verteilnetzbetreiber (VNB). Das Projekt automatisiert die Sammlung und Analyse von Smart Meter Rollout-Daten und Preisblättern der Netzbetreiber.
+**VNB Digitaler** ist eine Streamlit-Anwendung zur Verwaltung und Analyse von deutschen Verteilnetzbetreiber-Daten (VNB) mit Fokus auf Smart-Meter-Rollout-Management.
 
-## Technologie-Stack
+## 🏗️ Architektur-Prinzipien
 
-### Backend & Database
+- **Einfachheit**: Bevorzuge klare, verständliche Lösungen
+- **Modularität**: Separate Verantwortlichkeiten in eigene Module
+- **Datenintegrität**: Sichere und konsistente Datenverarbeitung
+- **Performance**: Effiziente Verarbeitung großer Datensätze
 
-- **ORM**: SQLAlchemy (bevorzugt) oder Tortoise ORM
-- **Database**: Neon Cloud PostgreSQL
-- **Migrations**: Alembic
-- **Object Storage**: Cloudflare R2 (S3-kompatibel)
+## 📊 Datenaktualisierung - Neuorganisation
 
-### AI & Processing
+### Aktuelle Herausforderung
 
-- **AI Provider**: OpenRouter API
-- **Models**: GPT-4, Claude (für PDF-Analyse und Datenvalidierung)
-- **PDF Processing**: PyPDF2, pdfplumber, oder ähnliche Libraries
+Die bestehenden Datenaktualisierungsschritte müssen von Grund auf neu organisiert werden.
+Die WebUI ist schon zu großen Teilen korrekt und funktionsfähig.
+Viele der archivierten Scripten enthalten schon Teile einer sehr guten Implementierung,
+passen aber nicht ganz zu einen reibungslosen Workflow, der letztlich auch in GitHub
+Actions Workflows integriert werden kann.
 
-### Frontend & Deployment
+### Ziel-Architektur für Datenaktualisierung
 
-- **Framework**: Streamlit
-- **Deployment**: Streamlit Cloud
-- **CI/CD**: GitHub Actions
-
-### Development Tools
-
-- **Testing**: pytest
-- **Code Quality**: ruff, mypy
-- **Documentation**: Sphinx oder MkDocs
-
-## Code-Stil und Konventionen
-
-### Python Coding Standards
-
-```python
-# Verwende Type Hints für alle Funktionen
-def process_vnb_data(vnb_id: str, data: Dict[str, Any]) -> VNBData:
-    pass
-
-# Async/Await für Database Operations
-async def get_vnb_by_id(db: AsyncSession, vnb_id: str) -> Optional[VNB]:
-    pass
-
-# Pydantic Models für Data Validation
-from pydantic import BaseModel, Field
-
-class VNBCreateSchema(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
-    operator_number: str = Field(..., regex=r"^\d{13}$")
+```
+📥 Datenquellen
+├── 🏢 BDEW (Stammdaten)
+├── 📊 BNetzA (Rollout-Berichte)
+└── 🗺️ VNB Digital (Territorien)
+     ↓
+🔄 Datenverarbeitung
+├── 📋 Extraktion
+├── 🔍 Validierung
+├── 🔀 Transformation
+└── 💾 Import
+     ↓
+🎯 Anwendung
+├── 📱 Streamlit UI (für Datenzugriff durch externe User)
+└── 🔌 FastAPI: WebUI + REST API (für Verwaltungsaufgaben)
 ```
 
-### File Structure Patterns
+### Prioritäten für Neuimplementierung
+
+1. **Datenquellen-Management**
+   - Einheitliche Schnittstellen für alle Datenquellen
+   - Automatische Erkennung von Datenänderungen
+   - Robuste Fehlerbehandlung
+
+2. **Verarbeitungs-Pipeline**
+   - Modulare Verarbeitungsschritte
+   - Transaktionale Sicherheit
+   - Logging und Monitoring
+
+3. **Rollout-Daten-Workflow**
+   - Quartalsweise Aktualisierung
+     - Quartalsreports werden teils nachaktualisiert (gleicher Filename, anderer ETag)
+   - Historische Datenarchivierung
+   - Validierung gegen Stammdaten
+
+## 🛠️ Technische Guidelines
+
+### Code-Organisation
 
 ```
 src/
-├── models/          # SQLAlchemy Models
-├── schemas/         # Pydantic Schemas
-├── services/        # Business Logic
-├── repositories/    # Database Access Layer
-├── api/            # API Clients (OpenRouter, R2)
-└── config.py       # Configuration Management
+├── data_sources/          # Datenquellen-Adapter
+│   ├── bdew.py           # BDEW-Integration
+│   ├── bnetza.py         # BNetzA-Integration
+│   └── vnb_digital.py    # VNB Digital API
+├── processors/           # Datenverarbeitung
+│   ├── extractors/       # Daten-Extraktion
+│   ├── validators/       # Datenvalidierung
+│   └── transformers/     # Daten-Transformation
+├── pipelines/            # Verarbeitungs-Pipelines
+└── models/               # Datenmodelle
 ```
 
-### Database Models Beispiel
+### Entwicklungs-Workflow
 
-```python
-from sqlalchemy import Column, String, DateTime, Integer, Text, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+1. **Datenquelle analysieren** → Adapter entwickeln
+2. **Verarbeitung definieren** → Pipeline implementieren
+3. **Validierung sicherstellen** → Tests schreiben
+4. **Integration testen** → End-to-End Tests
 
-Base = declarative_base()
+### Code-Standards
 
-class VNB(Base):
-    __tablename__ = "vnb"
+- **Type Hints**: Verwende Python Type Hints für alle Funktionen
+- **Error Handling**: Explizite Exception-Behandlung
+- **Logging**: Strukturiertes Logging für alle Verarbeitungsschritte
+- **Documentation**: Docstrings für alle öffentlichen Funktionen
 
-    id = Column(Integer, primary_key=True)
-    operator_number = Column(String(13), unique=True, nullable=False)
-    name = Column(String(200), nullable=False)
-    city = Column(String(100))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-```
+## 🔄 Datenaktualisierung - Implementierungsplan
 
-## Environment Variables und Configuration
+### Phase 1: Grundlagen
 
-### Required Environment Variables
+- [ ] Datenquellen-Interfaces definieren
+- [ ] Basis-Pipeline-Architektur erstellen
+- [ ] Logging-Framework einrichten
 
-```python
-# Database
-NEON_DATABASE_URL = "postgresql+asyncpg://user:pass@host/db"
+### Phase 2: BDEW-Integration
 
-# AI Services
-OPENROUTER_API_KEY = "or-xxx"
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+- [ ] BDEW-Adapter implementieren
+- [ ] Stammdaten-Import-Pipeline
+- [ ] Validierung gegen bestehende Daten
 
-# Object Storage
-CLOUDFLARE_R2_ACCESS_KEY = "xxx"
-CLOUDFLARE_R2_SECRET_KEY = "xxx"
-CLOUDFLARE_R2_BUCKET_NAME = "vnb-documents"
-CLOUDFLARE_R2_ENDPOINT = "https://xxx.r2.cloudflarestorage.com"
+### Phase 3: Anreicherung der BDEW-Daten aus vnbdigital
 
-# Application
-STREAMLIT_SECRET_KEY = "xxx"
-LOG_LEVEL = "INFO"
-```
+- [ ] Datenanreicherungs-Logik implementieren
+- [ ] Integration der vnbdigital GraphQL-API (beschränkt)
+- [ ] Konvertierung der Layer-Daten von vnbdigital in GeoJSON
+- [ ] Anreicherung der GeoDaten mittels Adresslokalisierung
 
-### Configuration Management
+### Phase 4: BNetzA-Integration
 
-```python
-from pydantic import BaseSettings
+- [ ] BNetzA-Rollout-Daten-Adapter
+- [ ] Quartalsweise Update-Pipeline
+- [ ] Historische Datenarchivierung
 
-class Settings(BaseSettings):
-    database_url: str
-    openrouter_api_key: str
-    r2_access_key: str
+### Phase 5: Optimierung
 
-    class Config:
-        env_file = ".env"
+- [ ] Performance-Optimierung
+- [ ] Monitoring und Alerting
+- [ ] Automatisierung
 
-settings = Settings()
-```
+## 🧪 Testing-Strategie
 
-## API Integration Patterns
+### Unit Tests
 
-### OpenRouter Client
+- Jeder Adapter hat eigene Tests
+- Mock externe Datenquellen
+- Validierung der Datenverarbeitung
 
-```python
-import aiohttp
-from typing import Dict, Any
+### Integration Tests
 
-class OpenRouterClient:
-    def __init__(self, api_key: str, base_url: str):
-        self.api_key = api_key
-        self.base_url = base_url
+- End-to-End Pipeline-Tests
+- Datenbank-Integration
+- API-Endpoint-Tests
 
-    async def analyze_pdf_content(self, text: str, model: str = "anthropic/claude-3-haiku") -> Dict[str, Any]:
-        """Analysiere PDF-Inhalt mit KI"""
-        prompt = f"""
-        Analysiere das folgende Preisblatt eines Verteilnetzbetreibers.
-        Extrahiere strukturierte Daten zu Tarifen und Preisen:
+### Data Quality Tests
 
-        {text}
-        """
-        # Implementation...
-```
+- Datenvalidierung und -konsistenz
+- Historische Datenvergleiche
+- Performance-Benchmarks
 
-### R2 Storage Client
+## 📝 Entwicklungs-Guidelines für Copilot
 
-```python
-import boto3
-from botocore.config import Config
+### Bei Datenaktualisierung
 
-class R2StorageClient:
-    def __init__(self, access_key: str, secret_key: str, endpoint: str, bucket: str):
-        self.s3_client = boto3.client(
-            's3',
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            endpoint_url=endpoint,
-            config=Config(signature_version='s3v4')
-        )
-        self.bucket = bucket
+1. **Immer zuerst fragen**: "Welche Datenquelle wird aktualisiert?"
+2. **Validierung priorisieren**: Stelle sicher, dass Daten validiert werden
+3. **Transaktional denken**: Atomare Operationen für Datenänderungen
+4. **Logging hinzufügen**: Jeder Verarbeitungsschritt soll geloggt werden
 
-    async def upload_document(self, file_path: str, key: str) -> str:
-        """Upload document to R2 and return URL"""
-        # Implementation...
-```
+### Code-Stil
 
-## GitHub Actions Patterns
+- Verwende aussagekräftige Funktions- und Variablennamen
+- Kleine, fokussierte Funktionen (max. 20-30 Zeilen)
+- Explicit ist besser als implicit
+- Dokumentiere komplexe Geschäftslogik
 
-### Data Processing Workflow
+### Fehlerbehandlung
 
-```yaml
-name: Update VNB Data
-on:
-  schedule:
-    - cron: '0 6 * * 1'  # Weekly on Monday
-  workflow_dispatch:
+- Verwende spezifische Exception-Typen
+- Logge Fehler mit Kontext-Informationen
+- Graceful Degradation wo möglich
+- Nie silent failures
 
-jobs:
-  update-data:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: Process VNB Data
-        env:
-          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          python -m src.workflows.update_vnb_data
-```
+## 🎯 Ziele für die Neuorganisation
 
-## Streamlit App Patterns
+1. **Klarheit**: Verständliche Datenflüsse
+2. **Zuverlässigkeit**: Robuste Fehlerbehandlung
+3. **Wartbarkeit**: Modularer, testbarer Code
+4. **Performance**: Effiziente Datenverarbeitung
+5. **Monitoring**: Vollständige Observability
 
-### Page Structure
+---
 
-```python
-import streamlit as st
-from src.services.vnb_service import VNBService
-
-@st.cache_data(ttl=3600)
-def load_vnb_data():
-    """Cache VNB data for 1 hour"""
-    return VNBService.get_all_vnbs()
-
-def main():
-    st.set_page_config(
-        page_title="VNBdigitaler",
-        page_icon="⚡",
-        layout="wide"
-    )
-
-    st.title("VNBdigitaler - Verteilnetzbetreiber Daten")
-
-    # Sidebar filters
-    with st.sidebar:
-        selected_state = st.selectbox("Bundesland", options=get_states())
-
-    # Main content
-    vnb_data = load_vnb_data()
-    filtered_data = filter_by_state(vnb_data, selected_state)
-
-    st.dataframe(filtered_data)
-```
-
-## Testing Patterns
-
-### Database Tests
-
-```python
-import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from src.models import Base, VNB
-
-@pytest.fixture
-async def db_session():
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    async with AsyncSession(engine) as session:
-        yield session
-
-@pytest.mark.asyncio
-async def test_create_vnb(db_session):
-    vnb = VNB(operator_number="1234567890123", name="Test VNB")
-    db_session.add(vnb)
-    await db_session.commit()
-
-    assert vnb.id is not None
-```
-
-## Error Handling und Logging
-
-### Standard Error Handling
-
-```python
-import logging
-from typing import Optional
-
-logger = logging.getLogger(__name__)
-
-async def safe_api_call(func, *args, **kwargs) -> Optional[Any]:
-    try:
-        return await func(*args, **kwargs)
-    except Exception as e:
-        logger.error(f"API call failed: {e}", exc_info=True)
-        return None
-```
-
-## Domain-Specific Knowledge
-
-### VNB-spezifische Begriffe
-
-- **VNB**: Verteilnetzbetreiber
-- **Betreibernummer**: 13-stellige eindeutige Nummer
-- **iMSys**: Intelligente Messsysteme (Smart Meter)
-- **Rollout-Quote**: Prozentsatz installierter Smart Meter
-- **Preisblatt**: Dokument mit Tarifen und Gebühren
-
-### Typische Datenstrukturen
-
-```python
-class PriceSheetData(BaseModel):
-    vnb_id: str
-    document_date: datetime
-    basic_price_monthly: Decimal
-    working_price_per_kwh: Decimal
-    meter_rental_monthly: Decimal
-    smart_meter_surcharge: Optional[Decimal]
-```
-
-## Performance Guidelines
-
-1. **Database Queries**: Verwende Bulk Operations für große Datenmengen
-2. **Caching**: Implementiere Redis für häufig abgefragte Daten
-3. **Async**: Alle I/O-Operationen sollten asynchron sein
-4. **Monitoring**: Verwende strukturiertes Logging mit correlation IDs
-
-## Security Best Practices
-
-1. **API Keys**: Niemals in Code committen, nur über Environment Variables
-2. **Database**: Verwende parameterisierte Queries (SQLAlchemy macht das automatisch)
-3. **File Uploads**: Validiere Dateitypen und -größen
-4. **Rate Limiting**: Implementiere für externe API-Calls
-
-Folge diesen Richtlinien bei der Code-Generierung und stelle sicher, dass der generierte Code konsistent mit der bestehenden Projektstruktur ist.
+*Diese Anweisungen sind ein lebendiges Dokument und sollen bei Bedarf aktualisiert werden.*

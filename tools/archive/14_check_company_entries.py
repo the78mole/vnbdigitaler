@@ -246,7 +246,9 @@ class CompanyConsistencyChecker:
             f"❌ Mismatches (<{MIN_SIMILARITY_THRESHOLD*100:.0f}% similarity): {mismatches}"
         )
         logger.info(f"📊 Total companies analyzed: {len(self.companies)}")
-        logger.info(f"📈 Exact match rate: {exact_matches/len(self.companies)*100:.1f}%")
+        logger.info(
+            f"📈 Exact match rate: {exact_matches/len(self.companies)*100:.1f}%"
+        )
 
     def print_detailed_mismatches(
         self, show_close_matches: bool = True, limit: int | None = None

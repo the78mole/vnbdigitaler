@@ -271,9 +271,11 @@ class BDEWVNBDigitalEnricher:
                     enriched_operator["name_comparison"] = {
                         "bdew_name": company_name,
                         "vnbdigital_name": vnb_data.name,
-                        "names_match": company_name.lower() == vnb_data.name.lower()
-                        if vnb_data.name
-                        else False,
+                        "names_match": (
+                            company_name.lower() == vnb_data.name.lower()
+                            if vnb_data.name
+                            else False
+                        ),
                     }
                 else:
                     # Log all not found entries for consistency

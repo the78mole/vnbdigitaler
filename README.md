@@ -1,9 +1,56 @@
-# VNBdigitaler
+# VNB Digitaler
 
-[![CI/CD Pipeline](https://github.com/the78mole/vnbdigitaler/actions/workflows/ci.yml/badge.svg)](https://github.com/the78mole/vnbdigitaler/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/github/the78mole/vnbdigitaler/graph/badge.svg?token=F6YG4GLCMU)](https://codecov.io/github/the78mole/vnbdigitaler)
+Streamlit-Anwendung zur Verwaltung und Analyse von deutschen Verteilnetzbetreiber-Daten (VNB).
 
-Angelehnt an den Namen des Portals VNBdigital, bietet diese App eine deutlich einfachere Möglichkeit, an die Kundenrelevanten Daten der Netzbetreiber zu gelangen. Da weder diese, noch das besagte Portal einen API Zugriff bieten, basieren die Daten im wesentlichen noch auf der manuellen Recherche der Preisblätter.
+## 🚀 Quick Start
+
+```bash
+# Mit uv (empfohlen)
+uv run streamlit run streamlit_app.py
+
+# Oder mit pip
+pip install -r requirements.txt
+streamlit run streamlit_app.py
+```
+
+## 📋 Überblick
+
+Diese Anwendung ermöglicht die Verwaltung und Analyse von:
+
+- VNB-Daten und -Territorien
+- Rollout-Quoten und -Berichte
+- Smart Meter Ausbaupläne
+- Geographische Visualisierungen
+
+## 🛠️ Entwicklung
+
+### Voraussetzungen
+
+- Python 3.11+
+- PostgreSQL (für Produktionsdatenbank)
+- uv (Package Manager)
+
+### Setup
+
+```bash
+# Repository klonen
+git clone https://github.com/the78mole/vnbdigitaler.git
+cd vnbdigitaler
+
+# Dependencies installieren
+uv sync
+
+# Entwicklungsserver starten
+uv run streamlit run streamlit_app.py
+```
+
+## 📚 Dokumentation
+
+Die ausführliche Dokumentation befindet sich im [`docs/`](docs/) Verzeichnis.
+
+## 📄 Lizenz
+
+MIT License - siehe [LICENSE](LICENSE) Datei.
 
 Helft also alle mit und steuert Daten über GitHub Pull-Requests bei.
 

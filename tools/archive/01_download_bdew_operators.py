@@ -333,12 +333,12 @@ class BDEWOperatorDownloader:
                     "city": city,
                     "valid_from": valid_from_str,
                     "valid_until": valid_until_str,
-                    "valid_from_date": valid_from_date.isoformat()
-                    if valid_from_date
-                    else None,
-                    "valid_until_date": valid_until_date.isoformat()
-                    if valid_until_date
-                    else None,
+                    "valid_from_date": (
+                        valid_from_date.isoformat() if valid_from_date else None
+                    ),
+                    "valid_until_date": (
+                        valid_until_date.isoformat() if valid_until_date else None
+                    ),
                     "is_active": is_active,
                     "downloaded_at": datetime.now().isoformat(),
                     "source_index": i,

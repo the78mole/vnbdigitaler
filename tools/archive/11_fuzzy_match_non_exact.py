@@ -243,13 +243,16 @@ class FuzzyMatchProcessor:
             "high_confidence_fuzzy": high_confidence_matches,
             "bnetza_final_no_matches": len(bnetza_no_matches),
             "bdew_final_no_matches": len(bdew_no_matches),
-            "bnetza_fuzzy_match_rate": (len(fuzzy_matches) / len(bnetza_companies))
-            * 100
-            if bnetza_companies
-            else 0,
-            "bdew_fuzzy_match_rate": (len(fuzzy_matches) / len(bdew_companies)) * 100
-            if bdew_companies
-            else 0,
+            "bnetza_fuzzy_match_rate": (
+                (len(fuzzy_matches) / len(bnetza_companies)) * 100
+                if bnetza_companies
+                else 0
+            ),
+            "bdew_fuzzy_match_rate": (
+                (len(fuzzy_matches) / len(bdew_companies)) * 100
+                if bdew_companies
+                else 0
+            ),
         }
 
         # Print comprehensive summary

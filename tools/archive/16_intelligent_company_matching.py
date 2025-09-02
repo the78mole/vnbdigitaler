@@ -213,13 +213,16 @@ class CompanyMatcher:
         HTTP_OK = 200
 
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=LLM_TIMEOUT)
-            ) as session, session.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json=payload,
-            ) as response:
+            async with (
+                aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=LLM_TIMEOUT)
+                ) as session,
+                session.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                ) as response,
+            ):
                 if response.status == HTTP_OK:
                     data = await response.json()
                     raw_content = data["choices"][0]["message"]["content"]
@@ -251,7 +254,9 @@ class CompanyMatcher:
                     try:
                         return json.loads(content)
                     except json.JSONDecodeError as json_error:
-                        logger.error(f"❌ JSON parsing failed for response: {content!r}")
+                        logger.error(
+                            f"❌ JSON parsing failed for response: {content!r}"
+                        )
                         logger.error(f"❌ JSON Error: {json_error}")
 
                         # Try regex extraction

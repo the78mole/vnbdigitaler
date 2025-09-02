@@ -636,9 +636,12 @@ async def main():
                     company = BNetzACompany(
                         index=row["index"],
                         original_name=row["original_name"],
-                        rollout_quote=row["rollout_quote"]
-                        if pd.notna(row["rollout_quote"]) and row["rollout_quote"] != ""
-                        else None,
+                        rollout_quote=(
+                            row["rollout_quote"]
+                            if pd.notna(row["rollout_quote"])
+                            and row["rollout_quote"] != ""
+                            else None
+                        ),
                     )
                     working_bnetza.append(company)
 
@@ -649,9 +652,11 @@ async def main():
                     company = BDEWCompany(
                         bdew_code=row["bdew_code"],
                         name=row["name"],
-                        city=row["city"]
-                        if pd.notna(row["city"]) and row["city"] != ""
-                        else None,
+                        city=(
+                            row["city"]
+                            if pd.notna(row["city"]) and row["city"] != ""
+                            else None
+                        ),
                     )
                     working_bdew.append(company)
 
@@ -667,17 +672,21 @@ async def main():
                         bnetza_match = BNetzACompany(
                             index=row["bnetza_index"],
                             original_name=row["bnetza_name"],
-                            rollout_quote=row["rollout_quote"]
-                            if pd.notna(row["rollout_quote"])
-                            and row["rollout_quote"] != ""
-                            else None,
+                            rollout_quote=(
+                                row["rollout_quote"]
+                                if pd.notna(row["rollout_quote"])
+                                and row["rollout_quote"] != ""
+                                else None
+                            ),
                         )
                         bdew_match = BDEWCompany(
                             bdew_code=row["bdew_code"],
                             name=row["bdew_name"],
-                            city=row["bdew_city"]
-                            if pd.notna(row["bdew_city"]) and row["bdew_city"] != ""
-                            else None,
+                            city=(
+                                row["bdew_city"]
+                                if pd.notna(row["bdew_city"]) and row["bdew_city"] != ""
+                                else None
+                            ),
                         )
                         match = CompanyMatch(
                             bnetza_company=bnetza_match,
@@ -994,9 +1003,12 @@ async def main():
                     company = BNetzACompany(
                         index=row["index"],
                         original_name=row["original_name"],
-                        rollout_quote=row["rollout_quote"]
-                        if pd.notna(row["rollout_quote"]) and row["rollout_quote"] != ""
-                        else None,
+                        rollout_quote=(
+                            row["rollout_quote"]
+                            if pd.notna(row["rollout_quote"])
+                            and row["rollout_quote"] != ""
+                            else None
+                        ),
                     )
                     working_bnetza.append(company)
 
@@ -1007,9 +1019,11 @@ async def main():
                     company = BDEWCompany(
                         bdew_code=row["bdew_code"],
                         name=row["name"],
-                        city=row["city"]
-                        if pd.notna(row["city"]) and row["city"] != ""
-                        else None,
+                        city=(
+                            row["city"]
+                            if pd.notna(row["city"]) and row["city"] != ""
+                            else None
+                        ),
                     )
                     working_bdew.append(company)
 
@@ -1022,17 +1036,21 @@ async def main():
                         bnetza_match = BNetzACompany(
                             index=row["bnetza_index"],
                             original_name=row["bnetza_name"],
-                            rollout_quote=row["rollout_quote"]
-                            if pd.notna(row["rollout_quote"])
-                            and row["rollout_quote"] != ""
-                            else None,
+                            rollout_quote=(
+                                row["rollout_quote"]
+                                if pd.notna(row["rollout_quote"])
+                                and row["rollout_quote"] != ""
+                                else None
+                            ),
                         )
                         bdew_match = BDEWCompany(
                             bdew_code=row["bdew_code"],
                             name=row["bdew_name"],
-                            city=row["bdew_city"]
-                            if pd.notna(row["bdew_city"]) and row["bdew_city"] != ""
-                            else None,
+                            city=(
+                                row["bdew_city"]
+                                if pd.notna(row["bdew_city"]) and row["bdew_city"] != ""
+                                else None
+                            ),
                         )
                         match = CompanyMatch(
                             bnetza_company=bnetza_match,

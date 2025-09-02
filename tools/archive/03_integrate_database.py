@@ -165,9 +165,11 @@ class DatabaseIntegrator:
             )
 
         company_data: dict[str, Any] = {
-            "bdew_code": str(operator.get("bdew_code", "")).strip()
-            if operator.get("bdew_code")
-            else "",
+            "bdew_code": (
+                str(operator.get("bdew_code", "")).strip()
+                if operator.get("bdew_code")
+                else ""
+            ),
             "bdew_name": clean_company_name,
             "bdew_name_normalized": normalized_name,
             "bdew_city": clean_city_name,
@@ -177,57 +179,73 @@ class DatabaseIntegrator:
         if vnb_data:
             company_data.update(
                 {
-                    "vnbdigital_name": vnb_data.get("name", "").strip()
-                    if vnb_data.get("name")
-                    else "",
-                    "vnbdigital_address": vnb_data.get("address", "").strip()
-                    if vnb_data.get("address")
-                    else "",
-                    "vnbdigital_postcode": vnb_data.get("postcode", "").strip()
-                    if vnb_data.get("postcode")
-                    else "",
-                    "vnbdigital_city": vnb_data.get("city", "").strip()
-                    if vnb_data.get("city")
-                    else "",
-                    "vnbdigital_phone": vnb_data.get("phone", "").strip()
-                    if vnb_data.get("phone")
-                    else "",
-                    "vnbdigital_email": vnb_data.get("email", "").strip()
-                    if vnb_data.get("email")
-                    else "",
-                    "vnbdigital_website": vnb_data.get("website", "").strip()
-                    if vnb_data.get("website")
-                    else "",
-                    "vnbdigital_grid_types": vnb_data.get("types")
-                    if isinstance(vnb_data.get("types"), list)
-                    else None,
-                    "network_territory_layer_url": vnb_data.get("layer_url", "").strip()
-                    if vnb_data.get("layer_url")
-                    else "",
-                    "vnbdigital_extended_data": json.dumps(
-                        {
-                            "id": vnb_data.get("id"),
-                            "bbox": vnb_data.get("bbox"),
-                            "description": vnb_data.get("description"),
-                            "contact": vnb_data.get("contact"),
-                            "public_required": vnb_data.get("public_required"),
-                            "clicks": vnb_data.get("clicks"),
-                            "regions": vnb_data.get("regions"),
-                            "services": vnb_data.get("services"),
-                            "documents": vnb_data.get("documents"),
-                            "image_url": vnb_data.get("image_url"),
-                            "logo_url": vnb_data.get("logo_url"),
-                        }
-                    )
-                    if vnb_data
-                    else None,
+                    "vnbdigital_name": (
+                        vnb_data.get("name", "").strip() if vnb_data.get("name") else ""
+                    ),
+                    "vnbdigital_address": (
+                        vnb_data.get("address", "").strip()
+                        if vnb_data.get("address")
+                        else ""
+                    ),
+                    "vnbdigital_postcode": (
+                        vnb_data.get("postcode", "").strip()
+                        if vnb_data.get("postcode")
+                        else ""
+                    ),
+                    "vnbdigital_city": (
+                        vnb_data.get("city", "").strip() if vnb_data.get("city") else ""
+                    ),
+                    "vnbdigital_phone": (
+                        vnb_data.get("phone", "").strip()
+                        if vnb_data.get("phone")
+                        else ""
+                    ),
+                    "vnbdigital_email": (
+                        vnb_data.get("email", "").strip()
+                        if vnb_data.get("email")
+                        else ""
+                    ),
+                    "vnbdigital_website": (
+                        vnb_data.get("website", "").strip()
+                        if vnb_data.get("website")
+                        else ""
+                    ),
+                    "vnbdigital_grid_types": (
+                        vnb_data.get("types")
+                        if isinstance(vnb_data.get("types"), list)
+                        else None
+                    ),
+                    "network_territory_layer_url": (
+                        vnb_data.get("layer_url", "").strip()
+                        if vnb_data.get("layer_url")
+                        else ""
+                    ),
+                    "vnbdigital_extended_data": (
+                        json.dumps(
+                            {
+                                "id": vnb_data.get("id"),
+                                "bbox": vnb_data.get("bbox"),
+                                "description": vnb_data.get("description"),
+                                "contact": vnb_data.get("contact"),
+                                "public_required": vnb_data.get("public_required"),
+                                "clicks": vnb_data.get("clicks"),
+                                "regions": vnb_data.get("regions"),
+                                "services": vnb_data.get("services"),
+                                "documents": vnb_data.get("documents"),
+                                "image_url": vnb_data.get("image_url"),
+                                "logo_url": vnb_data.get("logo_url"),
+                            }
+                        )
+                        if vnb_data
+                        else None
+                    ),
                     "vnbdigital_enrichment_status": operator.get("enrichment_status"),
-                    "vnbdigital_last_enriched": datetime.fromisoformat(
-                        operator["enrichment_timestamp"]
-                    )
-                    if operator.get("enrichment_timestamp")
-                    and isinstance(operator["enrichment_timestamp"], str)
-                    else None,
+                    "vnbdigital_last_enriched": (
+                        datetime.fromisoformat(operator["enrichment_timestamp"])
+                        if operator.get("enrichment_timestamp")
+                        and isinstance(operator["enrichment_timestamp"], str)
+                        else None
+                    ),
                 }
             )
 

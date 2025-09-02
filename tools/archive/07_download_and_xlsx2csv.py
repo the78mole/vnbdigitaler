@@ -181,11 +181,14 @@ class ExcelDownloader:
         self.logger.info(f"Saving to: {output_path}")
 
         try:
-            with httpx.Client(
-                headers={"User-Agent": USER_AGENT},
-                timeout=REQUEST_TIMEOUT,
-                follow_redirects=True,
-            ) as client, client.stream("GET", url) as response:
+            with (
+                httpx.Client(
+                    headers={"User-Agent": USER_AGENT},
+                    timeout=REQUEST_TIMEOUT,
+                    follow_redirects=True,
+                ) as client,
+                client.stream("GET", url) as response,
+            ):
                 response.raise_for_status()
 
                 # Check content type
@@ -459,9 +462,11 @@ class ExcelDownloader:
                         "row_index": idx,
                         "value": value_str,
                         "issue_type": issue_type,
-                        "company": df.iloc[idx].get("Unternehmen", "Unknown")
-                        if "Unternehmen" in df.columns
-                        else "Unknown",
+                        "company": (
+                            df.iloc[idx].get("Unternehmen", "Unknown")
+                            if "Unternehmen" in df.columns
+                            else "Unknown"
+                        ),
                         "is_numeric_valid": is_valid,  # Track if numerically valid
                     }
                 )
@@ -800,9 +805,9 @@ class ExcelDownloader:
                 largest_sheet = max(excel_data.keys(), key=lambda k: len(excel_data[k]))
                 raw_df = excel_data[largest_sheet]
                 conversion_info["primary_sheet"] = largest_sheet
-                conversion_info[
-                    "conversion_note"
-                ] = f"Converted largest sheet '{largest_sheet}' out of {len(sheet_names)} sheets"
+                conversion_info["conversion_note"] = (
+                    f"Converted largest sheet '{largest_sheet}' out of {len(sheet_names)} sheets"
+                )
                 # Save metadata about other sheets
                 conversion_info["other_sheets"] = {
                     name: {"rows": len(data), "columns": len(data.columns)}

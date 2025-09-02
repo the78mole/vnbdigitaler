@@ -180,9 +180,11 @@ async def get_matching_statistics() -> dict[str, int | float]:
             "total_entries": total_companies,
             "matched_entries": matched_companies,
             "unmatched_entries": unmatched_companies,
-            "match_rate": (matched_companies / total_companies * 100)
-            if total_companies > 0
-            else 0.0,
+            "match_rate": (
+                (matched_companies / total_companies * 100)
+                if total_companies > 0
+                else 0.0
+            ),
         }
 
     # Fallback if no session is available

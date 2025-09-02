@@ -211,7 +211,9 @@ class StructuredCompanyMatcher:
             self.stats["rollout_name_matches"] = matches_found
             remaining_count = len(self.remaining_bnetza)
 
-            logger.info(f"✅ Found {matches_found} existing rollout_report_name matches")
+            logger.info(
+                f"✅ Found {matches_found} existing rollout_report_name matches"
+            )
             logger.info(f"📊 Remaining BNetzA companies to process: {remaining_count}")
 
             if matches_found > 0:

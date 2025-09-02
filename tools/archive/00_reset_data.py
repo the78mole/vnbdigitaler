@@ -196,7 +196,9 @@ class DataReset:
             self.create_directories()
 
             logger.info("🎉 Complete data reset finished successfully!")
-            logger.info("🌱 You now have a clean slate to run the pipeline from scratch")
+            logger.info(
+                "🌱 You now have a clean slate to run the pipeline from scratch"
+            )
 
         except Exception as e:
             logger.error(f"❌ Reset failed: {e}")
