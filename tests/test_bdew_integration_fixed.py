@@ -10,39 +10,26 @@ Umfassende Tests für die BDEW-Stammdaten-Integration:
 """
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from src.models.bdew import Base, BDEWCompany
 from src.repositories.bdew import BDEWRepository
 
-# Global pytest-asyncio marker
-pytestmark = pytest.mark.asyncio
+
+@pytest.fixture
+def test_db_session():
+    """Test-Datenbank-Session mit In-Memory SQLite."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+    yield session
+    session.close()
 
 
-@pytest_asyncio.fixture
-async def test_db_session():
-    """Async Test-Datenbank-Session mit In-Memory SQLite."""
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
-    )
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    async_session = async_sessionmaker(engine, expire_on_commit=False)
-
-    async with async_session() as session:
-        yield session
-
-    await engine.dispose()
-
-
-@pytest_asyncio.fixture
-async def bdew_repository(test_db_session):
+@pytest.fixture
+def bdew_repository(test_db_session):
     """BDEW Repository für Tests."""
     return BDEWRepository(test_db_session)
 
@@ -63,7 +50,7 @@ def sample_company_data():
         "phone": "+49 89 2361-0",
         "is_active": True,
         "data_quality_score": 95,
-        "verification_notes": "Testdaten für München",
+        "notes": "Testdaten für München",
     }
 
 
@@ -136,7 +123,7 @@ class TestBDEWRepositoryBasics:
         found_company = await bdew_repository.find_company_by_operator_id(operator_id)
 
         assert found_company is not None
-        assert str(found_company.id) == str(created_company.id)
+        assert found_company.id == created_company.id
         assert found_company.company_name == sample_company_data["company_name"]
 
     async def test_get_companies_count(self, bdew_repository, multiple_companies_data):
@@ -276,7 +263,7 @@ class TestBDEWRepositoryQuality:
         assert company.email == sample_company_data["email"]
         assert company.phone == sample_company_data["phone"]
         assert company.data_quality_score == sample_company_data["data_quality_score"]
-        assert company.verification_notes == sample_company_data["verification_notes"]
+        assert company.notes == sample_company_data["notes"]
         assert company.is_active is True
 
 

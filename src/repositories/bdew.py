@@ -15,7 +15,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.bdew import (
+from src.models.bdew import (
     BDEWCompany,
     BDEWDataHistory,
     BDEWImportLog,
@@ -145,17 +145,14 @@ class BDEWRepository:
             BDEWCompany: Gefundenes Unternehmen oder None
         """
         result = await self.session.execute(
-            text(
-                """
-                SELECT * FROM bdew_companies
-                WHERE network_operator_id = :operator_id
-                AND is_active = true
-            """
-            ),
-            {"operator_id": operator_id},
+            select(BDEWCompany).where(
+                and_(
+                    BDEWCompany.network_operator_id == operator_id,
+                    BDEWCompany.is_active,
+                )
+            )
         )
-        row = result.mappings().first()
-        return BDEWCompany(**row) if row else None
+        return result.scalars().first()
 
     async def find_companies_by_location(
         self, latitude: float, longitude: float, radius_km: float = 50
@@ -600,3 +597,110 @@ class BDEWRepository:
                 "error": str(e),
                 "status": "unhealthy",
             }
+
+    # Test-Support Methoden für die Test-Suite
+
+    async def bulk_insert_companies(self, companies_data: list[dict[str, Any]]) -> int:
+        """
+        Bulk-Insert für mehrere Unternehmen.
+
+        Args:
+            companies_data: Liste von Company-Dictionaries
+
+        Returns:
+            int: Anzahl eingefügter Unternehmen
+        """
+        if not companies_data:
+            return 0
+
+        try:
+            count = 0
+            for company_data in companies_data:
+                await self.create_company(company_data)
+                count += 1
+            return count
+        except Exception as e:
+            await self.session.rollback()
+            raise SQLAlchemyError(f"Bulk insert failed: {e}")
+
+    async def get_companies_count(self) -> int:
+        """
+        Anzahl aller aktiven Unternehmen.
+
+        Returns:
+            int: Anzahl Unternehmen
+        """
+        result = await self.session.execute(
+            select(func.count(BDEWCompany.id)).where(BDEWCompany.is_active)
+        )
+        return result.scalar() or 0
+
+    async def search_companies(
+        self,
+        query: str | None = None,
+        federal_state: str | None = None,
+        postal_code: str | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[BDEWCompany]:
+        """
+        Allgemeine Suchfunktion für Unternehmen.
+
+        Args:
+            query: Suchbegriff für Namen
+            federal_state: Filter nach Bundesland
+            postal_code: Filter nach PLZ
+            limit: Maximale Anzahl Ergebnisse
+            offset: Offset für Paginierung
+
+        Returns:
+            list[BDEWCompany]: Gefundene Unternehmen
+        """
+        # Build query conditions
+        conditions = [BDEWCompany.is_active]
+
+        if query:
+            conditions.append(BDEWCompany.company_name.ilike(f"%{query}%"))
+
+        if federal_state:
+            conditions.append(BDEWCompany.federal_state == federal_state)
+
+        if postal_code:
+            conditions.append(BDEWCompany.postal_code == postal_code)
+
+        stmt = (
+            select(BDEWCompany)
+            .where(and_(*conditions))
+            .order_by(BDEWCompany.company_name)
+            .limit(limit)
+            .offset(offset)
+        )
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_data_quality_stats(self) -> dict[str, Any]:
+        """
+        Erstelle Datenqualitäts-Statistiken.
+
+        Returns:
+            dict: Statistiken über Datenqualität
+        """
+        # Gesamtanzahl
+        total_result = await self.session.execute(
+            select(func.count(BDEWCompany.id)).where(BDEWCompany.is_active)
+        )
+        total_companies = total_result.scalar() or 0
+
+        # Durchschnittlicher Quality Score
+        avg_result = await self.session.execute(
+            select(func.avg(BDEWCompany.data_quality_score)).where(
+                and_(BDEWCompany.is_active, BDEWCompany.data_quality_score.is_not(None))
+            )
+        )
+        avg_quality = avg_result.scalar() or 0
+
+        return {
+            "total_companies": total_companies,
+            "average_quality_score": float(avg_quality) if avg_quality else 0.0,
+        }

@@ -1,0 +1,40 @@
+name: Test without DB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install uv (GitHub Actions)
+        if: ${{ !env.ACT }}
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install uv (local act)
+        if: ${{ env.ACT }}
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+
+      - name: Run import tests
+        run: |
+          uv run python -c "from src.repositories.bdew import BDEWRepository; print('Import successful')"
+          uv run python -c "from src.models.bdew import BDEWCompany; print('Model import successful')"
+
+      - name: Run basic pytest
+        run: |
+          uv run pytest tests/test_bdew_integration.py::TestBDEWRepositoryBasics::test_create_single_company -v
