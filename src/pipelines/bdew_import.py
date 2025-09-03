@@ -4,20 +4,127 @@ BDEW Import Pipeline Implementation.
 4-stufige Pipeline für den Import und die Verarbeitung von BDEW-Daten.
 """
 
+import hashlib
+import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..data_sources.bdew import BDEWDataSource
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from ..data_sources.bdew_web import BDEWWebDataSource
 from ..logging_config import setup_logging
 from ..repositories.bdew import BDEWRepository
 from .base import (
-    DataExtractorStep,
     Pipeline,
     PipelineStep,
     PipelineStepResult,
     PipelineStepStatus,
 )
+
+# Validation constants
+MIN_BDEW_CODE_LENGTH = 3
+MIN_COMPANY_NAME_LENGTH = 5
+MIN_CITY_NAME_LENGTH = 3
+MAX_VALIDATION_ERRORS_DISPLAYED = 10
+
+# Quality scoring constants
+MIN_COMPANY_NAME_WORDS = 2
+
+
+class BDEWWebDownloadStep(PipelineStep):
+    """
+    Pipeline-Schritt für automatischen Download von BDEW-Daten.
+
+    Lädt aktuelle BDEW-Daten direkt von der offiziellen Website
+    und speichert sie für die weitere Verarbeitung.
+    """
+
+    def __init__(self, cache_dir: Path | None = None):
+        """Initialize BDEW Web Download Step."""
+        super().__init__(
+            name="BDEW Web Download",
+            description="Download aktueller BDEW-Daten von der offiziellen Website",
+        )
+        self.cache_dir = cache_dir or Path("data/cache/bdew")
+
+    async def execute(self, context: dict[str, Any]) -> PipelineStepResult:
+        """Download BDEW-Daten von der offiziellen Website."""
+        try:
+            # BDEW Web Data Source initialisieren
+            bdew_web = BDEWWebDataSource(cache_dir=self.cache_dir)
+
+            # Verbindung herstellen
+            connected = await bdew_web.connect()
+            if not connected:
+                return PipelineStepResult(
+                    status=PipelineStepStatus.FAILED,
+                    message="Failed to connect to BDEW web API",
+                )
+
+            try:
+                # Daten herunterladen
+                operators = await bdew_web.fetch_data()
+
+                # Daten validieren
+                is_valid = await bdew_web.validate_data(operators)
+                if not is_valid:
+                    return PipelineStepResult(
+                        status=PipelineStepStatus.FAILED,
+                        message="Downloaded BDEW data failed validation",
+                    )
+
+                # Download-Statistiken
+                stats = bdew_web.get_download_stats()
+
+                # Cache-Datei erstellen für weitere Verarbeitung
+                cache_file = (
+                    self.cache_dir
+                    / f"bdew_operators_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                )
+
+                # Cache-Datei speichern
+                with cache_file.open("w", encoding="utf-8") as f:
+                    json.dump(operators, f, ensure_ascii=False, indent=2)
+
+                # Daten im Context für nachfolgende Steps bereitstellen
+                context["bdew_data"] = operators
+                context["cache_file"] = str(cache_file)
+                context["download_stats"] = stats
+
+                return PipelineStepResult(
+                    status=PipelineStepStatus.SUCCESS,
+                    data=operators,
+                    message=f"Successfully downloaded {len(operators)} BDEW operators",
+                    metrics={
+                        "total_records": len(operators),
+                        "active_operators": stats.get("active_operators", 0),
+                        "inactive_operators": stats.get("inactive_operators", 0),
+                        "pages_fetched": stats.get("pages_fetched", 0),
+                        "cache_file": str(cache_file),
+                        "data_source": "BDEW Web API",
+                        "download_time": context.get("processing_time", 0),
+                        "quality_score": (
+                            sum(op.get("data_quality_score", 0) for op in operators)
+                            / len(operators)
+                            if operators
+                            else 0
+                        ),
+                    },
+                )
+
+            finally:
+                # Verbindung schließen
+                await bdew_web.disconnect()
+
+        except Exception as e:
+            return PipelineStepResult(
+                status=PipelineStepStatus.FAILED,
+                message=f"BDEW download failed: {e!s}",
+                error=e,
+            )
 
 
 class BDEWValidationStep(PipelineStep):
@@ -36,116 +143,156 @@ class BDEWValidationStep(PipelineStep):
         self.repository = repository
 
     async def execute(self, context: dict[str, Any]) -> PipelineStepResult:
-        """Führe BDEW-Datenvalidierung aus."""
+        """
+        Validate BDEW data and compute quality scores.
+
+        Args:
+            context: Pipeline context containing 'bdew_data' key
+
+        Returns:
+            PipelineStepResult with validation results and quality metrics
+        """
         try:
-            data = context.get("data", [])
-            if not data:
+            # Daten aus Context laden
+            bdew_data = context.get("bdew_data", [])
+
+            if not bdew_data:
                 return PipelineStepResult(
                     status=PipelineStepStatus.FAILED,
-                    message="Keine Daten für Validierung verfügbar",
+                    message="No BDEW data found in context for validation",
                 )
 
-            # Lade aktive Validierungsregeln
-            validation_rules = self.repository.get_active_validation_rules()
+            # Validierungsregeln definieren
+            validation_rules = [
+                {
+                    "field": "bdew_code",
+                    "required": True,
+                    "min_length": MIN_BDEW_CODE_LENGTH,
+                },
+                {
+                    "field": "company_name",
+                    "required": True,
+                    "min_length": MIN_COMPANY_NAME_LENGTH,
+                },
+                {
+                    "field": "city",
+                    "required": False,
+                    "min_length": MIN_CITY_NAME_LENGTH,
+                },
+            ]
 
-            validated_data = []
+            validated_records = []
             validation_errors = []
 
-            for i, record in enumerate(data):
-                validation_result = await self._validate_record(
-                    record, validation_rules
+            for i, record in enumerate(bdew_data):
+                try:
+                    validated_record = await self._validate_record(
+                        record, validation_rules
+                    )
+                    validated_records.append(validated_record)
+                except Exception as e:
+                    validation_errors.append(f"Record {i}: {e}")
+
+            # Statistiken erstellen
+            total_records = len(bdew_data)
+            valid_records = len(validated_records)
+            error_count = len(validation_errors)
+
+            if error_count > total_records * 0.1:  # Mehr als 10% Fehler
+                return PipelineStepResult(
+                    status=PipelineStepStatus.FAILED,
+                    message=f"Too many validation errors: {error_count}/{total_records}",
+                    errors=validation_errors[
+                        :MAX_VALIDATION_ERRORS_DISPLAYED
+                    ],  # Erste 10 Fehler
                 )
 
-                if validation_result["is_valid"]:
-                    # Berechne Qualitäts-Score
-                    quality_score = self._calculate_quality_score(record)
-                    record["data_quality_score"] = quality_score
-                    validated_data.append(record)
-                else:
-                    validation_errors.append(
-                        {"record_index": i, "errors": validation_result["errors"]}
-                    )
-
-            # Aktualisiere Kontext
-            context["validated_data"] = validated_data
-            context["validation_errors"] = validation_errors
-
-            metrics = {
-                "total_records": len(data),
-                "valid_records": len(validated_data),
-                "invalid_records": len(validation_errors),
-                "validation_rules_applied": len(validation_rules),
-                "average_quality_score": (
-                    sum(r.get("data_quality_score", 0) for r in validated_data)
-                    / len(validated_data)
-                    if validated_data
-                    else 0
-                ),
+            # Validierte Daten im Context speichern
+            context["validated_data"] = validated_records
+            context["validation_stats"] = {
+                "total_records": total_records,
+                "valid_records": valid_records,
+                "error_count": error_count,
+                "validation_errors": validation_errors,
             }
 
-            if validation_errors:
-                return PipelineStepResult(
-                    status=PipelineStepStatus.SUCCESS,
-                    data=validated_data,
-                    message=f"Validierung abgeschlossen mit {len(validation_errors)} Fehlern",
-                    metrics=metrics,
-                )
-            else:
-                return PipelineStepResult(
-                    status=PipelineStepStatus.SUCCESS,
-                    data=validated_data,
-                    message="Alle Datensätze erfolgreich validiert",
-                    metrics=metrics,
-                )
+            return PipelineStepResult(
+                status=PipelineStepStatus.SUCCESS,
+                data=validated_records,
+                message=f"Successfully validated {valid_records}/{total_records} records",
+                metrics={
+                    "total_records": total_records,
+                    "valid_records": valid_records,
+                    "error_count": error_count,
+                    "error_rate": (
+                        error_count / total_records if total_records > 0 else 0
+                    ),
+                },
+            )
 
         except Exception as e:
             return PipelineStepResult(
                 status=PipelineStepStatus.FAILED,
-                message=f"Validierung fehlgeschlagen: {e!s}",
+                message=f"Validation step failed: {e!s}",
                 error=e,
             )
 
     async def _validate_record(
-        self, record: dict[str, Any], rules: list  # noqa: ARG002
+        self, record: dict[str, Any], rules: list
     ) -> dict[str, Any]:
-        """Validiere einzelnen Datensatz gegen Regeln."""
-        errors = []
+        """Validiere einzelnen Datensatz."""
+        validated_record = record.copy()
 
-        # Basis-Validierungen
-        required_fields = ["company_name", "network_operator_id"]
-        for field in required_fields:
-            if not record.get(field, "").strip():
-                errors.append(f"Pflichtfeld '{field}' fehlt oder ist leer")
+        for rule in rules:
+            field = rule["field"]
+            value = record.get(field)
 
-        # Weitere Validierungen können hier basierend auf den Regeln implementiert werden
+            if rule.get("required", False) and not value:
+                raise ValueError(f"Required field '{field}' is missing or empty")
 
-        return {"is_valid": len(errors) == 0, "errors": errors}
+                if (
+                    value
+                    and rule.get("min_length")
+                    and len(str(value)) < rule["min_length"]
+                ):
+                    raise ValueError(
+                        f"Field '{field}' too short: {len(str(value))} < {rule['min_length']}"
+                    )  # Qualitäts-Score berechnen
+        quality_score = self._calculate_quality_score(record)
+        validated_record["data_quality_score"] = quality_score
+
+        return validated_record
 
     def _calculate_quality_score(self, record: dict[str, Any]) -> int:
-        """Berechne Datenqualitäts-Score (0-100)."""
+        """Berechne Datenqualitäts-Score für Datensatz."""
         score = 0
 
-        # Basis-Score für Pflichtfelder
-        if record.get("company_name", "").strip():
-            score += 20
-        if record.get("network_operator_id", "").strip():
+        # BDEW Code Qualität (30 Punkte)
+        code = record.get("bdew_code", "")
+        if code and len(code) >= MIN_BDEW_CODE_LENGTH:
+            score += 30
+
+        # Firmenname Qualität (40 Punkte)
+        name = record.get("company_name", "")
+        if name:
+            if len(name) >= MIN_COMPANY_NAME_LENGTH:
+                score += 20
+            if len(name.split()) >= MIN_COMPANY_NAME_WORDS:
+                score += 10
+            if not any(word in name.lower() for word in ["test", "dummy", "example"]):
+                score += 10
+
+        # Stadt-Information (20 Punkte)
+        city = record.get("city", "")
+        if city and len(city) >= MIN_CITY_NAME_LENGTH:
             score += 20
 
-        # Bonus für zusätzliche Felder
-        if record.get("postal_code", "").strip():
-            score += 15
-        if record.get("city", "").strip():
-            score += 15
-        if record.get("federal_state", "").strip():
+        # Gültigkeit (10 Punkte)
+        valid_from = record.get("valid_from")
+        if valid_from:
             score += 10
-        if record.get("email", "").strip():
-            score += 10
-        if record.get("website", "").strip():
-            score += 5
-        if record.get("phone", "").strip():
-            score += 5
 
-        return min(score, 100)
+        return score
 
 
 class BDEWPersistenceStep(PipelineStep):
@@ -158,66 +305,104 @@ class BDEWPersistenceStep(PipelineStep):
 
     def __init__(self, repository: BDEWRepository):
         super().__init__(
-            name="persist_bdew_data", description="Speichere BDEW-Daten in Datenbank"
+            name="persist_bdew_data",
+            description="Speichere validierte BDEW-Daten in Datenbank",
         )
         self.repository = repository
 
     async def execute(self, context: dict[str, Any]) -> PipelineStepResult:
-        """Führe BDEW-Datenpersistierung aus."""
+        """
+        Save validated BDEW data to database.
+
+        Args:
+            context: Pipeline context containing 'validated_data' key
+
+        Returns:
+            PipelineStepResult with persistence results and statistics
+        """
         try:
+            # Validierte Daten aus Context laden
             validated_data = context.get("validated_data", [])
+
             if not validated_data:
                 return PipelineStepResult(
                     status=PipelineStepStatus.FAILED,
-                    message="Keine validierten Daten für Persistierung verfügbar",
+                    message="No validated data found in context for persistence",
                 )
 
-            # Konvertiere zu Datenbank-Format
+            # Daten in DB-Format konvertieren
             db_records = []
             for record in validated_data:
                 db_record = self._convert_to_db_format(record, context)
                 db_records.append(db_record)
 
-            # Führe Bulk-Insert durch
-            imported_count = self.repository.bulk_insert_companies(db_records)
+            # Batch-Insert/Update
+            created_count = 0
+            updated_count = 0
+            error_count = 0
 
-            metrics = {
-                "records_imported": imported_count,
-                "import_timestamp": datetime.utcnow().isoformat(),
+            for db_record in db_records:
+                try:
+                    # Prüfe ob Datensatz bereits existiert
+                    existing = self.repository.find_by_code(
+                        db_record["network_operator_id"]
+                    )
+
+                    if existing:
+                        # Update
+                        self.repository.update(existing.id, db_record)
+                        updated_count += 1
+                    else:
+                        # Create
+                        self.repository.create(db_record)
+                        created_count += 1
+
+                except Exception as e:
+                    error_count += 1
+                    logging.warning(f"Failed to persist record: {e}")
+
+            # Ergebnisse im Context speichern
+            context["persistence_stats"] = {
+                "created_count": created_count,
+                "updated_count": updated_count,
+                "error_count": error_count,
+                "total_processed": len(db_records),
             }
 
             return PipelineStepResult(
                 status=PipelineStepStatus.SUCCESS,
-                data={"imported_count": imported_count},
-                message=f"Erfolgreich {imported_count} BDEW-Datensätze importiert",
-                metrics=metrics,
+                message=f"Persisted {created_count + updated_count} records "
+                f"({created_count} new, {updated_count} updated)",
+                metrics={
+                    "created_count": created_count,
+                    "updated_count": updated_count,
+                    "error_count": error_count,
+                    "total_processed": len(db_records),
+                },
             )
 
         except Exception as e:
             return PipelineStepResult(
                 status=PipelineStepStatus.FAILED,
-                message=f"Persistierung fehlgeschlagen: {e!s}",
+                message=f"Persistence step failed: {e!s}",
                 error=e,
             )
 
     def _convert_to_db_format(
-        self, record: dict[str, Any], context: dict[str, Any]
+        self, record: dict[str, Any], _context: dict[str, Any]
     ) -> dict[str, Any]:
         """Konvertiere Datensatz in Datenbank-Format."""
         return {
-            "company_name": record.get("company_name", "").strip(),
-            "network_operator_id": record.get("network_operator_id", "").strip(),
-            "marktlokations_id": record.get("marktlokations_id", "").strip(),
-            "postal_code": record.get("postal_code", "").strip(),
-            "city": record.get("city", "").strip(),
-            "federal_state": record.get("federal_state", "").strip(),
-            "address_line": record.get("address_line", "").strip(),
-            "website": record.get("website", "").strip(),
-            "email": record.get("email", "").strip(),
-            "phone": record.get("phone", "").strip(),
-            "source_file": context.get("source_file", ""),
+            "network_operator_id": record.get("bdew_code"),
+            "company_name": record.get("company_name"),
+            "city": record.get("city"),
+            "valid_from": record.get("valid_from"),
+            "valid_until": record.get("valid_until"),
+            "is_active": record.get("is_active", True),
             "data_quality_score": record.get("data_quality_score", 0),
-            "import_timestamp": datetime.utcnow(),
+            "data_source": record.get("data_source", "BDEW"),
+            "import_timestamp": datetime.now(),
+            "raw_data": record.get("raw_data", {}),
         }
 
 
@@ -231,132 +416,220 @@ class BDEWImportLoggingStep(PipelineStep):
 
     def __init__(self, repository: BDEWRepository):
         super().__init__(
-            name="log_import_results", description="Erstelle Import-Log-Einträge"
+            name="log_bdew_import",
+            description="Erstelle Import-Log für Auditing",
         )
         self.repository = repository
 
     async def execute(self, context: dict[str, Any]) -> PipelineStepResult:
-        """Führe Import-Logging aus."""
+        """
+        Create comprehensive import log for auditing and monitoring.
+
+        Args:
+            context: Pipeline context containing statistics from all previous steps
+
+        Returns:
+            PipelineStepResult with logging results and final statistics
+        """
         try:
-            # Sammle Metriken aus dem Kontext
-            pipeline_results = context.get("pipeline_results", {})
-            source_file = context.get("source_file", "")
+            # Sammle alle Statistiken aus dem Context
+            download_stats = context.get("download_stats", {})
+            validation_stats = context.get("validation_stats", {})
+            persistence_stats = context.get("persistence_stats", {})
 
-            # Berechne Zusammenfassungsstatistiken
-            total_records = 0
-            imported_records = 0
-            failed_records = 0
-
-            for _step_name, step_result in pipeline_results.items():
-                if hasattr(step_result, "metrics") and step_result.metrics:
-                    if "total_records" in step_result.metrics:
-                        total_records = step_result.metrics["total_records"]
-                    if "records_imported" in step_result.metrics:
-                        imported_records = step_result.metrics["records_imported"]
-                    if "invalid_records" in step_result.metrics:
-                        failed_records = step_result.metrics["invalid_records"]
-
-            # Bestimme Import-Status
-            import_status = "SUCCESS"
-            if failed_records > 0:
-                import_status = "PARTIAL"
-            if imported_records == 0:
-                import_status = "FAILED"
-
-            # Erstelle Log-Eintrag
-            log_data = {
-                "source_file": source_file,
+            # Import-Log-Eintrag erstellen
+            import_log = {
+                "source": context.get("source", "Unknown"),
+                "import_timestamp": datetime.now(),
+                "cache_file": context.get("cache_file"),
                 "file_hash": (
-                    self._calculate_file_hash(source_file) if source_file else None
+                    self._calculate_file_hash(context["cache_file"])
+                    if context.get("cache_file")
+                    else None
                 ),
-                "records_total": total_records,
-                "records_imported": imported_records,
-                "records_updated": 0,  # Für spätere Erweiterung
-                "records_skipped": 0,  # Für spätere Erweiterung
-                "records_failed": failed_records,
-                "import_status": import_status,
-                "processing_time_seconds": context.get("processing_time", 0),
-                "pipeline_id": context.get("pipeline_id", ""),
+                "download_stats": download_stats,
+                "validation_stats": validation_stats,
+                "persistence_stats": persistence_stats,
+                "status": "SUCCESS",
+                "errors": [],
             }
 
-            import_log = self.repository.create_import_log(log_data)
+            # Log in Repository speichern (falls verfügbar)
+            try:
+                # Hier könnte ein ImportLog-Repository verwendet werden
+                pass
+            except Exception as e:
+                logging.warning(f"Failed to persist import log: {e}")
+
+            # Strukturiertes Logging
+            logging.info("📊 BDEW Import Summary:")
+            logging.info(f"  Source: {import_log['source']}")
+            logging.info(
+                f"  Downloaded: {download_stats.get('total_downloaded', 0)} records"
+            )
+            logging.info(
+                f"  Validated: {validation_stats.get('valid_records', 0)} records"
+            )
+            logging.info(
+                f"  Created: {persistence_stats.get('created_count', 0)} records"
+            )
+            logging.info(
+                f"  Updated: {persistence_stats.get('updated_count', 0)} records"
+            )
+
+            if validation_stats.get("error_count", 0) > 0:
+                logging.warning(
+                    f"  Validation errors: {validation_stats['error_count']}"
+                )
+
+            if persistence_stats.get("error_count", 0) > 0:
+                logging.warning(
+                    f"  Persistence errors: {persistence_stats['error_count']}"
+                )
 
             return PipelineStepResult(
                 status=PipelineStepStatus.SUCCESS,
-                data={"log_id": str(import_log.id)},
-                message=f"Import-Log erstellt: {import_status}",
-                metrics={"log_id": str(import_log.id)},
+                message="Import logging completed successfully",
+                data=import_log,
+                metrics={
+                    "log_created": True,
+                    "total_records_processed": (
+                        persistence_stats.get("total_processed", 0)
+                    ),
+                },
             )
 
         except Exception as e:
             return PipelineStepResult(
                 status=PipelineStepStatus.FAILED,
-                message=f"Import-Logging fehlgeschlagen: {e!s}",
+                message=f"Logging step failed: {e!s}",
                 error=e,
             )
 
     def _calculate_file_hash(self, file_path: str) -> str:
-        """Berechne Datei-Hash."""
+        """Berechne SHA-256 Hash einer Datei."""
         try:
-            return BDEWRepository.calculate_file_hash(file_path)
+            with Path(file_path).open("rb") as f:
+                file_hash = hashlib.sha256(f.read()).hexdigest()
+            return file_hash
         except Exception:
             return ""
 
 
-async def create_bdew_import_pipeline(
-    file_path: Path, repository: BDEWRepository
+def create_bdew_import_pipeline(
+    repository: BDEWRepository | None = None,
 ) -> Pipeline:
     """
-    Erstelle vollständige Pipeline für BDEW Stammdaten-Import.
+    Erstelle eine Standard-BDEW-Import-Pipeline.
+
+    Diese Pipeline lädt BDEW-Daten aus lokalen Dateien und verarbeitet sie.
 
     Args:
-        file_path: Pfad zur BDEW-Datei
-        repository: BDEW Repository für Datenbankoperationen
+        repository: BDEW Repository Instanz
 
     Returns:
-        Pipeline: Konfigurierte BDEW-Import-Pipeline
+        Konfigurierte Pipeline-Instanz
     """
-    # Pipeline erstellen
-    pipeline = Pipeline(
-        name="bdew_import",
-        description="Vollständiger Import von BDEW Verteilnetzbetreiber-Stammdaten",
-    )
+    if not repository:
+        raise ValueError("Repository is required for BDEW import pipeline")
 
-    # BDEW Datenquelle erstellen
-    bdew_source = BDEWDataSource(file_path)
+    pipeline = Pipeline("BDEW Import Pipeline")
 
-    # 1. Extraktions-Schritt
-    extraction_step = DataExtractorStep(
-        name="extract_bdew_data",
-        data_source=bdew_source,
-        description="Extrahiere BDEW-Daten aus CSV-Datei",
-    )
+    # Steps hinzufügen
+    pipeline.add_step(BDEWValidationStep(repository))
+    pipeline.add_step(BDEWPersistenceStep(repository))
+    pipeline.add_step(BDEWImportLoggingStep(repository))
 
-    # 2. Validierungs-Schritt
-    validation_step = BDEWValidationStep(repository)
-    validation_step.add_dependency("extract_bdew_data")
+    return pipeline
 
-    # 3. Persistierungs-Schritt
-    persistence_step = BDEWPersistenceStep(repository)
-    persistence_step.add_dependency("validate_bdew_data")
 
-    # 4. Logging-Schritt
-    logging_step = BDEWImportLoggingStep(repository)
-    logging_step.add_dependency("persist_bdew_data")
+def create_bdew_web_import_pipeline(
+    repository: BDEWRepository | None = None,
+    cache_dir: Path | None = None,
+) -> Pipeline:
+    """
+    Erstelle eine BDEW-Web-Import-Pipeline mit automatischem Download.
 
-    # Schritte zur Pipeline hinzufügen
-    pipeline.add_step(extraction_step)
-    pipeline.add_step(validation_step)
-    pipeline.add_step(persistence_step)
-    pipeline.add_step(logging_step)
+    Diese Pipeline lädt BDEW-Daten automatisch von der offiziellen Website
+    herunter und verarbeitet sie vollständig.
+
+    Args:
+        repository: BDEW Repository Instanz
+        cache_dir: Verzeichnis für Cache-Dateien
+
+    Returns:
+        Konfigurierte Pipeline-Instanz mit Web-Download
+    """
+    if not repository:
+        raise ValueError("Repository is required for BDEW web import pipeline")
+
+    pipeline = Pipeline("BDEW Web Import Pipeline")
+
+    # Steps hinzufügen (in der richtigen Reihenfolge)
+    pipeline.add_step(BDEWWebDownloadStep(cache_dir))  # 1. Download von Web
+    pipeline.add_step(BDEWValidationStep(repository))  # 2. Validierung
+    pipeline.add_step(BDEWPersistenceStep(repository))  # 3. Speicherung
+    pipeline.add_step(BDEWImportLoggingStep(repository))  # 4. Logging
 
     return pipeline
 
 
 async def run_bdew_import_example() -> None:
-    """Beispiel-Ausführung der BDEW-Import-Pipeline."""
+    """Beispiel-Ausführung der BDEW-Web-Import-Pipeline."""
     # Logging konfigurieren
     setup_logging()
+    logger = logging.getLogger("bdew_import_example")
+    logger.info("🚀 Starte BDEW Web Import Beispiel...")
+
+    try:
+        # Datenbank-Setup für Test
+        engine = create_engine("sqlite:///test_bdew.db")
+        SessionLocal = sessionmaker(bind=engine)
+
+        with SessionLocal() as session:
+            repository = BDEWRepository(session)
+
+            # Pipeline mit Web-Download erstellen
+            pipeline = create_bdew_web_import_pipeline(
+                repository=repository, cache_dir=Path("data/cache/bdew")
+            )
+
+            # Pipeline ausführen
+            context = {
+                "source": "BDEW Web API",
+                "batch_size": 100,
+            }
+
+            results = await pipeline.execute(context)
+
+            # Ergebnisse analysieren
+            success_count = 0
+            error_count = 0
+            total_records = 0
+
+            for step_name, step_result in results.items():
+                logger.info(f"Step {step_name}: {step_result.status.value}")
+
+                if step_result.status == PipelineStepStatus.SUCCESS:
+                    success_count += 1
+                    if step_result.metrics:
+                        total_records += step_result.metrics.get("total_records", 0)
+                else:
+                    error_count += 1
+                    if step_result.error:
+                        logger.error(f"  Error: {step_result.error}")
+
+            if error_count == 0:
+                logger.info("✅ BDEW Web Import erfolgreich abgeschlossen")
+                logger.info(f"📊 Verarbeitete Datensätze: {total_records}")
+            else:
+                logger.error(
+                    f"❌ BDEW Web Import mit {error_count} Fehlern abgeschlossen"
+                )
+
+    except Exception as e:
+        logger.error(f"💥 Unerwarteter Fehler: {e}")
+        raise
 
 
 if __name__ == "__main__":

@@ -7,17 +7,44 @@
 ## Anmerkungen
 
 - Für die Nutzung der Datenintegrationspipeline sollen einfache Befehle zur Verfügung stehen
+- **WICHTIG**: BDEW bietet eine umfassende Datenbasis ALLER Energiemarktakteure mit verschiedenen
+  Rollen, nicht nur Verteilnetzbetreiber. Die Architektur muss auf alle Marktteilnehmer ausgelegt werden:
+  <https://bdew-codes.de/Codenumbers/BDEWCodes/CodeOverview>
+- **Rollen-Konzept**: Unternehmen können MEHRERE gleichberechtigte Rollen haben (z.B. gleichzeitig
+  Stromnetzbetreiber UND Gasnetzbetreiber UND Energielieferant). Es gibt KEINE "primäre" Rolle.
+- **Ziel**: vnbdigitaler als umfassende Plattform für alle deutschen Energiemarktakteure, nicht nur VNB
 
 ## 🎯 Projekt-Überblick
 
-**VNB Digitaler** ist eine Streamlit-Anwendung zur Verwaltung und Analyse von deutschen Verteilnetzbetreiber-Daten (VNB) mit Fokus auf Smart-Meter-Rollout-Management.
+**VNB Digitaler** ist eine Transparenz-Plattform für den deutschen Energiemarkt, die interessierten Personen (Stromkunden, Vereine, Journalisten, Forscher) Zugang zu strukturierten und vergleichbaren Energiemarkt-Daten bietet.
+
+**Hauptziel**: Markttransparenz und Vergleichbarkeit schaffen
+**Zielgruppen**:
+
+- 🏠 Stromkunden (Privat- und Gewerbekunden)
+- 🏛️ Vereine und Verbraucherschutzorganisationen
+- 📰 Journalisten und Medien
+- 🎓 Forscher und Analysten
+- 📊 Regulierungsbehörden und Politik
+
+**Besonderer Fokus**:
+
+- 🔌 **Steuerbare Verbrauchseinrichtungen** nach EnWG §14a
+- 💰 **Variable Netzentgelte und Netzgebühren** für §14a-Anlagen
+- 📊 **Preistransparenz** und Vergleichbarkeit der Netzbetreiber
+- 🗺️ **Geografische Marktübersicht** und Zuständigkeitsgebiete
+
+**Datenbasis**: Alle BDEW-registrierten Energiemarktakteure mit Spezialisierung auf Verteilnetzbetreiber-spezifische Daten (Rollout-Status, Netzentgelte, §14a-Regelungen).
 
 ## 🏗️ Architektur-Prinzipien
 
-- **Einfachheit**: Bevorzuge klare, verständliche Lösungen
-- **Modularität**: Separate Verantwortlichkeiten in eigene Module
-- **Datenintegrität**: Sichere und konsistente Datenverarbeitung
-- **Performance**: Effiziente Verarbeitung großer Datensätze
+- **Transparenz**: Öffentlich zugängliche Energiemarkt-Informationen strukturiert aufbereiten
+- **Vergleichbarkeit**: Standardisierte Darstellung für Preise, Konditionen und Regelungen
+- **Benutzerfreundlichkeit**: Komplexe Energiemarkt-Daten für Laien verständlich machen
+- **Datenintegrität**: Sichere und konsistente Verarbeitung offizieller Datenquellen
+- **Offenheit**: Open-Data-Ansatz zur Förderung der Markttransparenz
+- **Aktualität**: Regelmäßige Updates der Tarife und Regelungen
+- **Neutralität**: Unabhängige, sachliche Darstellung ohne Interessenskonflikte
 
 ## 📊 Datenaktualisierung - Neuorganisation
 
@@ -26,45 +53,57 @@
 Die bestehenden Datenaktualisierungsschritte müssen von Grund auf neu organisiert werden.
 Die WebUI ist schon zu großen Teilen korrekt und funktionsfähig.
 Viele der archivierten Scripten enthalten schon Teile einer sehr guten Implementierung,
-passen aber nicht ganz zu einen reibungslosen Workflow, der letztlich auch in GitHub
+passen aber nicht ganz zu einem reibungslosen Workflow, der letztlich auch in GitHub
 Actions Workflows integriert werden kann.
 
 ### Ziel-Architektur für Datenaktualisierung
 
 ```
-📥 Datenquellen
-├── 🏢 BDEW (Stammdaten)
-├── 📊 BNetzA (Rollout-Berichte)
-└── 🗺️ VNB Digital (Territorien)
+📥 Datenquellen (Öffentlich verfügbar)
+├── 🏢 BDEW (Alle Energiemarktakteure - Basis-Stammdaten)
+│   ├── Verteilnetzbetreiber (Fokus: §14a-Regelungen)
+│   ├── Stromnetzbetreiber
+│   ├── Gasnetzbetreiber
+│   ├── Energielieferanten
+│   └── Messstellenbetreiber
+├── 📊 BNetzA (Smart-Meter-Rollout-Berichte)
+├── 💰 Netzbetreiber-Websites (§14a-Netzentgelte und Preisblätter)
+└── 🗺️ VNB Digital (Netzgebiets-Territorien)
      ↓
-🔄 Datenverarbeitung
-├── 📋 Extraktion
-├── 🔍 Validierung
-├── 🔀 Transformation
-└── 💾 Import
+🔄 Datenverarbeitung & Strukturierung
+├── 📋 Multi-Source-Extraktion
+├── 🏷️ Kategorisierung nach Zielgruppen-Relevanz
+├── 💰 §14a-Preis-Extraktion und -Normalisierung
+├── 🔍 Transparenz-orientierte Validierung
+├── 🔀 Vergleichbarkeits-Transformation
+└── 💾 Öffentlichkeits-zugänglicher Import
      ↓
-🎯 Anwendung
-├── 📱 Streamlit UI (für Datenzugriff durch externe User)
-└── 🔌 FastAPI: WebUI + REST API (für Verwaltungsaufgaben)
+🎯 Transparenz-Anwendung
+├── 📱 Streamlit UI (Öffentlicher Zugang für Endverbraucher)
+├── 🔍 Vergleichs-Tools (§14a-Preise, Netzentgelte)
+├── 📊 Marktanalyse-Dashboard (für Journalisten/Forscher)
+└── 🔌 REST API (für Entwickler und Analysten)
 ```
 
 ### Prioritäten für Neuimplementierung
 
-1. **Datenquellen-Management**
-   - Einheitliche Schnittstellen für alle Datenquellen
-   - Automatische Erkennung von Datenänderungen
-   - Robuste Fehlerbehandlung
+1. **Transparenz-orientierte Datenquellen**
+   - Umfassende BDEW-Integration (öffentlich verfügbare Marktteilnehmer-Daten)
+   - §14a-spezifische Preisdaten-Extraktion von Netzbetreiber-Websites
+   - BNetzA-Rollout-Berichte für Smart-Meter-Transparenz
+   - Robuste Fehlerbehandlung und Datenvalidierung
 
-2. **Verarbeitungs-Pipeline**
-   - Modulare Verarbeitungsschritte
-   - Transaktionale Sicherheit
-   - Logging und Monitoring
+2. **Vergleichbarkeits-Pipeline**
+   - Normalisierung unterschiedlicher Preisstrukturen
+   - Standardisierte §14a-Netzentgelt-Formate
+   - Cross-Validation zwischen verschiedenen Datenquellen
+   - Historische Preisentwicklung und Trends
 
-3. **Rollout-Daten-Workflow**
-   - Quartalsweise Aktualisierung
-     - Quartalsreports werden teils nachaktualisiert (gleicher Filename, anderer ETag)
-   - Historische Datenarchivierung
-   - Validierung gegen Stammdaten
+3. **Benutzerfreundliche Transparenz-Tools**
+   - Postleitzahl-basierte Netzbetreiber-Suche
+   - §14a-Preisvergleiche für Wärmepumpen, Wallboxen, etc.
+   - Interaktive Karten der Netzgebiete
+   - Download-Funktionen für Rohdaten (Open Data)
 
 ## 🛠️ Technische Guidelines
 
@@ -72,16 +111,30 @@ Actions Workflows integriert werden kann.
 
 ```
 src/
-├── data_sources/          # Datenquellen-Adapter
-│   ├── bdew.py           # BDEW-Integration
-│   ├── bnetza.py         # BNetzA-Integration
-│   └── vnb_digital.py    # VNB Digital API
-├── processors/           # Datenverarbeitung
-│   ├── extractors/       # Daten-Extraktion
-│   ├── validators/       # Datenvalidierung
-│   └── transformers/     # Daten-Transformation
-├── pipelines/            # Verarbeitungs-Pipelines
-└── models/               # Datenmodelle
+├── data_sources/          # Öffentliche Datenquellen-Adapter
+│   ├── bdew/             # BDEW Multi-Role Integration
+│   │   ├── base.py       # Basis-BDEW-Adapter
+│   │   ├── web.py        # Multi-Endpoint Web Data Source
+│   │   └── roles.py      # Marktakteur-spezifische Verarbeitung
+│   ├── bnetza.py         # BNetzA-Rollout-Berichte
+│   ├── vnb_digital.py    # VNB Digital API (Netzgebiete)
+│   └── price_extractors/ # §14a-Preisdaten von Netzbetreiber-Websites
+│       ├── base.py       # Basis-Preisextraktor
+│       ├── pdf_parser.py # PDF-Preisblatt-Parser
+│       └── web_scraper.py # Website-Preisdaten-Extraktor
+├── processors/           # Transparenz-orientierte Datenverarbeitung
+│   ├── extractors/       # Multi-Source Daten-Extraktion
+│   ├── validators/       # Transparenz-Validierung
+│   ├── normalizers/      # Preisdaten-Normalisierung
+│   └── comparators/      # Vergleichbarkeits-Tools
+├── pipelines/            # Transparenz-Pipelines
+│   ├── bdew_transparency.py   # BDEW-Markttransparenz
+│   ├── price_comparison.py    # §14a-Preisvergleiche
+│   └── market_analysis.py     # Marktanalyse für Öffentlichkeit
+└── models/               # Transparenz-Datenmodelle
+    ├── market_participants/   # Marktakteur-Modelle
+    ├── pricing/              # §14a-Preismodelle
+    └── transparency/         # Transparenz-spezifische Modelle
 ```
 
 ### Entwicklungs-Workflow
@@ -106,15 +159,21 @@ src/
 - [x] Basis-Pipeline-Architektur erstellen
 - [x] Logging-Framework einrichten
 
-### Phase 2: BDEW-Integration ✅ ABGESCHLOSSEN
+### Phase 2: BDEW-Umfassende Integration 🔄 IN ERWEITERUNG
 
-- [x] BDEW-Adapter implementieren
+- [x] BDEW-Stromnetzbetreiber-Adapter implementiert
+- [x] Download der Daten von der BDEW-Seite
 - [x] Stammdaten-Import-Pipeline
 - [x] Validierung gegen bestehende Daten
+- [ ] **NEU**: Multi-Rollen-BDEW-Integration
+- [ ] **NEU**: Endpoint-Discovery für alle Marktteilnehmer-Kategorien
+- [ ] **NEU**: Rollen-basierte Datenmodelle (Many-to-Many)
+- [ ] **NEU**: Cross-Role Company Validation
 
-### Phase 3: Anreicherung der BDEW-Daten aus vnbdigital
+### Phase 3: VNB-spezifische Anreicherung der BDEW-Daten aus vnbdigital
 
-- [ ] Datenanreicherungs-Logik implementieren
+- [ ] VNB-Identifikation aus Multi-Role BDEW-Basis
+- [ ] Datenanreicherungs-Logik implementieren (nur für VNB-Rolle)
 - [ ] Integration der vnbdigital GraphQL-API (beschränkt)
 - [ ] Konvertierung der Layer-Daten von vnbdigital in GeoJSON
 - [ ] Anreicherung der GeoDaten mittels Adresslokalisierung
@@ -162,10 +221,12 @@ src/
 
 ### Bei Datenaktualisierung
 
-1. **Immer zuerst fragen**: "Welche Datenquelle wird aktualisiert?"
-2. **Validierung priorisieren**: Stelle sicher, dass Daten validiert werden
-3. **Transaktional denken**: Atomare Operationen für Datenänderungen
-4. **Logging hinzufügen**: Jeder Verarbeitungsschritt soll geloggt werden
+1. **Immer zuerst fragen**: "Welche Datenquelle und welche Rolle wird aktualisiert?"
+2. **Rollen-bewusst denken**: Ein Unternehmen kann MEHRERE gleichberechtigte Rollen haben
+3. **Validierung priorisieren**: Cross-Role-Validation sicherstellen
+4. **Transaktional denken**: Atomare Operationen für Multi-Role-Datenänderungen
+5. **Logging hinzufügen**: Jeder Verarbeitungsschritt soll geloggt werden
+6. **VNB-spezifisch**: Rollout-relevante Daten nur für Verteilnetzbetreiber anreichern
 
 ### Code-Stil
 
@@ -211,15 +272,16 @@ src/
 
 **Features implementiert:**
 
-- ✅ Bulk-Import von BDEW-Unternehmensdaten
+- ✅ Bulk-Import von BDEW-Stromnetzbetreiber-Daten (Basis für Multi-Role-Erweiterung)
 - ✅ Erweiterte Suchfunktionen (Name, Standort, PLZ)
 - ✅ Datenqualitäts-Scoring und Statistiken
 - ✅ Vollständiges Audit-Logging
 - ✅ Repository-Pattern mit transaktionaler Sicherheit
 - ✅ Pipeline-Steps mit Fehlerbehandlung
 - ✅ PostgreSQL-optimierte Datenmodelle mit UUID-Keys
+- 🔄 **In Arbeit**: Multi-Role BDEW-Architektur (Endpoint-Discovery, Rollen-Modelle)
 
-### Nächste Phase bereit: Phase 3 - VNBdigital Integration
+### Nächste Phase bereit: Umfassende BDEW-Integration (alle Marktteilnehmer)
 
 ---
 
