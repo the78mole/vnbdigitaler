@@ -34,6 +34,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def setup_postgresql_extensions(db_manager: DatabaseManager):
+    """Installiere notwendige PostgreSQL Extensions."""
+
+    async with db_manager.get_session() as session:
+        extensions = [
+            "pg_trgm",  # Trigram-Ähnlichkeitssuche
+            "unaccent",  # Entfernung von Akzenten/Diakritika
+            "uuid-ossp",  # UUID-Generierung
+        ]
+
+        for ext in extensions:
+            try:
+                await session.execute(text(f'CREATE EXTENSION IF NOT EXISTS "{ext}"'))
+                logger.info(f"✅ Extension installiert: {ext}")
+            except Exception as e:
+                logger.warning(
+                    f"⚠️  Extension {ext} konnte nicht installiert werden: {e}"
+                )
+
+        await session.commit()
+
+
 async def init_database():
     """Initialisiere die Datenbank mit allen Tabellen und Extensions."""
 
@@ -53,12 +75,12 @@ async def init_database():
 
         # Erstelle alle Tabellen
         logger.info("📊 Erstelle Datenbank-Tabellen...")
-        await db_manager.create_all_tables()
+        await db_manager.create_tables()
         logger.info("✅ Alle Tabellen erfolgreich erstellt!")
 
         # Installiere PostgreSQL Extensions
         logger.info("🔧 Installiere PostgreSQL Extensions...")
-        await db_manager.setup_extensions()
+        await setup_postgresql_extensions(db_manager)
         logger.info("✅ Extensions erfolgreich installiert!")
 
         # Erstelle Performance-Indices

@@ -10,12 +10,12 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import func, text
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.bdew import (
+from models.bdew import (
     BDEWCompany,
     BDEWDataHistory,
     BDEWImportLog,
@@ -29,6 +29,43 @@ class BDEWRepository:
         self.session = session
 
     # Company Operations
+
+    async def get_all_companies(self, limit: int = 100) -> list[BDEWCompany]:
+        """
+        Hole alle BDEW-Unternehmen.
+
+        Args:
+            limit: Maximale Anzahl der Ergebnisse
+
+        Returns:
+            list[BDEWCompany]: Liste aller Unternehmen
+        """
+        result = await self.session.execute(
+            select(BDEWCompany)
+            .where(BDEWCompany.is_active)
+            .order_by(BDEWCompany.company_name)
+            .limit(limit)
+        )
+        return result.scalars().all()
+
+    async def search_companies_by_name(self, name: str) -> list[BDEWCompany]:
+        """
+        Suche Unternehmen nach Namen.
+
+        Args:
+            name: Suchbegriff für Unternehmensname
+
+        Returns:
+            list[BDEWCompany]: Gefundene Unternehmen
+        """
+        result = await self.session.execute(
+            select(BDEWCompany)
+            .where(
+                and_(BDEWCompany.is_active, BDEWCompany.company_name.ilike(f"%{name}%"))
+            )
+            .order_by(BDEWCompany.company_name)
+        )
+        return result.scalars().all()
 
     async def create_company(self, company_data: dict[str, Any]) -> BDEWCompany:
         """

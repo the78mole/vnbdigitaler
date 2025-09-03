@@ -199,8 +199,8 @@ async def seed_test_data():
 
             # Füge Import-Log hinzu
             import_log_data = {
-                "file_name": "test_seed_data.py",
-                "file_hash": "test_hash_123",
+                "source_file": "test_seed_data.py",
+                "file_hash_sha256": "test_hash_123",
                 "import_timestamp": datetime.utcnow(),
                 "import_status": "SUCCESS",
                 "records_imported": len(SAMPLE_COMPANIES),
