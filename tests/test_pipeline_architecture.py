@@ -30,6 +30,9 @@ class MockDataSource(DataSource):
     async def connect(self) -> bool:
         return True
 
+    async def disconnect(self) -> bool:
+        return True
+
     async def check_for_updates(self) -> bool:
         return True
 

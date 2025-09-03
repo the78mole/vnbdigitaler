@@ -9,6 +9,7 @@ import uuid
 from typing import Any
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     CheckConstraint,
     Column,
@@ -20,7 +21,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 
@@ -79,7 +80,7 @@ class BDEWCompany(Base):
     # Geschäftsdaten
     company_type = Column(String(50), index=True)  # Stadtwerk, Regional, etc.
     grid_areas = Column(String(255))  # Netzgebiete
-    service_territory = Column(JSONB)  # GeoJSON für Servicegebiet
+    service_territory = Column(JSON)  # GeoJSON für Servicegebiet
 
     # Qualitäts- und Metadaten
     data_quality_score = Column(
@@ -90,7 +91,7 @@ class BDEWCompany(Base):
         ),
     )
     source_file = Column(String(255))
-    import_metadata = Column(JSONB)  # Flexible Import-Metadaten
+    import_metadata = Column(JSON)  # Flexible Import-Metadaten
 
     # Status und Lifecycle
     is_active = Column(Boolean, default=True, nullable=False, index=True)
@@ -219,15 +220,15 @@ class BDEWImportLog(Base):
         String(20), nullable=False, index=True
     )  # SUCCESS, FAILED, PARTIAL, RUNNING, CANCELLED
     error_message = Column(Text)
-    error_details = Column(JSONB)  # Strukturierte Fehlerinformationen
-    warnings = Column(JSONB)  # Array von Warnungen
+    error_details = Column(JSON)  # Strukturierte Fehlerinformationen
+    warnings = Column(JSON)  # Array von Warnungen
 
     # Validierungs-Ergebnisse
-    validation_results = Column(JSONB)  # Detaillierte Validierungsergebnisse
-    data_quality_metrics = Column(JSONB)  # Qualitätsmetriken
+    validation_results = Column(JSON)  # Detaillierte Validierungsergebnisse
+    data_quality_metrics = Column(JSON)  # Qualitätsmetriken
 
     # System-Kontext
-    system_info = Column(JSONB)  # Systemversion, Python-Version, etc.
+    system_info = Column(JSON)  # Systemversion, Python-Version, etc.
     user_context = Column(String(100))
 
     def __repr__(self) -> str:
@@ -275,7 +276,7 @@ class BDEWValidationRule(Base):
         nullable=False,
     )
 
-    rule_config = Column(JSONB, nullable=False)
+    rule_config = Column(JSON, nullable=False)
 
     # Regel-Status und Priorität
     is_active = Column(Boolean, default=True, nullable=False, index=True)
@@ -341,11 +342,11 @@ class BDEWDataHistory(Base):
     change_reason = Column(String(255))
 
     # Daten vor der Änderung
-    old_values = Column(JSONB)
-    # Daten nach der Änderung
-    new_values = Column(JSONB)
-    # Geänderte Felder
-    changed_fields = Column(JSONB)  # Array von Feldnamen
+    old_values = Column(JSON)
+    # Neue Werte (kann None sein für Löschungen)
+    new_values = Column(JSON)
+    # Liste der geänderten Felder
+    changed_fields = Column(JSON)  # Array von Feldnamen
 
     # Import-Kontext
     import_log_id = Column(UUID(as_uuid=True), index=True)
