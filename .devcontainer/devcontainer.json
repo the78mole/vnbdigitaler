@@ -13,7 +13,9 @@
     },
     "ghcr.io/the78mole/devcontainer-features/postgresql:1": {
       "version": "16"
-    }
+    },
+    "ghcr.io/devcontainers-extra/features/pre-commit:2": {},
+    "ghcr.io/devcontainers-extra/features/prettier:1": {}
   },
   "customizations": {
     "codespaces": {
