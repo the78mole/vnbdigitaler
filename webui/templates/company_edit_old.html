@@ -1,254 +1,261 @@
-{% extends "base.html" %}
-
-{% block title %}Edit Company #{{ company_id }} - VNBdigitaler Admin{% endblock %}
-
-{% block toolbar %}
+{% extends "base.html" %} {% block title %}Edit Company #{{ company_id }} - VNBdigitaler Admin{%
+endblock %} {% block toolbar %}
 <div class="btn-group" role="group">
-    <a href="/companies/" class="btn btn-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Back to List
-    </a>
-    <button type="button" class="btn btn-primary" onclick="saveCompany()">
-        <i class="fas fa-save me-1"></i> Save Changes
-    </button>
+  <a href="/companies/" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to List
+  </a>
+  <button type="button" class="btn btn-primary" onclick="saveCompany()">
+    <i class="fas fa-save me-1"></i> Save Changes
+  </button>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <!-- Loading indicator -->
 <div id="loadingIndicator" class="text-center py-4 loading show">
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-    <p class="mt-2">Loading company details...</p>
+  <div class="spinner-border" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p class="mt-2">Loading company details...</p>
 </div>
 
 <!-- Company edit form -->
-<div id="editForm" style="display: none;">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-edit me-2"></i>
-                        Company Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <form id="companyForm">
-                        <!-- BDEW Information (Read-only) -->
-                        <fieldset>
-                            <legend class="h6 text-muted border-bottom pb-2">BDEW Information (Read-only)</legend>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">BDEW Code</label>
-                                    <input type="text" class="form-control" id="bdewCode" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" id="bdewCity" readonly>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">BDEW Company Name</label>
-                                <input type="text" class="form-control" id="bdewName" readonly>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Normalized Name</label>
-                                <input type="text" class="form-control" id="bdewNameNormalized" readonly>
-                            </div>
-                        </fieldset>
-
-                        <!-- Rollout Information (Editable) -->
-                        <fieldset class="mt-4">
-                            <legend class="h6 text-primary border-bottom pb-2">Rollout Matching (Editable)</legend>
-
-                            <div class="mb-3">
-                                <label for="rolloutReportName" class="form-label">
-                                    Rollout Report Name
-                                    <small class="text-muted">(BNetzA company name)</small>
-                                </label>
-                                <input type="text" class="form-control" id="rolloutReportName"
-                                    placeholder="Enter BNetzA company name...">
-                                <div class="form-text">
-                                    This is the exact name as it appears in BNetzA rollout reports.
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="rolloutNameVariations" class="form-label">
-                                    Name Variations
-                                    <small class="text-muted">(Alternative spellings/names)</small>
-                                </label>
-                                <textarea class="form-control" id="rolloutNameVariations" rows="3"
-                                    placeholder="Enter one variation per line..."></textarea>
-                                <div class="form-text">
-                                    Enter alternative company names or spellings, one per line.
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="manualVerification">
-                                    <label class="form-check-label" for="manualVerification">
-                                        <strong>Manually Verified</strong>
-                                    </label>
-                                </div>
-                                <div class="form-text">
-                                    Check this if the company data has been manually reviewed and verified.
-                                </div>
-                            </div>
-                        </fieldset>
-
-                        <!-- Matching Confidence -->
-                        <fieldset class="mt-4">
-                            <legend class="h6 text-muted border-bottom pb-2">Matching Information</legend>
-
-                            <div class="mb-3">
-                                <label class="form-label">Matching Confidence</label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="nameMatchingConfidence" readonly>
-                                    <span class="input-group-text">%</span>
-                                </div>
-                                <div class="form-text">
-                                    Confidence score from automated matching algorithms.
-                                </div>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>
-            </div>
+<div id="editForm" style="display: none">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-edit me-2"></i>
+            Company Information
+          </h5>
         </div>
+        <div class="card-body">
+          <form id="companyForm">
+            <!-- BDEW Information (Read-only) -->
+            <fieldset>
+              <legend class="h6 text-muted border-bottom pb-2">BDEW Information (Read-only)</legend>
 
-        <div class="col-md-4">
-            <!-- Service Area Information -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-map me-2"></i>
-                        Service Area
-                    </h5>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">BDEW Code</label>
+                  <input type="text" class="form-control" id="bdewCode" readonly />
                 </div>
-                <div class="card-body">
-                    <div id="serviceAreaInfo">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
+                <div class="col-md-6">
+                  <label class="form-label">City</label>
+                  <input type="text" class="form-control" id="bdewCity" readonly />
+                </div>
+              </div>
 
-                    <div class="d-grid gap-2 mt-3">
-                        <button type="button" class="btn btn-outline-success" id="viewMapBtn" onclick="viewOnMap()"
-                            disabled>
-                            <i class="fas fa-map me-1"></i> View on Map
-                        </button>
-                    </div>
-                </div>
-            </div>
+              <div class="mb-3">
+                <label class="form-label">BDEW Company Name</label>
+                <input type="text" class="form-control" id="bdewName" readonly />
+              </div>
 
-            <!-- Actions -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-tools me-2"></i>
-                        Actions
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-primary" onclick="saveCompany()">
-                            <i class="fas fa-save me-1"></i> Save Changes
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="resetForm()">
-                            <i class="fas fa-undo me-1"></i> Reset Form
-                        </button>
-                        <hr>
-                        <a href="/companies/" class="btn btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Back to List
-                        </a>
-                    </div>
-                </div>
-            </div>
+              <div class="mb-3">
+                <label class="form-label">Normalized Name</label>
+                <input type="text" class="form-control" id="bdewNameNormalized" readonly />
+              </div>
+            </fieldset>
 
-            <!-- Change History -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-history me-2"></i>
-                        Change History
-                    </h5>
+            <!-- Rollout Information (Editable) -->
+            <fieldset class="mt-4">
+              <legend class="h6 text-primary border-bottom pb-2">
+                Rollout Matching (Editable)
+              </legend>
+
+              <div class="mb-3">
+                <label for="rolloutReportName" class="form-label">
+                  Rollout Report Name
+                  <small class="text-muted">(BNetzA company name)</small>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="rolloutReportName"
+                  placeholder="Enter BNetzA company name..."
+                />
+                <div class="form-text">
+                  This is the exact name as it appears in BNetzA rollout reports.
                 </div>
-                <div class="card-body">
-                    <div class="text-muted text-center">
-                        <i class="fas fa-clock fa-2x mb-2"></i>
-                        <p>Change tracking coming soon...</p>
-                    </div>
+              </div>
+
+              <div class="mb-3">
+                <label for="rolloutNameVariations" class="form-label">
+                  Name Variations
+                  <small class="text-muted">(Alternative spellings/names)</small>
+                </label>
+                <textarea
+                  class="form-control"
+                  id="rolloutNameVariations"
+                  rows="3"
+                  placeholder="Enter one variation per line..."
+                ></textarea>
+                <div class="form-text">
+                  Enter alternative company names or spellings, one per line.
                 </div>
-            </div>
+              </div>
+
+              <div class="mb-3">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="manualVerification" />
+                  <label class="form-check-label" for="manualVerification">
+                    <strong>Manually Verified</strong>
+                  </label>
+                </div>
+                <div class="form-text">
+                  Check this if the company data has been manually reviewed and verified.
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Matching Confidence -->
+            <fieldset class="mt-4">
+              <legend class="h6 text-muted border-bottom pb-2">Matching Information</legend>
+
+              <div class="mb-3">
+                <label class="form-label">Matching Confidence</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="nameMatchingConfidence" readonly />
+                  <span class="input-group-text">%</span>
+                </div>
+                <div class="form-text">Confidence score from automated matching algorithms.</div>
+              </div>
+            </fieldset>
+          </form>
         </div>
+      </div>
     </div>
+
+    <div class="col-md-4">
+      <!-- Service Area Information -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-map me-2"></i>
+            Service Area
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="serviceAreaInfo">
+            <!-- Will be populated by JavaScript -->
+          </div>
+
+          <div class="d-grid gap-2 mt-3">
+            <button
+              type="button"
+              class="btn btn-outline-success"
+              id="viewMapBtn"
+              onclick="viewOnMap()"
+              disabled
+            >
+              <i class="fas fa-map me-1"></i> View on Map
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tools me-2"></i>
+            Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-primary" onclick="saveCompany()">
+              <i class="fas fa-save me-1"></i> Save Changes
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="resetForm()">
+              <i class="fas fa-undo me-1"></i> Reset Form
+            </button>
+            <hr />
+            <a href="/companies/" class="btn btn-outline-secondary">
+              <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change History -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>
+            Change History
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="text-muted text-center">
+            <i class="fas fa-clock fa-2x mb-2"></i>
+            <p>Change tracking coming soon...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
+{% endblock %} {% block extra_scripts %}
 <script>
-    let companyData = null;
-    let originalData = null;
+  let companyData = null;
+  let originalData = null;
 
-    async function loadCompanyDetails() {
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const editForm = document.getElementById('editForm');
+  async function loadCompanyDetails() {
+    const loadingIndicator = document.getElementById("loadingIndicator");
+    const editForm = document.getElementById("editForm");
 
-        try {
-            const response = await apiRequest(`/companies/api/{{ company_id }}`);
-            companyData = response;
-            originalData = JSON.parse(JSON.stringify(response)); // Deep copy
+    try {
+      const response = await apiRequest(`/companies/api/{{ company_id }}`);
+      companyData = response;
+      originalData = JSON.parse(JSON.stringify(response)); // Deep copy
 
-            populateForm(response);
+      populateForm(response);
 
-            hideLoading(loadingIndicator);
-            editForm.style.display = 'block';
+      hideLoading(loadingIndicator);
+      editForm.style.display = "block";
+    } catch (error) {
+      console.error("Failed to load company details:", error);
+      hideLoading(loadingIndicator);
 
-        } catch (error) {
-            console.error('Failed to load company details:', error);
-            hideLoading(loadingIndicator);
-
-            document.querySelector('main').innerHTML = `
+      document.querySelector("main").innerHTML = `
             <div class="alert alert-danger">
                 <h4>Error Loading Company</h4>
                 <p>Failed to load company details: ${error.message}</p>
                 <a href="/companies/" class="btn btn-secondary">Back to List</a>
             </div>
         `;
-        }
     }
+  }
 
-    function populateForm(data) {
-        // BDEW Information (read-only)
-        document.getElementById('bdewCode').value = data.bdew_code || '';
-        document.getElementById('bdewName').value = data.bdew_name || '';
-        document.getElementById('bdewCity').value = data.bdew_city || '';
-        document.getElementById('bdewNameNormalized').value = data.bdew_name_normalized || '';
+  function populateForm(data) {
+    // BDEW Information (read-only)
+    document.getElementById("bdewCode").value = data.bdew_code || "";
+    document.getElementById("bdewName").value = data.bdew_name || "";
+    document.getElementById("bdewCity").value = data.bdew_city || "";
+    document.getElementById("bdewNameNormalized").value = data.bdew_name_normalized || "";
 
-        // Rollout Information (editable)
-        document.getElementById('rolloutReportName').value = data.rollout_report_name || '';
-        document.getElementById('rolloutNameVariations').value =
-            (data.rollout_name_variations || []).join('\n');
-        document.getElementById('manualVerification').checked = data.manual_verification || false;
+    // Rollout Information (editable)
+    document.getElementById("rolloutReportName").value = data.rollout_report_name || "";
+    document.getElementById("rolloutNameVariations").value = (
+      data.rollout_name_variations || []
+    ).join("\n");
+    document.getElementById("manualVerification").checked = data.manual_verification || false;
 
-        // Matching Information
-        document.getElementById('nameMatchingConfidence').value =
-            data.name_matching_confidence ? data.name_matching_confidence.toFixed(2) : 'N/A';
+    // Matching Information
+    document.getElementById("nameMatchingConfidence").value = data.name_matching_confidence
+      ? data.name_matching_confidence.toFixed(2)
+      : "N/A";
 
-        // Service Area Information
-        updateServiceAreaInfo(data);
-    }
+    // Service Area Information
+    updateServiceAreaInfo(data);
+  }
 
-    function updateServiceAreaInfo(data) {
-        const serviceAreaInfo = document.getElementById('serviceAreaInfo');
-        const viewMapBtn = document.getElementById('viewMapBtn');
+  function updateServiceAreaInfo(data) {
+    const serviceAreaInfo = document.getElementById("serviceAreaInfo");
+    const viewMapBtn = document.getElementById("viewMapBtn");
 
-        if (data.has_service_area) {
-            serviceAreaInfo.innerHTML = `
+    if (data.has_service_area) {
+      serviceAreaInfo.innerHTML = `
             <div class="text-success">
                 <i class="fas fa-check-circle me-2"></i>
                 <strong>Service area available</strong>
@@ -257,9 +264,9 @@
                 This company has GeoJSON data available for map visualization.
             </p>
         `;
-            viewMapBtn.disabled = false;
-        } else {
-            serviceAreaInfo.innerHTML = `
+      viewMapBtn.disabled = false;
+    } else {
+      serviceAreaInfo.innerHTML = `
             <div class="text-muted">
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>No service area data</strong>
@@ -268,69 +275,69 @@
                 GeoJSON data not available for this company.
             </p>
         `;
-            viewMapBtn.disabled = true;
-        }
+      viewMapBtn.disabled = true;
     }
+  }
 
-    async function saveCompany() {
-        try {
-            // Collect form data
-            const formData = {
-                rollout_report_name: document.getElementById('rolloutReportName').value.trim() || null,
-                rollout_name_variations: document.getElementById('rolloutNameVariations').value
-                    .split('\n')
-                    .map(line => line.trim())
-                    .filter(line => line.length > 0),
-                manual_verification: document.getElementById('manualVerification').checked
-            };
+  async function saveCompany() {
+    try {
+      // Collect form data
+      const formData = {
+        rollout_report_name: document.getElementById("rolloutReportName").value.trim() || null,
+        rollout_name_variations: document
+          .getElementById("rolloutNameVariations")
+          .value.split("\n")
+          .map(line => line.trim())
+          .filter(line => line.length > 0),
+        manual_verification: document.getElementById("manualVerification").checked,
+      };
 
-            // Check if anything changed
-            const hasChanges = (
-                formData.rollout_report_name !== originalData.rollout_report_name ||
-                JSON.stringify(formData.rollout_name_variations) !== JSON.stringify(originalData.rollout_name_variations || []) ||
-                formData.manual_verification !== (originalData.manual_verification || false)
-            );
+      // Check if anything changed
+      const hasChanges =
+        formData.rollout_report_name !== originalData.rollout_report_name ||
+        JSON.stringify(formData.rollout_name_variations) !==
+          JSON.stringify(originalData.rollout_name_variations || []) ||
+        formData.manual_verification !== (originalData.manual_verification || false);
 
-            if (!hasChanges) {
-                showMessage('No changes to save', 'info');
-                return;
-            }
+      if (!hasChanges) {
+        showMessage("No changes to save", "info");
+        return;
+      }
 
-            // Save changes
-            showMessage('Saving changes...', 'info');
+      // Save changes
+      showMessage("Saving changes...", "info");
 
-            const response = await apiRequest(`/companies/api/{{ company_id }}`, {
-                method: 'PUT',
-                body: JSON.stringify(formData)
-            });
+      const response = await apiRequest(`/companies/api/{{ company_id }}`, {
+        method: "PUT",
+        body: JSON.stringify(formData),
+      });
 
-            // Update original data
-            originalData.rollout_report_name = formData.rollout_report_name;
-            originalData.rollout_name_variations = formData.rollout_name_variations;
-            originalData.manual_verification = formData.manual_verification;
+      // Update original data
+      originalData.rollout_report_name = formData.rollout_report_name;
+      originalData.rollout_name_variations = formData.rollout_name_variations;
+      originalData.manual_verification = formData.manual_verification;
 
-            showMessage('Company updated successfully!', 'success');
-
-        } catch (error) {
-            console.error('Failed to save company:', error);
-            showMessage('Failed to save changes', 'danger');
-        }
+      showMessage("Company updated successfully!", "success");
+    } catch (error) {
+      console.error("Failed to save company:", error);
+      showMessage("Failed to save changes", "danger");
     }
+  }
 
-    function resetForm() {
-        if (originalData) {
-            populateForm(originalData);
-            showMessage('Form reset to original values', 'info');
-        }
+  function resetForm() {
+    if (originalData) {
+      populateForm(originalData);
+      showMessage("Form reset to original values", "info");
     }
+  }
 
-    function viewOnMap() {
-        if (companyData && companyData.has_service_area) {
-            window.location.href = `/companies/map/{{ company_id }}`;
-        }
+  function viewOnMap() {
+    if (companyData && companyData.has_service_area) {
+      window.location.href = `/companies/map/{{ company_id }}`;
     }
+  }
 
-    // Load data when page loads
-    document.addEventListener('DOMContentLoaded', loadCompanyDetails);
+  // Load data when page loads
+  document.addEventListener("DOMContentLoaded", loadCompanyDetails);
 </script>
 {% endblock %}

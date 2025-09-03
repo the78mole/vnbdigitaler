@@ -1,170 +1,178 @@
-{% extends "base.html" %}
-
-{% block title %}Select Company - VNBdigitaler Admin{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Select Company - VNBdigitaler Admin{% endblock %} {%
+block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-search me-2"></i>
-                    Select Company for Map View
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="mb-4">
-                    <label for="companySelect" class="form-label">
-                        Search and select a company:
-                    </label>
-                    <div class="input-group">
-                        <input type="text" class="form-control form-control-lg" id="companySearch"
-                            placeholder="Type company name, city, or BDEW code..." autocomplete="off">
-                        <button class="btn btn-outline-secondary" type="button" onclick="searchCompanies()">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                    <div class="form-text">
-                        Start typing to search for companies. Select a company to view its service area on the map.
-                    </div>
-                </div>
-
-                <!-- Search Results -->
-                <div id="searchResults" style="display: none;">
-                    <h6 class="mb-3">Search Results:</h6>
-                    <div class="list-group" id="companiesList">
-                        <!-- Results will be populated here -->
-                    </div>
-                </div>
-
-                <!-- Loading indicator -->
-                <div id="searchLoading" class="text-center py-3 loading">
-                    <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">Searching...</span>
-                    </div>
-                    <span class="ms-2">Searching companies...</span>
-                </div>
-
-                <!-- No results message -->
-                <div id="noResults" class="text-center py-4" style="display: none;">
-                    <i class="fas fa-search fa-2x text-muted mb-3"></i>
-                    <p class="text-muted">No companies found matching your search criteria.</p>
-                    <p class="text-muted small">Try searching with different keywords or check the spelling.</p>
-                </div>
-
-                <!-- Initial help text -->
-                <div id="helpText" class="text-center py-4">
-                    <i class="fas fa-lightbulb fa-2x text-primary mb-3"></i>
-                    <h6>How to use this search:</h6>
-                    <ul class="list-unstyled text-muted">
-                        <li><i class="fas fa-search me-2"></i>Type a company name (e.g., "Stadtwerke München")</li>
-                        <li><i class="fas fa-map-marker-alt me-2"></i>Search by city (e.g., "Berlin", "Hamburg")</li>
-                        <li><i class="fas fa-code me-2"></i>Enter BDEW code (e.g., "123", "7890")</li>
-                    </ul>
-                    <p class="small text-muted mt-3">
-                        Companies with available service area data will show a map icon.
-                    </p>
-                </div>
-            </div>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-search me-2"></i>
+          Select Company for Map View
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-4">
+          <label for="companySelect" class="form-label"> Search and select a company: </label>
+          <div class="input-group">
+            <input
+              type="text"
+              class="form-control form-control-lg"
+              id="companySearch"
+              placeholder="Type company name, city, or BDEW code..."
+              autocomplete="off"
+            />
+            <button class="btn btn-outline-secondary" type="button" onclick="searchCompanies()">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+          <div class="form-text">
+            Start typing to search for companies. Select a company to view its service area on the
+            map.
+          </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="card mt-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-bolt me-2"></i>
-                    Quick Actions
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <a href="/companies/" class="btn btn-outline-primary">
-                                <i class="fas fa-list me-2"></i>
-                                Browse All Companies
-                            </a>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            View and manage all companies in a table format
-                        </small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <button class="btn btn-outline-success" onclick="showCompaniesWithMaps()">
-                                <i class="fas fa-map me-2"></i>
-                                Companies with Maps
-                            </button>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            Show only companies with available service area data
-                        </small>
-                    </div>
-                </div>
-            </div>
+        <!-- Search Results -->
+        <div id="searchResults" style="display: none">
+          <h6 class="mb-3">Search Results:</h6>
+          <div class="list-group" id="companiesList">
+            <!-- Results will be populated here -->
+          </div>
         </div>
+
+        <!-- Loading indicator -->
+        <div id="searchLoading" class="text-center py-3 loading">
+          <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Searching...</span>
+          </div>
+          <span class="ms-2">Searching companies...</span>
+        </div>
+
+        <!-- No results message -->
+        <div id="noResults" class="text-center py-4" style="display: none">
+          <i class="fas fa-search fa-2x text-muted mb-3"></i>
+          <p class="text-muted">No companies found matching your search criteria.</p>
+          <p class="text-muted small">
+            Try searching with different keywords or check the spelling.
+          </p>
+        </div>
+
+        <!-- Initial help text -->
+        <div id="helpText" class="text-center py-4">
+          <i class="fas fa-lightbulb fa-2x text-primary mb-3"></i>
+          <h6>How to use this search:</h6>
+          <ul class="list-unstyled text-muted">
+            <li>
+              <i class="fas fa-search me-2"></i>Type a company name (e.g., "Stadtwerke München")
+            </li>
+            <li>
+              <i class="fas fa-map-marker-alt me-2"></i>Search by city (e.g., "Berlin", "Hamburg")
+            </li>
+            <li><i class="fas fa-code me-2"></i>Enter BDEW code (e.g., "123", "7890")</li>
+          </ul>
+          <p class="small text-muted mt-3">
+            Companies with available service area data will show a map icon.
+          </p>
+        </div>
+      </div>
     </div>
+
+    <!-- Quick Actions -->
+    <div class="card mt-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-bolt me-2"></i>
+          Quick Actions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <a href="/companies/" class="btn btn-outline-primary">
+                <i class="fas fa-list me-2"></i>
+                Browse All Companies
+              </a>
+            </div>
+            <small class="text-muted d-block mt-1">
+              View and manage all companies in a table format
+            </small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <button class="btn btn-outline-success" onclick="showCompaniesWithMaps()">
+                <i class="fas fa-map me-2"></i>
+                Companies with Maps
+              </button>
+            </div>
+            <small class="text-muted d-block mt-1">
+              Show only companies with available service area data
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_scripts %}
+{% endblock %} {% block extra_scripts %}
 <script>
-    let searchTimeout = null;
+  let searchTimeout = null;
 
-    async function searchCompanies(query = null) {
-        const searchInput = document.getElementById('companySearch');
-        const searchTerm = query || searchInput.value.trim();
+  async function searchCompanies(query = null) {
+    const searchInput = document.getElementById("companySearch");
+    const searchTerm = query || searchInput.value.trim();
 
-        const searchResults = document.getElementById('searchResults');
-        const searchLoading = document.getElementById('searchLoading');
-        const noResults = document.getElementById('noResults');
-        const helpText = document.getElementById('helpText');
-        const companiesList = document.getElementById('companiesList');
+    const searchResults = document.getElementById("searchResults");
+    const searchLoading = document.getElementById("searchLoading");
+    const noResults = document.getElementById("noResults");
+    const helpText = document.getElementById("helpText");
+    const companiesList = document.getElementById("companiesList");
 
-        // Hide all result sections
-        searchResults.style.display = 'none';
-        noResults.style.display = 'none';
-        helpText.style.display = 'none';
+    // Hide all result sections
+    searchResults.style.display = "none";
+    noResults.style.display = "none";
+    helpText.style.display = "none";
 
-        if (!searchTerm || searchTerm.length < 2) {
-            helpText.style.display = 'block';
-            return;
-        }
+    if (!searchTerm || searchTerm.length < 2) {
+      helpText.style.display = "block";
+      return;
+    }
 
-        showLoading(searchLoading);
+    showLoading(searchLoading);
 
-        try {
-            const response = await apiRequest(`/companies/api-dropdown?search=${encodeURIComponent(searchTerm)}`);
+    try {
+      const response = await apiRequest(
+        `/companies/api-dropdown?search=${encodeURIComponent(searchTerm)}`
+      );
 
-            hideLoading(searchLoading);
+      hideLoading(searchLoading);
 
-            if (response.companies && response.companies.length > 0) {
-                displaySearchResults(response.companies);
-                searchResults.style.display = 'block';
-            } else {
-                noResults.style.display = 'block';
-            }
+      if (response.companies && response.companies.length > 0) {
+        displaySearchResults(response.companies);
+        searchResults.style.display = "block";
+      } else {
+        noResults.style.display = "block";
+      }
+    } catch (error) {
+      console.error("Search failed:", error);
+      hideLoading(searchLoading);
 
-        } catch (error) {
-            console.error('Search failed:', error);
-            hideLoading(searchLoading);
-
-            companiesList.innerHTML = `
+      companiesList.innerHTML = `
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 Search failed: ${error.message}
             </div>
         `;
-            searchResults.style.display = 'block';
-        }
+      searchResults.style.display = "block";
     }
+  }
 
-    function displaySearchResults(companies) {
-        const companiesList = document.getElementById('companiesList');
+  function displaySearchResults(companies) {
+    const companiesList = document.getElementById("companiesList");
 
-        companiesList.innerHTML = companies.map(company => `
+    companiesList.innerHTML = companies
+      .map(
+        company => `
         <a href="#" class="list-group-item list-group-item-action"
-           onclick="selectCompany(${company.id}, '${company.display_name.replace(/'/g, '\\\'')}')"
+           onclick="selectCompany(${company.id}, '${company.display_name.replace(/'/g, "\\'")}')"
            onmouseover="highlightCompany(this)" onmouseout="unhighlightCompany(this)">
             <div class="d-flex w-100 justify-content-between align-items-center">
                 <div>
@@ -179,83 +187,84 @@
                 </div>
             </div>
         </a>
-    `).join('');
-    }
+    `
+      )
+      .join("");
+  }
 
-    function highlightCompany(element) {
-        element.style.backgroundColor = '#e7f3ff';
-    }
+  function highlightCompany(element) {
+    element.style.backgroundColor = "#e7f3ff";
+  }
 
-    function unhighlightCompany(element) {
-        element.style.backgroundColor = '';
-    }
+  function unhighlightCompany(element) {
+    element.style.backgroundColor = "";
+  }
 
-    async function selectCompany(companyId, displayName) {
-        try {
-            // Show loading message
-            showMessage(`Loading ${displayName}...`, 'info');
+  async function selectCompany(companyId, displayName) {
+    try {
+      // Show loading message
+      showMessage(`Loading ${displayName}...`, "info");
 
-            // First, check if the company has map data
-            const companyData = await apiRequest(`/companies/api/${companyId}`);
+      // First, check if the company has map data
+      const companyData = await apiRequest(`/companies/api/${companyId}`);
 
-            if (companyData.has_service_area) {
-                // Redirect to map view
-                window.location.href = `/companies/map/${companyId}`;
-            } else {
-                // Show message and redirect to edit page
-                showMessage(
-                    `${displayName} does not have service area data available. Redirecting to company details...`,
-                    'warning'
-                );
+      if (companyData.has_service_area) {
+        // Redirect to map view
+        window.location.href = `/companies/map/${companyId}`;
+      } else {
+        // Show message and redirect to edit page
+        showMessage(
+          `${displayName} does not have service area data available. Redirecting to company details...`,
+          "warning"
+        );
 
-                setTimeout(() => {
-                    window.location.href = `/companies/edit/${companyId}`;
-                }, 2000);
-            }
-
-        } catch (error) {
-            console.error('Failed to select company:', error);
-            showMessage(`Failed to load company data: ${error.message}`, 'danger');
-        }
-    }
-
-    function showCompaniesWithMaps() {
-        // This would filter for companies with service area data
-        // For now, we'll just show a helpful message
-        showMessage('Loading companies with map data...', 'info');
-
-        // In a real implementation, you would make an API call with a filter
-        // For now, simulate with a timeout
         setTimeout(() => {
-            document.getElementById('companySearch').value = '';
-            document.getElementById('companySearch').placeholder = 'Showing companies with map data...';
-            searchCompanies(''); // This would be modified to include a filter
-        }, 1000);
+          window.location.href = `/companies/edit/${companyId}`;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Failed to select company:", error);
+      showMessage(`Failed to load company data: ${error.message}`, "danger");
     }
+  }
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', () => {
-        const searchInput = document.getElementById('companySearch');
+  function showCompaniesWithMaps() {
+    // This would filter for companies with service area data
+    // For now, we'll just show a helpful message
+    showMessage("Loading companies with map data...", "info");
 
-        // Add real-time search as user types
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                searchCompanies();
-            }, 500); // Wait 500ms after user stops typing
-        });
+    // In a real implementation, you would make an API call with a filter
+    // For now, simulate with a timeout
+    setTimeout(() => {
+      document.getElementById("companySearch").value = "";
+      document.getElementById("companySearch").placeholder = "Showing companies with map data...";
+      searchCompanies(""); // This would be modified to include a filter
+    }, 1000);
+  }
 
-        // Add enter key support
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                clearTimeout(searchTimeout);
-                searchCompanies();
-            }
-        });
+  // Event listeners
+  document.addEventListener("DOMContentLoaded", () => {
+    const searchInput = document.getElementById("companySearch");
 
-        // Focus on search input
-        searchInput.focus();
+    // Add real-time search as user types
+    searchInput.addEventListener("input", e => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        searchCompanies();
+      }, 500); // Wait 500ms after user stops typing
     });
+
+    // Add enter key support
+    searchInput.addEventListener("keypress", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        clearTimeout(searchTimeout);
+        searchCompanies();
+      }
+    });
+
+    // Focus on search input
+    searchInput.focus();
+  });
 </script>
 {% endblock %}

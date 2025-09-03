@@ -1,0 +1,23 @@
+# Verzeichnisse
+node_modules/
+dist/
+build/
+htmlcov/
+.venv/
+.pytest_cache/
+__pycache__/
+archive/
+tools/bak/
+
+# Generierte Dateien
+*.min.js
+*.min.css
+*.bundle.js
+coverage.xml
+junit.xml
+bandit-report.json
+*.pyc
+
+# Temporäre Dateien
+tmp/
+.temp/

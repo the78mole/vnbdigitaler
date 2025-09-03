@@ -1,1885 +1,1898 @@
-{% extends "base.html" %}
-
-{% block title %}Company Details{% endblock %}
-
-{% block toolbar %}
+{% extends "base.html" %} {% block title %}Company Details{% endblock %} {% block toolbar %}
 <div class="btn-group me-2">
-    <a href="/companies/" class="btn btn-secondary">
-        <i class="fas f    // Initialize map
-    function initializeMap() {
-        try {
-             // Load service area
-    async function loadServiceArea() {
-        try {
-            // Use BDEW code if available, otherwise fallback to database ID
-            const apiUrl = bdewCode ?
-                `/companies/api/bdew/${bdewCode}/geojson` :
-                `/companies/api/${companyId}/geojson`;
-
-            console.log(`Loading GeoJSON from: ${apiUrl}`);
-            const response = await apiRequest(apiUrl);/ Note: Proj4 checks removed as coordinate transformation is now server-side
-            console.log('Initializing map with pre-transformed GeoJSON data');ft me-1"></i>
-        Back to Companies
-    </a>
-    <a href="/companies/map" class="btn btn-outline-info">
-        <i class="fas fa-map me-1"></i>
-        General Map
-    </a>
+  <a href="/companies/" class="btn btn-secondary">
+    <i
+      class="fas f // Initialize map function initializeMap() { try { // Load service area async function loadServiceArea() { try { // Use BDEW code if available, otherwise fallback to database ID const apiUrl = bdewCode ? `/companies/api/bdew/${bdewCode}/geojson` : `/companies/api/${companyId}/geojson`; console.log(`Loading GeoJSON from: ${apiUrl}`); const response = await apiRequest(apiUrl);/ Note: Proj4 checks removed as coordinate transformation is now server-side console.log('Initializing map with pre-transformed GeoJSON data');ft me-1"
+    ></i>
+    Back to Companies
+  </a>
+  <a href="/companies/map" class="btn btn-outline-info">
+    <i class="fas fa-map me-1"></i>
+    General Map
+  </a>
 </div>
 <div class="btn-group">
-    <button type="button" class="btn btn-outline-secondary" onclick="resetMapView()">
-        <i class="fas fa-compress-arrows-alt me-1"></i>
-        Reset View
-    </button>
-    <button type="button" class="btn btn-outline-info" onclick="toggleFullscreen()">
-        <i class="fas fa-expand me-1"></i>
-        Fullscreen
-    </button>
+  <button type="button" class="btn btn-outline-secondary" onclick="resetMapView()">
+    <i class="fas fa-compress-arrows-alt me-1"></i>
+    Reset View
+  </button>
+  <button type="button" class="btn btn-outline-info" onclick="toggleFullscreen()">
+    <i class="fas fa-expand me-1"></i>
+    Fullscreen
+  </button>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="row g-3">
-    <!-- Map Container -->
-    <div class="col-lg-8">
-        <div class="card h-100">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-building me-2 text-primary"></i>
-                        <span id="companyTitle">Company Details</span>
-                    </h5>
-                    <div class="btn-group btn-group-sm">
-                        <button type="button" class="btn btn-outline-secondary" onclick="toggleLayer('service-area')"
-                            id="serviceAreaToggle">
-                            <i class="fas fa-map-marked-alt me-1"></i>
-                            Service Area
-                        </button>
-                        <button type="button" class="btn btn-outline-success" onclick="toggleLayer('germany')"
-                            id="germanyToggle">
-                            <i class="fas fa-map me-1"></i>
-                            Deutschland
-                        </button>
-                        <button type="button" class="btn btn-outline-warning" onclick="toggleLayer('states')"
-                            id="statesToggle">
-                            <i class="fas fa-map-marked me-1"></i>
-                            Bundesländer
-                        </button>
-                        <button type="button" class="btn btn-outline-info" onclick="toggleLayer('counties')"
-                            id="countiesToggle">
-                            <i class="fas fa-border-all me-1"></i>
-                            Landkreise
-                        </button>
-                        <button type="button" class="btn btn-outline-dark" onclick="toggleSatelliteView()">
-                            <i class="fas fa-satellite me-1"></i>
-                            Satellite View
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div id="map" class="map-container"></div>
-                <!-- Progress Indicator for boundary loading -->
-                <div id="boundaryProgress" class="boundary-progress">
-                    <div class="progress-title">Lade Grenzen...</div>
-                    <div class="progress-bar">
-                        <div id="progressFill" class="progress-fill" style="width: 0%"></div>
-                    </div>
-                    <div id="progressText" class="progress-text">Initialisierung...</div>
-                </div>
-                <!-- Map Loading Progress Indicator -->
-                <div id="mapLoadingProgress" class="map-loading-progress">
-                    <div class="loading-spinner">
-                        <div class="spinner"></div>
-                    </div>
-                    <div class="loading-title">Karte wird geladen...</div>
-                    <div class="loading-progress-bar">
-                        <div id="mapLoadingFill" class="loading-progress-fill" style="width: 0%"></div>
-                    </div>
-                    <div id="mapLoadingText" class="loading-progress-text">Initialisiere Karte...</div>
-                </div>
-            </div>
+  <!-- Map Container -->
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-building me-2 text-primary"></i>
+            <span id="companyTitle">Company Details</span>
+          </h5>
+          <div class="btn-group btn-group-sm">
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              onclick="toggleLayer('service-area')"
+              id="serviceAreaToggle"
+            >
+              <i class="fas fa-map-marked-alt me-1"></i>
+              Service Area
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-success"
+              onclick="toggleLayer('germany')"
+              id="germanyToggle"
+            >
+              <i class="fas fa-map me-1"></i>
+              Deutschland
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-warning"
+              onclick="toggleLayer('states')"
+              id="statesToggle"
+            >
+              <i class="fas fa-map-marked me-1"></i>
+              Bundesländer
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-info"
+              onclick="toggleLayer('counties')"
+              id="countiesToggle"
+            >
+              <i class="fas fa-border-all me-1"></i>
+              Landkreise
+            </button>
+            <button type="button" class="btn btn-outline-dark" onclick="toggleSatelliteView()">
+              <i class="fas fa-satellite me-1"></i>
+              Satellite View
+            </button>
+          </div>
         </div>
+      </div>
+      <div class="card-body p-0">
+        <div id="map" class="map-container"></div>
+        <!-- Progress Indicator for boundary loading -->
+        <div id="boundaryProgress" class="boundary-progress">
+          <div class="progress-title">Lade Grenzen...</div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill" style="width: 0%"></div>
+          </div>
+          <div id="progressText" class="progress-text">Initialisierung...</div>
+        </div>
+        <!-- Map Loading Progress Indicator -->
+        <div id="mapLoadingProgress" class="map-loading-progress">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+          </div>
+          <div class="loading-title">Karte wird geladen...</div>
+          <div class="loading-progress-bar">
+            <div id="mapLoadingFill" class="loading-progress-fill" style="width: 0%"></div>
+          </div>
+          <div id="mapLoadingText" class="loading-progress-text">Initialisiere Karte...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Panel -->
+  <div class="col-lg-4">
+    <!-- Company Details -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-info-circle me-2 text-info"></i>
+          Company Details
+        </h6>
+      </div>
+      <div class="card-body">
+        <div id="loadingCompanyInfo" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 mb-0">Loading company information...</p>
+        </div>
+        <div id="companyInfo" style="display: none">
+          <div class="row g-2">
+            <div class="col-12">
+              <div class="detail-item">
+                <i class="fas fa-building text-muted"></i>
+                <span class="detail-label">Company Name</span>
+                <span class="detail-value" id="companyName">-</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="detail-item">
+                <i class="fas fa-hashtag text-muted"></i>
+                <span class="detail-label">BDEW Code</span>
+                <span class="detail-value" id="companyCode">-</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="detail-item">
+                <i class="fas fa-city text-muted"></i>
+                <span class="detail-label">City</span>
+                <span class="detail-value" id="companyCity">-</span>
+              </div>
+            </div>
+            <div class="col-12" id="companyAddressContainer" style="display: none">
+              <div class="detail-item">
+                <i class="fas fa-map-marker-alt text-muted"></i>
+                <span class="detail-label">Address</span>
+                <span class="detail-value" id="companyAddress">-</span>
+              </div>
+            </div>
+            <div class="col-6" id="companyLocationContainer" style="display: none">
+              <div class="detail-item">
+                <i class="fas fa-map-marker-alt text-muted"></i>
+                <span class="detail-label">Location</span>
+                <span class="detail-value" id="companyLocation">-</span>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="detail-item">
+                <i class="fas fa-link text-muted"></i>
+                <span class="detail-label">Rollout Match</span>
+                <span class="detail-value" id="rolloutMatch">-</span>
+              </div>
+            </div>
+            <div class="col-12" id="rolloutQuotaContainer" style="display: none">
+              <div class="detail-item">
+                <i class="fas fa-chart-pie text-muted"></i>
+                <span
+                  class="detail-label"
+                  title="Aktueller Ausrüstungsgrad mit intelligenten Messsystemen"
+                  >Roll-Out Quote</span
+                >
+                <span class="detail-value" id="rolloutQuota">-</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm w-100"
+              onclick="centerOnCompany()"
+            >
+              <i class="fas fa-crosshairs me-1"></i>
+              Center on Company
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm w-100 mt-1"
+              onclick="showCompanyMarkerPopup()"
+              style="display: none"
+              id="showMarkerBtn"
+            >
+              <i class="fas fa-map-marker-alt me-1"></i>
+              Show Marker Info
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Info Panel -->
-    <div class="col-lg-4">
-        <!-- Company Details -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-info-circle me-2 text-info"></i>
-                    Company Details
-                </h6>
-            </div>
-            <div class="card-body">
-                <div id="loadingCompanyInfo" class="text-center py-3">
-                    <div class="spinner-border spinner-border-sm" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2 mb-0">Loading company information...</p>
-                </div>
-                <div id="companyInfo" style="display: none;">
-                    <div class="row g-2">
-                        <div class="col-12">
-                            <div class="detail-item">
-                                <i class="fas fa-building text-muted"></i>
-                                <span class="detail-label">Company Name</span>
-                                <span class="detail-value" id="companyName">-</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-item">
-                                <i class="fas fa-hashtag text-muted"></i>
-                                <span class="detail-label">BDEW Code</span>
-                                <span class="detail-value" id="companyCode">-</span>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="detail-item">
-                                <i class="fas fa-city text-muted"></i>
-                                <span class="detail-label">City</span>
-                                <span class="detail-value" id="companyCity">-</span>
-                            </div>
-                        </div>
-                        <div class="col-12" id="companyAddressContainer" style="display: none;">
-                            <div class="detail-item">
-                                <i class="fas fa-map-marker-alt text-muted"></i>
-                                <span class="detail-label">Address</span>
-                                <span class="detail-value" id="companyAddress">-</span>
-                            </div>
-                        </div>
-                        <div class="col-6" id="companyLocationContainer" style="display: none;">
-                            <div class="detail-item">
-                                <i class="fas fa-map-marker-alt text-muted"></i>
-                                <span class="detail-label">Location</span>
-                                <span class="detail-value" id="companyLocation">-</span>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="detail-item">
-                                <i class="fas fa-link text-muted"></i>
-                                <span class="detail-label">Rollout Match</span>
-                                <span class="detail-value" id="rolloutMatch">-</span>
-                            </div>
-                        </div>
-                        <div class="col-12" id="rolloutQuotaContainer" style="display: none;">
-                            <div class="detail-item">
-                                <i class="fas fa-chart-pie text-muted"></i>
-                                <span class="detail-label"
-                                    title="Aktueller Ausrüstungsgrad mit intelligenten Messsystemen">Roll-Out
-                                    Quote</span>
-                                <span class="detail-value" id="rolloutQuota">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="centerOnCompany()">
-                            <i class="fas fa-crosshairs me-1"></i>
-                            Center on Company
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100 mt-1"
-                            onclick="showCompanyMarkerPopup()" style="display: none;" id="showMarkerBtn">
-                            <i class="fas fa-map-marker-alt me-1"></i>
-                            Show Marker Info
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <!-- Service Area Info -->
+    <div class="card mb-3">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-map-marked-alt me-2 text-success"></i>
+          Service Area
+        </h6>
+      </div>
+      <div class="card-body">
+        <div id="serviceAreaInfo">
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-map fa-2x mb-2"></i>
+            <p class="mb-0">Loading service area data...</p>
+          </div>
         </div>
-
-        <!-- Service Area Info -->
-        <div class="card mb-3">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-map-marked-alt me-2 text-success"></i>
-                    Service Area
-                </h6>
-            </div>
-            <div class="card-body">
-                <div id="serviceAreaInfo">
-                    <div class="text-center text-muted py-3">
-                        <i class="fas fa-map fa-2x mb-2"></i>
-                        <p class="mb-0">Loading service area data...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Map Controls -->
-        <div class="card">
-            <div class="card-header">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-cogs me-2 text-warning"></i>
-                    Map Controls
-                </h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMapView()">
-                        <i class="fas fa-compress-arrows-alt me-1"></i>
-                        Reset View
-                    </button>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- Map Controls -->
+    <div class="card">
+      <div class="card-header">
+        <h6 class="card-title mb-0">
+          <i class="fas fa-cogs me-2 text-warning"></i>
+          Map Controls
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetMapView()">
+            <i class="fas fa-compress-arrows-alt me-1"></i>
+            Reset View
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_css %}
+{% endblock %} {% block extra_css %}
 <!-- Leaflet CSS -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+  crossorigin=""
+/>
 
 <style>
-    /* Progress indicator styles */
-    .boundary-progress {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-        min-width: 250px;
-        display: none;
+  /* Progress indicator styles */
+  .boundary-progress {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 250px;
+    display: none;
+  }
+
+  .progress-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #333;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #198754, #20c997);
+    transition: width 0.3s ease;
+    border-radius: 10px;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+  }
+
+  /* Map Loading Progress Indicator */
+  .map-loading-progress {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    min-width: 300px;
+    text-align: center;
+    display: block;
+  }
+
+  .loading-spinner {
+    margin-bottom: 15px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
     }
 
-    .progress-title {
-        font-weight: bold;
-        margin-bottom: 8px;
-        color: #333;
+    100% {
+      transform: rotate(360deg);
     }
+  }
 
-    .progress-bar {
-        width: 100%;
-        height: 20px;
-        background-color: #f0f0f0;
-        border-radius: 10px;
-        overflow: hidden;
-        margin-bottom: 8px;
-    }
+  .loading-title {
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+  }
 
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #198754, #20c997);
-        transition: width 0.3s ease;
-        border-radius: 10px;
-    }
+  .loading-progress-bar {
+    width: 100%;
+    height: 24px;
+    background-color: #f0f0f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
 
-    .progress-text {
-        font-size: 12px;
-        color: #666;
-        text-align: center;
-    }
+  .loading-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    transition: width 0.5s ease;
+    border-radius: 12px;
+  }
 
-    /* Map Loading Progress Indicator */
-    .map-loading-progress {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255, 255, 255, 0.95);
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        padding: 25px;
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-        z-index: 1001;
-        min-width: 300px;
-        text-align: center;
-        display: block;
-    }
+  .loading-progress-text {
+    font-size: 13px;
+    color: #666;
+    margin-top: 5px;
+  }
 
-    .loading-spinner {
-        margin-bottom: 15px;
-    }
+  /* Custom boundary tooltip styles */
+  .boundary-tooltip {
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+  }
 
-    .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto;
-    }
+  .boundary-tooltip:before {
+    border-top-color: rgba(0, 0, 0, 0.8) !important;
+  }
 
-    @keyframes spin {
-        0% {
-            transform: rotate(0deg);
-        }
+  /* Override Leaflet polygon fills for visual control while keeping interaction */
+  .germany-boundary {
+    fill-opacity: 0.2 !important;
+    /* Visual transparency */
+  }
 
-        100% {
-            transform: rotate(360deg);
-        }
-    }
+  .states-boundary {
+    fill-opacity: 0.25 !important;
+    /* Visual transparency */
+  }
 
-    .loading-title {
-        font-weight: bold;
-        margin-bottom: 15px;
-        color: #333;
-        font-size: 16px;
-    }
+  .counties-boundary {
+    fill-opacity: 0.15 !important;
+    /* Visual transparency */
+  }
 
-    .loading-progress-bar {
-        width: 100%;
-        height: 24px;
-        background-color: #f0f0f0;
-        border-radius: 12px;
-        overflow: hidden;
-        margin-bottom: 10px;
-    }
+  /* Ensure service areas stay on top visually */
+  .leaflet-overlay-pane svg {
+    pointer-events: auto !important;
+  }
 
-    .loading-progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #007bff, #0056b3);
-        transition: width 0.5s ease;
-        border-radius: 12px;
-    }
+  /* Company marker styles */
+  .company-marker {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
 
-    .loading-progress-text {
-        font-size: 13px;
-        color: #666;
-        margin-top: 5px;
-    }
+  .company-marker:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
 
-    /* Custom boundary tooltip styles */
-    .boundary-tooltip {
-        background: rgba(0, 0, 0, 0.8) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 4px !important;
-        font-size: 12px !important;
-        padding: 4px 8px !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
-    }
+  /* Company popup styles */
+  .company-popup .popup-title {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+  }
 
-    .boundary-tooltip:before {
-        border-top-color: rgba(0, 0, 0, 0.8) !important;
-    }
+  .company-popup .detail-row {
+    margin: 5px 0;
+    font-size: 13px;
+    line-height: 1.4;
+  }
 
-    /* Override Leaflet polygon fills for visual control while keeping interaction */
-    .germany-boundary {
-        fill-opacity: 0.2 !important;
-        /* Visual transparency */
-    }
-
-    .states-boundary {
-        fill-opacity: 0.25 !important;
-        /* Visual transparency */
-    }
-
-    .counties-boundary {
-        fill-opacity: 0.15 !important;
-        /* Visual transparency */
-    }
-
-    /* Ensure service areas stay on top visually */
-    .leaflet-overlay-pane svg {
-        pointer-events: auto !important;
-    }
-
-    /* Company marker styles */
-    .company-marker {
-        background: linear-gradient(135deg, #007bff, #0056b3);
-        border: 3px solid white;
-        border-radius: 50%;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .company-marker:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    /* Company popup styles */
-    .company-popup .popup-title {
-        margin: 0 0 10px 0;
-        font-size: 16px;
-        font-weight: bold;
-        color: #333;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 5px;
-    }
-
-    .company-popup .detail-row {
-        margin: 5px 0;
-        font-size: 13px;
-        line-height: 1.4;
-    }
-
-    .company-popup .detail-row strong {
-        color: #555;
-    }
+  .company-popup .detail-row strong {
+    color: #555;
+  }
 </style>
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <!-- Coordinate transformations are now handled server-side -->
 <!-- No need for Proj4 libraries in frontend anymore -->
 <!-- Leaflet JavaScript -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
 
 <!-- Note: Using direct Overpass API calls instead of overpass-frontend for better reliability -->
 
 <script>
-    // Note: Coordinate system definitions removed as transformations are now server-side
-    // GeoJSON data comes pre-transformed in WGS84 format
-
-    // Global variables
-    let map;
-    let companyData;
-    let companyMarker;
-    let serviceAreaLayer;
-    let germanyLayer;
-    let statesLayer;
-    let countiesLayer;
-    let currentTileLayer;
-    let satelliteLayer;
-    let isFullscreen = false;
-    // Note: Using direct Overpass API calls instead of overpass-frontend library
-
-    // Tracking für automatisches Neuladen bei Kartenänderungen
-    let lastCountiesLoadBounds = null;
-    let lastCountiesLoadZoom = null;
-    let countiesLoadTimeout = null;
-
-    // Intelligentes Caching-System für Counties
-    let countiesCache = new Map(); // Key: "lat1,lng1,lat2,lng2", Value: {features: [], timestamp: Date}
-    let countiesCacheTimeout = 10 * 60 * 1000; // 10 Minuten Cache-Gültigkeit
-    let loadedBounds = []; // Array von Bounds-Objekten, die bereits geladen wurden
-
-    // Cache-Hilfsfunktionen
-    function getBoundsKey(bounds) {
-        return `${bounds.getSouth().toFixed(3)},${bounds.getWest().toFixed(3)},${bounds.getNorth().toFixed(3)},${bounds.getEast().toFixed(3)}`;
-    }
-
-    function isBoundsInCache(targetBounds) {
-        const now = Date.now();
-
-        // Prüfe ob der Zielbereich bereits vollständig von gecachten Bereichen abgedeckt ist
-        for (const cachedArea of loadedBounds) {
-            if (now - cachedArea.timestamp > countiesCacheTimeout) {
-                continue; // Cache abgelaufen
-            }
-
-            // Prüfe ob targetBounds vollständig in cachedArea.bounds enthalten ist
-            if (targetBounds.getSouth() >= cachedArea.bounds.getSouth() &&
-                targetBounds.getNorth() <= cachedArea.bounds.getNorth() &&
-                targetBounds.getWest() >= cachedArea.bounds.getWest() &&
-                targetBounds.getEast() <= cachedArea.bounds.getEast()) {
-                return true; // Vollständig gecacht
-            }
-        }
-        return false;
-    }
-
-    function getExpandedBounds(bounds, factor = 1.5) {
-        // Erweitere Bounds um einen Faktor für besseres Caching
-        const latDiff = (bounds.getNorth() - bounds.getSouth()) * (factor - 1) / 2;
-        const lngDiff = (bounds.getEast() - bounds.getWest()) * (factor - 1) / 2;
-
-        return L.latLngBounds(
-            L.latLng(Math.max(bounds.getSouth() - latDiff, 47.0), Math.max(bounds.getWest() - lngDiff, 5.8)),
-            L.latLng(Math.min(bounds.getNorth() + latDiff, 55.1), Math.min(bounds.getEast() + lngDiff, 15.1))
-        );
-    }
-
-    function cleanupCache() {
-        const now = Date.now();
-
-        // Entferne abgelaufene Cache-Einträge
-        for (const [key, entry] of countiesCache.entries()) {
-            if (now - entry.timestamp > countiesCacheTimeout) {
-                countiesCache.delete(key);
-            }
-        }
-
-        // Entferne abgelaufene Bounds
-        loadedBounds = loadedBounds.filter(area => now - area.timestamp <= countiesCacheTimeout);
-    }
-
-    function getCachedFeaturesForBounds(targetBounds) {
-        const now = Date.now();
-        const features = [];
-
-        for (const cachedArea of loadedBounds) {
-            if (now - cachedArea.timestamp > countiesCacheTimeout) {
-                continue; // Cache abgelaufen
-            }
-
-            // Hole Features für diesen Bereich aus dem Cache
-            const key = getBoundsKey(cachedArea.bounds);
-            const cacheEntry = countiesCache.get(key);
-            if (cacheEntry && now - cacheEntry.timestamp <= countiesCacheTimeout) {
-                // Filtere Features, die im Zielbereich liegen
-                for (const feature of cacheEntry.features) {
-                    if (isFeatureInBounds(feature, targetBounds)) {
-                        features.push(feature);
-                    }
-                }
-            }
-        }
-
-        return features;
-    }
-
-    function isFeatureInBounds(feature, bounds) {
-        // Einfache Prüfung ob Feature-Zentrum in Bounds liegt
-        // Für komplexere Geometrien könnte man das verfeinern
-        try {
-            if (feature.geometry && feature.geometry.coordinates) {
-                let coords = feature.geometry.coordinates;
-
-                // Flatten coordinates to find center
-                while (Array.isArray(coords[0][0])) {
-                    coords = coords.flat();
-                }
-
-                if (coords.length > 0) {
-                    const center = coords.reduce((acc, coord) => [
-                        acc[0] + coord[0] / coords.length,
-                        acc[1] + coord[1] / coords.length
-                    ], [0, 0]);
-
-                    return bounds.contains(L.latLng(center[1], center[0]));
-                }
-            }
-        } catch (e) {
-            console.warn('Error checking feature bounds:', e);
-        }
-        return false;
-    }
-
-    // Helper function to create consistent feature handlers for counties
-    function createCountyFeatureHandler(popupPrefix) {
-        return function (feature, layer) {
-            // Tooltip für den Hover-Effekt
-            layer.bindTooltip(feature.properties.name, {
-                sticky: true,
-                direction: 'center',
-                className: 'boundary-tooltip'
-            });
-
-            // Klick-Event für das Popup
-            layer.on('click', function (e) {
-                const popupContent = `
-                    <div style="font-family: Arial, sans-serif;">
-                        <h6 style="margin: 0 0 8px 0; color: #333;">
-                            <i class="fas fa-map-marker-alt" style="margin-right: 5px;"></i>
-                            ${popupPrefix}
-                        </h6>
-                        <p style="margin: 0; font-size: 14px; font-weight: bold;">
-                            ${feature.properties.name}
-                        </p>
-                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
-                            Verwaltungsebene: ${feature.properties.admin_level}<br>
-                            Geometrie: ${feature.geometry.type}
-                        </p>
-                    </div>
-                `;
-                L.popup()
-                    .setLatLng(e.latlng)
-                    .setContent(popupContent)
-                    .openOn(map);
-            });
-
-            // Hover-Effekte für jedes einzelne Polygon
-            layer.on('mouseover', function (e) {
-                this.setStyle({
-                    weight: 3,
-                    fillOpacity: Math.min(0.9, 0.7 + 0.2)
-                });
-            });
-
-            layer.on('mouseout', function (e) {
-                this.setStyle({
-                    weight: 1,
-                    fillOpacity: 0.7
-                });
-            });
-        };
-    }
-
-    // Helferfunktion zum korrekten Zusammenfügen von OSM-Geometrien zu geschlossenen Polygonen
-    function buildPolygonsFromOverpass(members) {
-        const ways = new Map();
-        const nodes = new Map();
-
-        // 1. Sammle alle Wege und ihre Start-/Endpunkte
-        for (const member of members) {
-            if (member.type === 'way' && member.geometry) {
-                const wayId = member.ref;
-                const coords = member.geometry.map(node => [node.lon, node.lat]);
-                if (coords.length < 2) continue;
-
-                const firstNodeId = `${coords[0][0]},${coords[0][1]}`;
-                const lastNodeId = `${coords[coords.length - 1][0]},${coords[coords.length - 1][1]}`;
-
-                ways.set(wayId, {
-                    coords: coords,
-                    first: firstNodeId,
-                    last: lastNodeId
-                });
-
-                if (!nodes.has(firstNodeId)) nodes.set(firstNodeId, []);
-                if (!nodes.has(lastNodeId)) nodes.set(lastNodeId, []);
-                nodes.get(firstNodeId).push(wayId);
-                nodes.get(lastNodeId).push(wayId);
-            }
-        }
-
-        const polygons = [];
-        const usedWays = new Set();
-
-        // 2. Füge die Wege zu Polygon-Ringen zusammen
-        for (const [startWayId, startWay] of ways.entries()) {
-            if (usedWays.has(startWayId)) continue;
-
-            let currentRing = [...startWay.coords];
-            usedWays.add(startWayId);
-
-            let pathOpen = true;
-            while (pathOpen) {
-                const lastNodeId = `${currentRing[currentRing.length - 1][0]},${currentRing[currentRing.length - 1][1]}`;
-
-                let foundNext = false;
-                // Finde den nächsten Weg, der am Ende des aktuellen Rings beginnt
-                if (nodes.has(lastNodeId)) {
-                    for (const nextWayId of nodes.get(lastNodeId)) {
-                        if (usedWays.has(nextWayId)) continue;
-
-                        const nextWay = ways.get(nextWayId);
-                        usedWays.add(nextWayId);
-
-                        let nextCoords = nextWay.coords;
-                        // Wenn der nächste Weg in die falsche Richtung zeigt, drehe ihn um
-                        if (nextWay.last === lastNodeId) {
-                            nextCoords = [...nextCoords].reverse();
-                        }
-
-                        // Füge die Koordinaten hinzu (ohne den ersten, doppelten Punkt)
-                        currentRing.push(...nextCoords.slice(1));
-                        foundNext = true;
-                        break;
-                    }
-                }
-
-                // Wenn kein weiterer Weg gefunden wurde, ist der Ring (hoffentlich) geschlossen
-                if (!foundNext) {
-                    pathOpen = false;
-                }
-            }
-            polygons.push(currentRing);
-        }
-
-        if (polygons.length === 0) return null;
-
-        // Gib die Geometrie als MultiPolygon zurück (auch wenn es nur ein Polygon ist)
-        return {
-            type: 'MultiPolygon',
-            coordinates: polygons.map(ring => [ring]) // Jeder Ring muss in ein extra Array gepackt werden
-        };
-    }
-
-    const companyId = {{ company_id }};
-    const bdewCode = "{{ bdew_code if bdew_code else '' }}";
-    const companyName = "{{ company_name if company_name else '' }}";
-
-    // Map configuration
-    const MAP_CONFIG = {
-        center: [49.5897, 11.0045], // Default to Erlangen
-        defaultZoom: 10,
-        maxZoom: 19,
-        minZoom: 5
-    };
-
-    // Note: GeoJSON data is now pre-transformed to WGS84 on the server side
-    // No coordinate transformation is needed in the frontend
-
-    // Initialize map
-    function initializeMap() {
-        try {
-            // Show loading progress
-            showMapLoadingProgress();
-            updateMapLoadingProgress(10, 'Lade Kartenkomponenten...');
-
-            // Note: Coordinate transformation is now handled server-side
-            console.log('Initializing map with pre-transformed GeoJSON data');
-
-            // Create map
-            updateMapLoadingProgress(30, 'Erstelle Karte...');
-            map = L.map('map', {
-                center: MAP_CONFIG.center,
-                zoom: MAP_CONFIG.defaultZoom,
-                maxZoom: MAP_CONFIG.maxZoom,
-                minZoom: MAP_CONFIG.minZoom,
-                zoomControl: true,
-                attributionControl: true
-            });
-
-            // Add OpenStreetMap tile layer
-            updateMapLoadingProgress(50, 'Lade Kartenkacheln...');
-            currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
-            }).addTo(map);
-
-            // Create satellite layer
-            updateMapLoadingProgress(60, 'Initialisiere Satellitenansicht...');
-            satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: '© <a href="https://www.arcgis.com/">ArcGIS</a>',
-                maxZoom: 19
-            });
-
-            // Initialize layers with proper Z-index order (bottom to top)
-            updateMapLoadingProgress(70, 'Initialisiere Ebenen...');
-            // Deutschland (unterste Ebene)
-            germanyLayer = L.layerGroup();
-            // Bundesländer (darüber)
-            statesLayer = L.layerGroup();
-            // Landkreise (fast oberste Ebene)
-            countiesLayer = L.layerGroup();
-            // Servicebereich (ganz oben)
-            serviceAreaLayer = L.layerGroup().addTo(map);
-
-            // Load company data
-            updateMapLoadingProgress(80, 'Lade Unternehmensdaten...');
-            loadCompanyData();
-
-            updateMapLoadingProgress(90, 'Lade Servicebereich...');
-            loadServiceArea();
-
-            updateMapLoadingProgress(100, 'Karte erfolgreich geladen!');
-
-            // Setup event listeners for automatic counties reloading
-            map.on('moveend', handleMapViewChange);
-            map.on('zoomend', handleMapViewChange);
-
-            // Hide loading progress after a short delay
-            setTimeout(() => {
-                hideMapLoadingProgress();
-                showMessage('Karte erfolgreich geladen', 'success');
-            }, 500);
-
-        } catch (error) {
-            console.error('Error initializing map:', error);
-            updateMapLoadingProgress(100, 'Fehler beim Laden der Karte!');
-            setTimeout(() => {
-                hideMapLoadingProgress();
-                showMessage('Fehler beim Laden der Karte: ' + error.message, 'danger');
-            }, 1000);
-        }
-    }
-
-    // Load company data
-    async function loadCompanyData() {
-        try {
-            const response = await apiRequest(`/companies/api/${companyId}`);
-            companyData = response;
-
-            // Update UI
-            document.getElementById('companyTitle').textContent = `${response.bdew_name} Details`;
-            document.getElementById('companyName').textContent = response.bdew_name;
-            document.getElementById('companyCode').textContent = response.bdew_code;
-            document.getElementById('companyCity').textContent = response.bdew_city || 'N/A';
-
-            // Update address information
-            updateAddressDisplay(response);
-
-            // Add company marker if coordinates are available and update location info
-            const hasMarker = addCompanyMarker(response);
-            const locationContainer = document.getElementById('companyLocationContainer');
-            const locationEl = document.getElementById('companyLocation');
-
-            if (hasMarker && response.company_latitude && response.company_longitude) {
-                const lat = parseFloat(response.company_latitude);
-                const lng = parseFloat(response.company_longitude);
-                locationEl.innerHTML = `<span class="text-success"><i class="fas fa-map-marker-alt me-1"></i>Geocoded</span>`;
-                locationContainer.style.display = 'block';
-            } else {
-                locationEl.innerHTML = '<span class="text-muted">No coordinates</span>';
-                locationContainer.style.display = 'block';
-            }
-
-            // Update rollout match with link if available
-            const rolloutMatchEl = document.getElementById('rolloutMatch');
-            if (response.rollout_quota && response.rollout_quota.bnetza_name) {
-                // Use BDEW ID for highlighting in rollout list
-                const rolloutName = response.rollout_quota.bnetza_name;
-                rolloutMatchEl.innerHTML = `
-                    <a href="/rollout/?highlight_bdew_id=${response.id}"
-                       class="text-primary text-decoration-none"
-                       title="View in Roll-Out Data">
-                        ${rolloutName}
-                        <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
-                    </a>
-                `;
-            } else if (response.rollout_report_name) {
-                // Fallback to rollout_report_name if available (legacy support)
-                rolloutMatchEl.innerHTML = `
-                    <a href="/rollout/?highlight=${encodeURIComponent(response.rollout_report_name)}"
-                       class="text-primary text-decoration-none"
-                       title="View in Roll-Out Data">
-                        ${response.rollout_report_name}
-                        <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
-                    </a>
-                `;
-            } else {
-                rolloutMatchEl.innerHTML = '<span class="text-muted">No match</span>';
-            }
-
-            // Update rollout quota if available
-            const rolloutQuotaContainer = document.getElementById('rolloutQuotaContainer');
-            const rolloutQuotaEl = document.getElementById('rolloutQuota');
-            if (response.rollout_quota) {
-                const quota = response.rollout_quota;
-                rolloutQuotaEl.innerHTML = `
-                    <span class="fw-bold ${quota.quota_percentage >= 80 ? 'text-success' : quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">${quota.quota_percentage}%</span>
-                    <small class="text-muted d-block">Stichtag: ${quota.reference_date}</small>
-                `;
-                rolloutQuotaContainer.style.display = 'block';
-            } else if (response.rollout_report_name || (response.rollout_quota && response.rollout_quota.bnetza_name)) {
-                // Show "no quota data" if there's a match but no quota
-                rolloutQuotaEl.innerHTML = '<span class="text-muted">No quota data available</span>';
-                rolloutQuotaContainer.style.display = 'block';
-            } else {
-                rolloutQuotaContainer.style.display = 'none';
-            }
-
-            // Show company info, hide loading
-            document.getElementById('loadingCompanyInfo').style.display = 'none';
-            document.getElementById('companyInfo').style.display = 'block';
-
-        } catch (error) {
-            console.error('Error loading company data:', error);
-            // Only show message if not during initial loading
-            if (!document.getElementById('mapLoadingProgress').style.display ||
-                document.getElementById('mapLoadingProgress').style.display === 'none') {
-                showMessage('Error loading company data: ' + error.message, 'danger');
-            }
-
-            document.getElementById('loadingCompanyInfo').innerHTML =
-                '<div class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading company data</div>';
-        }
-    }
-
-    // Add company marker to map
-    function addCompanyMarker(companyData) {
-        // Remove existing marker if present
-        if (companyMarker) {
-            map.removeLayer(companyMarker);
-            companyMarker = null;
-        }
-
-        // Check if company has coordinates
-        if (companyData.company_latitude && companyData.company_longitude) {
-            const lat = parseFloat(companyData.company_latitude);
-            const lng = parseFloat(companyData.company_longitude);
-
-            // Validate coordinates
-            if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-                // Create custom icon for company marker
-                const companyIcon = L.divIcon({
-                    className: 'company-marker',
-                    html: '<i class="fas fa-building"></i>',
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 30],
-                    popupAnchor: [0, -30]
-                });
-
-                // Create marker
-                companyMarker = L.marker([lat, lng], { icon: companyIcon });
-
-                // Create popup content
-                const popupContent = `
-                    <div class="company-popup">
-                        <h6 class="popup-title">
-                            <i class="fas fa-building me-2 text-primary"></i>
-                            ${companyData.bdew_name}
-                        </h6>
-                        <div class="popup-content">
-                            <div class="detail-row">
-                                <strong>BDEW Code:</strong> ${companyData.bdew_code}
-                            </div>
-                            ${buildAddressDisplay(companyData)}
-                            <div class="detail-row">
-                                <strong>Koordinaten:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}
-                            </div>
-                            ${companyData.rollout_quota ? `
-                                <div class="detail-row">
-                                    <strong>Roll-Out Quote:</strong>
-                                    <span class="fw-bold ${companyData.rollout_quota.quota_percentage >= 80 ? 'text-success' : companyData.rollout_quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">
-                                        ${companyData.rollout_quota.quota_percentage}%
-                                    </span>
-                                    <small class="text-muted d-block">Stichtag: ${companyData.rollout_quota.reference_date}</small>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-
-                companyMarker.bindPopup(popupContent);
-
-                // Add marker to map
-                companyMarker.addTo(map);
-
-                console.log(`Company marker added at coordinates: ${lat}, ${lng}`);
-
-                // Update "Center on Company" button functionality
-                window.centerOnCompanyMarker = function () {
-                    if (companyMarker) {
-                        map.setView([lat, lng], Math.max(map.getZoom(), 12));
-                        companyMarker.openPopup();
-                        showMessage('Centered on company location', 'success');
-                    }
-                };
-
-                // Show the marker info button
-                const showMarkerBtn = document.getElementById('showMarkerBtn');
-                if (showMarkerBtn) {
-                    showMarkerBtn.style.display = 'block';
-                }
-
-                return true; // Marker was added
-            } else {
-                console.warn('Invalid company coordinates:', lat, lng);
-            }
-        } else {
-            console.log('No coordinates available for company');
-        }
-
-        return false; // No marker was added
-    }
-
-    // Helper function to build formatted address display
-    function buildAddressDisplay(companyData) {
-        const addressParts = [];
-        let hasAddress = false;
-
-        // Street address
-        if (companyData.vnbdigital_address) {
-            addressParts.push(`<strong>Adresse:</strong> ${companyData.vnbdigital_address}`);
-            hasAddress = true;
-        }
-
-        // Build city line with postcode
-        const cityParts = [];
-        if (companyData.vnbdigital_postcode) {
-            cityParts.push(companyData.vnbdigital_postcode);
-        }
-
-        const city = companyData.vnbdigital_city || companyData.bdew_city;
-        if (city) {
-            cityParts.push(city.trim());
-        }
-
-        if (cityParts.length > 0) {
-            const cityLine = cityParts.join(' ');
-            if (hasAddress) {
-                // If we have a street address, show city as separate line
-                addressParts.push(`<strong>Ort:</strong> ${cityLine}`);
-            } else {
-                // If no street address, show city as main address
-                addressParts.push(`<strong>Stadt:</strong> ${cityLine}`);
-            }
-        }
-
-        // Return formatted address HTML
-        if (addressParts.length > 0) {
-            return addressParts.map(part => `<div class="detail-row">${part}</div>`).join('');
-        } else {
-            return '<div class="detail-row"><strong>Stadt:</strong> N/A</div>';
-        }
-    }
-
-    // Helper function to update address display in the UI
-    function updateAddressDisplay(companyData) {
-        const addressContainer = document.getElementById('companyAddressContainer');
-        const addressEl = document.getElementById('companyAddress');
-
-        const addressParts = [];
-
-        // Build street address
-        if (companyData.vnbdigital_address) {
-            addressParts.push(companyData.vnbdigital_address);
-        }
-
-        // Build city with postcode
-        const cityParts = [];
-        if (companyData.vnbdigital_postcode) {
-            cityParts.push(companyData.vnbdigital_postcode);
-        }
-
-        const city = companyData.vnbdigital_city || companyData.bdew_city;
-        if (city) {
-            cityParts.push(city.trim());
-        }
-
-        if (cityParts.length > 0) {
-            addressParts.push(cityParts.join(' '));
-        }
-
-        // Update UI
-        if (addressParts.length > 0) {
-            addressEl.innerHTML = addressParts.join('<br>');
-            addressContainer.style.display = 'block';
-        } else {
-            addressContainer.style.display = 'none';
-        }
-    }
-
-    // Load service area
-    async function loadServiceArea() {
-        try {
-            const response = await apiRequest(`/companies/api/${companyId}/geojson`);
-
-            if (response.has_geojson) {
-                console.log('Original GeoJSON:', response.geojson);
-
-                // Always try to transform coordinates
-                let geojsonData = response.geojson;
-
-                // GeoJSON data is already in WGS84 format (transformed server-side)
-                console.log('Using pre-transformed GeoJSON data');
-
-                // Handle FeatureCollection - no transformation needed
-                if (geojsonData.type === 'FeatureCollection') {
-                    console.log('Using FeatureCollection directly');
-                } else {
-                    console.log('Using single Feature/Geometry directly');
-                }
-
-                console.log('GeoJSON data ready for mapping:', geojsonData);
-
-                // Add transformed GeoJSON to map
-                const geoJsonLayer = L.geoJSON(geojsonData, {
-                    style: {
-                        color: '#007bff',
-                        weight: 2,
-                        opacity: 0.8,
-                        fillOpacity: 0.3
-                    },
-                    onEachFeature: function (feature, layer) {
-                        // Add popup with feature info if available
-                        if (feature.properties) {
-                            const popupContent = Object.entries(feature.properties)
-                                .filter(([key, value]) => value && key !== 'geometry' && !key.startsWith('_'))
-                                .slice(0, 5) // Limit to first 5 properties
-                                .map(([key, value]) => `<strong>${key.replace('properties.', '')}:</strong> ${value}`)
-                                .join('<br>');
-
-                            if (popupContent) {
-                                layer.bindPopup(`
-                                    <div class="popup-content">
-                                        <h6><i class="fas fa-map-marked-alt me-2"></i>Service Area</h6>
-                                        ${popupContent}
-                                    </div>
-                                `);
-                            }
-                        }
-                    }
-                });
-
-                serviceAreaLayer.addLayer(geoJsonLayer);
-
-                // Try to fit map to service area bounds
-                try {
-                    const bounds = geoJsonLayer.getBounds();
-                    if (bounds.isValid()) {
-                        console.log('Fitting to bounds:', bounds);
-                        map.fitBounds(bounds, { padding: [20, 20] });
-                    } else {
-                        console.warn('Invalid bounds, using fallback location');
-                        // Center on Germany as fallback
-                        map.setView([51.1657, 10.4515], 6);
-                    }
-                } catch (boundsError) {
-                    console.error('Error with bounds:', boundsError);
-                    map.setView([51.1657, 10.4515], 6);
-                }
-
-                // Update service area info
-                const coordCount = geojsonData.features?.[0]?.geometry?.coordinates?.[0]?.length ||
-                    geojsonData.geometry?.coordinates?.[0]?.length || 0;
-                document.getElementById('serviceAreaInfo').innerHTML = `
-                    <div class="text-success">
-                        <i class="fas fa-check-circle mb-2"></i>
-                        <p class="mb-1"><strong>Service area loaded</strong></p>
-                        <p class="mb-1 small text-muted">
-                            Type: ${geojsonData.type}<br>
-                            Features: ${geojsonData.features?.length || 1}<br>
-                            ${coordCount > 0 ? `Coordinates: ${coordCount} points` : ''}
-                        </p>
-                        <div class="d-grid gap-1 mt-2">
-                            <button class="btn btn-outline-primary btn-sm" onclick="fitServiceArea()">
-                                <i class="fas fa-expand-arrows-alt me-1"></i>
-                                Zoom to Area
-                            </button>
-                        </div>
-                    </div>
-                `;
-
-            } else {
-                // No service area data
-                document.getElementById('serviceAreaInfo').innerHTML = `
-                    <div class="text-muted">
-                        <i class="fas fa-info-circle mb-2"></i>
-                        <p class="mb-1"><strong>No service area data</strong></p>
-                        <p class="mb-0 small">This company has no geographical service area defined</p>
-                    </div>
-                `;
-
-                // Center on Erlangen as fallback
-                map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
-            }
-
-        } catch (error) {
-            console.error('Error loading service area:', error);
-
-            // Only show message if not during initial loading
-            if (!document.getElementById('mapLoadingProgress').style.display ||
-                document.getElementById('mapLoadingProgress').style.display === 'none') {
-                showMessage('Error loading service area: ' + error.message, 'danger');
-            }
-
-            document.getElementById('serviceAreaInfo').innerHTML = `
-                <div class="text-danger">
-                    <i class="fas fa-exclamation-triangle mb-2"></i>
-                    <p class="mb-1"><strong>Error loading service area</strong></p>
-                    <p class="mb-0 small">${error.message}</p>
-                </div>
-            `;
-        }
-    }
-
-    // Utility function to show messages
-    function showMessage(message, type = 'info') {
-        // Create a simple toast-like notification
-        const toast = document.createElement('div');
-        toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
-        toast.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 250px;';
-        toast.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-
-        document.body.appendChild(toast);
-
-        // Auto-remove after 3 seconds
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.remove();
-            }
-        }, 3000);
-    }
-
-    // Map control functions
-    function resetMapView() {
-        if (map) {
-            map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
-            showMessage('Map view reset', 'info');
-        }
-    }
-
-    function centerOnCompany() {
-        // Priority 1: Center on company marker if available
-        if (companyMarker) {
-            const markerLatLng = companyMarker.getLatLng();
-            map.setView(markerLatLng, Math.max(map.getZoom(), 12));
-            companyMarker.openPopup();
-            showMessage('Centered on company location', 'success');
-            return;
-        }
-
-        // Priority 2: Center on service area if available
-        if (map && serviceAreaLayer && serviceAreaLayer.getLayers().length > 0) {
-            const group = new L.featureGroup(serviceAreaLayer.getLayers());
-            const bounds = group.getBounds();
-            if (bounds.isValid()) {
-                const center = bounds.getCenter();
-                map.panTo(center);
-                showMessage('Centered on service area', 'success');
-                return;
-            }
-        }
-
-        // Fallback: Default location
-        map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
-        showMessage('No specific location found, centered on default location', 'info');
-    }
-
-    function showCompanyMarkerPopup() {
-        if (companyMarker) {
-            companyMarker.openPopup();
-            showMessage('Showing company marker information', 'info');
-        } else {
-            showMessage('No company marker available', 'warning');
-        }
-    }
-
-    function fitServiceArea() {
-        if (map && serviceAreaLayer && serviceAreaLayer.getLayers().length > 0) {
-            // Get bounds from all layers in the service area layer group
-            const group = new L.featureGroup(serviceAreaLayer.getLayers());
-            const bounds = group.getBounds();
-            if (bounds.isValid()) {
-                map.fitBounds(bounds);
-                showMessage('Fitted to service area', 'success');
-            } else {
-                showMessage('Service area has no valid bounds', 'warning');
-            }
-        } else {
-            showMessage('No service area to fit to', 'warning');
-        }
-    }
-
-    function toggleLayer(layerType) {
-        const button = document.getElementById(layerType.replace('-', '') + 'Toggle');
-
-        if (layerType === 'service-area') {
-            if (map.hasLayer(serviceAreaLayer)) {
-                map.removeLayer(serviceAreaLayer);
-                button.classList.add('btn-secondary');
-                button.classList.remove('btn-outline-secondary');
-            } else {
-                map.addLayer(serviceAreaLayer);
-                button.classList.remove('btn-secondary');
-                button.classList.add('btn-outline-secondary');
-            }
-        } else if (layerType === 'germany') {
-            if (map.hasLayer(germanyLayer)) {
-                map.removeLayer(germanyLayer);
-                button.classList.remove('btn-success');
-                button.classList.add('btn-outline-success');
-                // Removed notification to avoid interference with progress bar
-            } else {
-                loadGermanyBorders();
-                // Add Germany layer first (bottom)
-                map.addLayer(germanyLayer);
-                // Ensure correct layer order by re-adding other layers
-                ensureLayerOrder();
-                button.classList.add('btn-success');
-                button.classList.remove('btn-outline-success');
-                // Removed notification to avoid interference with progress bar
-            }
-        } else if (layerType === 'states') {
-            if (map.hasLayer(statesLayer)) {
-                map.removeLayer(statesLayer);
-                button.classList.remove('btn-warning');
-                button.classList.add('btn-outline-warning');
-                // Removed notification to avoid interference with progress bar
-            } else {
-                loadStatesBorders();
-                // Add states layer and ensure correct order
-                map.addLayer(statesLayer);
-                ensureLayerOrder();
-                button.classList.add('btn-warning');
-                button.classList.remove('btn-outline-warning');
-                // Removed notification to avoid interference with progress bar
-            }
-        } else if (layerType === 'counties') {
-            if (map.hasLayer(countiesLayer)) {
-                map.removeLayer(countiesLayer);
-                button.classList.remove('btn-info');
-                button.classList.add('btn-outline-info');
-                // Cache bleibt erhalten für späteren Toggle
-            } else {
-                // Prüfe beim Einblenden, ob neue Daten nötig sind
-                if (shouldReloadCounties()) {
-                    loadCountiesBorders();
-                } else {
-                    console.log('Loading counties from cache for toggle...');
-                    // Lade aus Cache für aktuellen Bereich
-                    const currentBounds = map.getBounds();
-                    const cachedFeatures = getCachedFeaturesForBounds(currentBounds);
-
-                    if (cachedFeatures.length > 0) {
-                        countiesLayer.clearLayers();
-                        const cachedFeatureCollection = {
-                            type: "FeatureCollection",
-                            features: cachedFeatures
-                        };
-
-                        const boundaryLayer = L.geoJSON(cachedFeatureCollection, {
-                            style: {
-                                color: '#0dcaf0',
-                                weight: 1,
-                                opacity: 0.6,
-                                fillOpacity: 0.7,
-                                fillColor: '#0dcaf0',
-                                className: 'counties-boundary',
-                                interactive: true
-                            },
-                            onEachFeature: createCountyFeatureHandler('Landkreis')
-                        });
-                        countiesLayer.addLayer(boundaryLayer);
-                        console.log(`Loaded ${cachedFeatures.length} counties from cache for toggle`);
-                    } else {
-                        // Fallback: Lade von API
-                        loadCountiesBorders();
-                    }
-                }
-
-                // Add counties layer and ensure correct order
-                map.addLayer(countiesLayer);
-                ensureLayerOrder();
-                button.classList.add('btn-info');
-                button.classList.remove('btn-outline-info');
-            }
-        }
-    }
-
-    function toggleSatelliteView() {
-        if (map.hasLayer(currentTileLayer)) {
-            map.removeLayer(currentTileLayer);
-            map.addLayer(satelliteLayer);
-            showMessage('Satellite view activated', 'info');
-        } else {
-            map.removeLayer(satelliteLayer);
-            map.addLayer(currentTileLayer);
-            showMessage('Street map activated', 'info');
-        }
-    }
-
-    function toggleFullscreen() {
-        const mapContainer = document.getElementById('map');
-        const button = event.target.closest('button');
-        const icon = button.querySelector('i');
-
-        if (!isFullscreen) {
-            mapContainer.style.position = 'fixed';
-            mapContainer.style.top = '0';
-            mapContainer.style.left = '0';
-            mapContainer.style.width = '100vw';
-            mapContainer.style.height = '100vh';
-            mapContainer.style.zIndex = '9999';
-            mapContainer.style.backgroundColor = 'white';
-
-            icon.className = 'fas fa-compress me-1';
-            button.innerHTML = '<i class="fas fa-compress me-1"></i>Exit Fullscreen';
-            isFullscreen = true;
-
-            setTimeout(() => {
-                if (map) map.invalidateSize();
-            }, 100);
-
-        } else {
-            mapContainer.style.position = '';
-            mapContainer.style.top = '';
-            mapContainer.style.left = '';
-            mapContainer.style.width = '';
-            mapContainer.style.height = '';
-            mapContainer.style.zIndex = '';
-            mapContainer.style.backgroundColor = '';
-
-            icon.className = 'fas fa-expand me-1';
-            button.innerHTML = '<i class="fas fa-expand me-1"></i>Fullscreen';
-            isFullscreen = false;
-
-            setTimeout(() => {
-                if (map) map.invalidateSize();
-            }, 100);
-        }
-    }
-
-    // Helper function to detect German counties
-    function isGermanCounty(element) {
-        if (!element.tags) return false;
-
-        const name = element.tags.name.toLowerCase();
-        const countryTag = element.tags['is_in:country'] || element.tags['is_in:country_code'];
-
-        // German county indicators
-        const germanCountyIndicators = [
-            'kreis', 'landkreis', 'stadtkreis', 'kreisfreie stadt',
-            'regionalverband', 'städteregion'
-        ];
-
-        const hasGermanCountyName = germanCountyIndicators.some(indicator =>
-            name.includes(indicator)
-        );
-
-        const isInGermany = countryTag === 'Germany' ||
-            countryTag === 'Deutschland' ||
-            countryTag === 'DE';
-
-        return hasGermanCountyName || isInGermany;
-    }
-
-    // Progress indicator functions
-    function showProgress(title, text = 'Initialisierung...') {
-        const progressEl = document.getElementById('boundaryProgress');
-        const titleEl = progressEl.querySelector('.progress-title');
-        const textEl = document.getElementById('progressText');
-        const fillEl = document.getElementById('progressFill');
-
-        titleEl.textContent = title;
-        textEl.textContent = text;
-        fillEl.style.width = '0%';
-        progressEl.style.display = 'block';
-    }
-
-    function updateProgress(percent, text) {
-        const fillEl = document.getElementById('progressFill');
-        const textEl = document.getElementById('progressText');
-
-        fillEl.style.width = percent + '%';
-        textEl.textContent = text;
-    }
-
-    function hideProgress() {
-        document.getElementById('boundaryProgress').style.display = 'none';
-    }
-
-    // Map loading progress functions
-    function showMapLoadingProgress() {
-        const progressEl = document.getElementById('mapLoadingProgress');
-        progressEl.style.display = 'block';
-        updateMapLoadingProgress(0, 'Initialisiere Karte...');
-    }
-
-    function updateMapLoadingProgress(percent, text) {
-        const fillEl = document.getElementById('mapLoadingFill');
-        const textEl = document.getElementById('mapLoadingText');
-
-        fillEl.style.width = percent + '%';
-        textEl.textContent = text;
-    }
-
-    function hideMapLoadingProgress() {
-        const progressEl = document.getElementById('mapLoadingProgress');
-        progressEl.style.display = 'none';
-    }
-
-    // Function to ensure correct layer order (bottom to top)
-    function ensureLayerOrder() {
-        // Remove all layers first
-        if (map.hasLayer(germanyLayer)) map.removeLayer(germanyLayer);
-        if (map.hasLayer(statesLayer)) map.removeLayer(statesLayer);
-        if (map.hasLayer(countiesLayer)) map.removeLayer(countiesLayer);
-        if (map.hasLayer(serviceAreaLayer)) map.removeLayer(serviceAreaLayer);
-
-        // Add them back in correct order (bottom to top)
-        // 1. Deutschland (unterste Ebene)
-        if (germanyLayer.getLayers().length > 0) {
-            map.addLayer(germanyLayer);
-        }
-        // 2. Bundesländer (darüber)
-        if (statesLayer.getLayers().length > 0) {
-            map.addLayer(statesLayer);
-        }
-        // 3. Landkreise (fast oberste Ebene)
-        if (countiesLayer.getLayers().length > 0) {
-            map.addLayer(countiesLayer);
-        }
-        // 4. Servicebereich (ganz oben)
-        if (serviceAreaLayer.getLayers().length > 0) {
-            map.addLayer(serviceAreaLayer);
-        }
-    }
-
-    // Check if counties need to be reloaded based on current map view
-    function shouldReloadCounties() {
-        cleanupCache(); // Entferne abgelaufene Cache-Einträge
-
-        const currentBounds = map.getBounds();
-
-        // Prüfe ob der aktuelle Bereich bereits vollständig gecacht ist
-        if (isBoundsInCache(currentBounds)) {
-            console.log('Counties already cached for current view');
-            return false;
-        }
-
-        console.log('Counties need to be loaded for current view');
-        return true;
-    }
-
-    // Invalidate counties when map view changes significantly
-    function invalidateCounties() {
-        if (map.hasLayer(countiesLayer)) {
-            console.log('Invalidating counties due to map view change');
-            // Clear the counties layer
-            countiesLayer.clearLayers();
-            // Reset tracking variables
-            lastCountiesLoadBounds = null;
-            lastCountiesLoadZoom = null;
-            // Reload counties for new view
-            loadCountiesBorders();
-        }
-    }
-
-    // Debounced function to handle map movement/zoom
-    function handleMapViewChange() {
-        // Clear existing timeout
-        if (countiesLoadTimeout) {
-            clearTimeout(countiesLoadTimeout);
-        }
-
-        // Only check if counties layer is active
-        if (map.hasLayer(countiesLayer)) {
-            // Set timeout to reload after user stops moving for 1 second
-            countiesLoadTimeout = setTimeout(() => {
-                if (shouldReloadCounties()) {
-                    console.log('Map view changed significantly, reloading counties...');
-                    invalidateCounties();
-                }
-            }, 1000);
-        }
-    }
-
-    // KORRIGIERTE Funktion für direkte Overpass API Aufrufe mit FeatureCollection und intelligentem Caching
-    async function loadBoundariesWithFetch(level, layerGroup, style, popupPrefix) {
-        try {
-            if (layerGroup.getLayers().length > 0 && level !== 'counties') return; // Already loaded (except counties)
-
-            // Für Counties: Prüfe Cache und lade nur wenn nötig
-            if (level === 'counties') {
-                cleanupCache();
-
-                const currentBounds = map.getBounds();
-
-                // Prüfe ob bereits gecacht
-                if (isBoundsInCache(currentBounds)) {
-                    console.log('Loading counties from cache...');
-
-                    // Lade gecachte Features für aktuellen Bereich
-                    const cachedFeatures = getCachedFeaturesForBounds(currentBounds);
-
-                    if (cachedFeatures.length > 0) {
-                        // Erstelle FeatureCollection aus Cache
-                        const cachedFeatureCollection = {
-                            type: "FeatureCollection",
-                            features: cachedFeatures
-                        };
-
-                        // Lösche aktuellen Layer und erstelle neuen mit gecachten Features
-                        layerGroup.clearLayers();
-                        const boundaryLayer = L.geoJSON(cachedFeatureCollection, {
-                            style: style,
-                            onEachFeature: createCountyFeatureHandler(popupPrefix)
-                        });
-                        layerGroup.addLayer(boundaryLayer);
-
-                        console.log(`Loaded ${cachedFeatures.length} counties from cache`);
-                        return; // Fertig mit Cache
-                    }
-                }
-
-                // Wenn nicht gecacht, lade von API mit erweiterten Bounds für besseres Caching
-                const expandedBounds = getExpandedBounds(currentBounds);
-                console.log(`Loading counties from API for expanded bounds: ${getBoundsKey(expandedBounds)}`);
-
-                // Lösche aktuellen Layer für Neuladen
-                layerGroup.clearLayers();
-            }
-
-            // Show progress for all levels
-            let progressTitle = '';
-            switch (level) {
-                case 'germany':
-                    progressTitle = 'Lade Deutschland-Grenzen...';
-                    break;
-                case 'states':
-                    progressTitle = 'Lade Bundesländer...';
-                    break;
-                case 'counties':
-                    progressTitle = 'Lade Landkreise...';
-                    break;
-            }
-            showProgress(progressTitle, 'Bereite Anfrage vor...');
-
-            let query = '';
-            let loadBounds = null;
-
-            switch (level) {
-                case 'germany':
-                    query = `[out:json][timeout:25];(relation["ISO3166-1"="DE"]["admin_level"="2"]["type"="boundary"];);out geom;`;
-                    break;
-                case 'states':
-                    query = `[out:json][timeout:30];
-                    (
-                      relation["admin_level"="4"]["type"="boundary"]["place"!="island"]
-                      ["name"~"^(Bayern|Baden-Württemberg|Nordrhein-Westfalen|Niedersachsen|Hessen|Sachsen|Rheinland-Pfalz|Schleswig-Holstein|Brandenburg|Sachsen-Anhalt|Thüringen|Hamburg|Bremen|Berlin|Mecklenburg-Vorpommern|Saarland)$"];
-                    );
-                    out geom;`;
-                    break;
-                case 'counties':
-                    loadBounds = getExpandedBounds(map.getBounds());
-                    const south = Math.max(loadBounds.getSouth(), 47.0);
-                    const west = Math.max(loadBounds.getWest(), 5.8);
-                    const north = Math.min(loadBounds.getNorth(), 55.1);
-                    const east = Math.min(loadBounds.getEast(), 15.1);
-                    query = `[out:json][timeout:30];
-                    (
-                      relation["admin_level"="6"]["type"="boundary"]
-                      ["name"]
-                      ["name"!~"^.*(Bezirk|District|Arrondissement|Canton|Province).*$"]
-                      (${south},${west},${north},${east});
-                    );
-                    out geom;`;
-
-                    console.log(`Loading counties for expanded bounds: ${south},${west},${north},${east}`);
-                    break;
-            }            updateProgress(20, 'Sende Anfrage an OpenStreetMap...');
-
-            const response = await fetch('https://overpass-api.de/api/interpreter', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'text/plain',
-                },
-                body: query
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            updateProgress(40, 'Verarbeite Antwort...');
-            const data = await response.json();
-
-            updateProgress(60, `Gefunden: ${data.elements?.length || 0} Objekte`);
-
-            // KORREKTUR 1: Erstelle eine leere FeatureCollection, um alle Ergebnisse zu sammeln
-            const featureCollection = {
-                type: "FeatureCollection",
-                features: []
-            };
-
-            const totalElements = data.elements?.length || 0;
-            let processedCount = 0;
-
-            for (const element of data.elements || []) {
-                processedCount++;
-                updateProgress(60 + Math.floor((processedCount / totalElements) * 30),
-                    `Verarbeite: ${element.tags?.name || 'Unbenannt'} (${processedCount}/${totalElements})`);
-
-                if (element.type === 'relation' && element.tags && element.tags.name) {
-                    // Enhanced filtering for German administrative units
-                    if (level === 'counties') {
-                        const name = element.tags.name.toLowerCase();
-                        const isGermanCountyName = name.includes('kreis') ||
-                            name.includes('stadt') ||
-                            name.includes('region') ||
-                            /^(lk|sk|)\s/.test(name) ||
-                            element.tags['is_in:country'] === 'Germany' ||
-                            element.tags['is_in:country_code'] === 'DE';
-
-                        // Skip if clearly not German
-                        if (!isGermanCountyName &&
-                            (name.includes('austria') || name.includes('schweiz') ||
-                                name.includes('czech') || name.includes('poland') ||
-                                element.tags['is_in:country'] &&
-                                element.tags['is_in:country'] !== 'Germany' &&
-                                element.tags['is_in:country'] !== 'Deutschland')) {
-                            continue;
-                        }
-                    }
-
-                    // KORREKTUR: Verwende die neue Helferfunktion für korrekte Polygon-Geometrie
-                    const geometry = buildPolygonsFromOverpass(element.members || []);
-
-                    // Wenn die Funktion eine gültige Geometrie zurückgibt, erstelle Feature
-                    if (geometry) {
-                        const geoJsonFeature = {
-                            type: 'Feature',
-                            properties: {
-                                name: element.tags.name,
-                                admin_level: element.tags.admin_level || level,
-                            },
-                            geometry: geometry // Korrekt zusammengefügte Polygon-Geometrie
-                        };
-
-                        // Füge dieses Feature zur Sammlung hinzu
-                        featureCollection.features.push(geoJsonFeature);
-                    }
-                }
-            }            // KORREKTUR 4: Erstelle EINEN EINZIGEN L.geoJSON Layer aus der GESAMTEN FeatureCollection
-            if (featureCollection.features.length > 0) {
-                const boundaryLayer = L.geoJSON(featureCollection, {
-                    style: style,
-                    // Verwende die standardisierte Feature-Handler-Funktion für Counties
-                    onEachFeature: level === 'counties' ?
-                        createCountyFeatureHandler(popupPrefix) :
-                        function (feature, layer) {
-                            // Standard-Handler für Deutschland und Bundesländer
-                            layer.bindTooltip(feature.properties.name, {
-                                sticky: true,
-                                direction: 'center',
-                                className: 'boundary-tooltip'
-                            });
-
-                            layer.on('click', function (e) {
-                                const popupContent = `
-                                    <div style="font-family: Arial, sans-serif;">
-                                        <h6 style="margin: 0 0 8px 0; color: #333;">
-                                            <i class="fas fa-map-marker-alt" style="margin-right: 5px;"></i>
-                                            ${popupPrefix}
-                                        </h6>
-                                        <p style="margin: 0; font-size: 14px; font-weight: bold;">
-                                            ${feature.properties.name}
-                                        </p>
-                                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
-                                            Verwaltungsebene: ${feature.properties.admin_level}<br>
-                                            Geometrie: ${feature.geometry.type}
-                                        </p>
-                                    </div>
-                                `;
-                                L.popup()
-                                    .setLatLng(e.latlng)
-                                    .setContent(popupContent)
-                                    .openOn(map);
-                            });
-
-                            layer.on('mouseover', function (e) {
-                                this.setStyle({
-                                    weight: style.weight + 2,
-                                    fillOpacity: Math.min((style.fillOpacity || 0.2) + 0.2, 0.9)
-                                });
-                            });
-
-                            layer.on('mouseout', function (e) {
-                                this.setStyle(style);
-                            });
-                        }
-                });
-
-                // Füge den EINEN großen Layer zur LayerGroup hinzu
-                layerGroup.addLayer(boundaryLayer);
-
-                // Cache die Features wenn es Counties sind
-                if (level === 'counties' && loadBounds) {
-                    const cacheKey = getBoundsKey(loadBounds);
-                    const timestamp = Date.now();
-
-                    // Speichere Features im Cache
-                    countiesCache.set(cacheKey, {
-                        features: featureCollection.features,
-                        timestamp: timestamp
-                    });
-
-                    // Füge zu geladenen Bereichen hinzu
-                    loadedBounds.push({
-                        bounds: loadBounds,
-                        timestamp: timestamp
-                    });
-
-                    console.log(`Cached ${featureCollection.features.length} counties for bounds: ${cacheKey}`);
-                }
-
-                updateProgress(100, `Erfolgreich geladen: ${featureCollection.features.length} Gebiete dargestellt!`);
-                setTimeout(hideProgress, 2000);
-
-                // Layer-Ordnung sicherstellen
-                setTimeout(() => {
-                    ensureLayerOrder();
-                }, 100);
-            } else {
-                updateProgress(100, 'Keine gültigen Grenzen gefunden.');
-                setTimeout(hideProgress, 3000);
-            }
-
-            console.log(`${level} boundaries loaded successfully with ${featureCollection.features.length} features`);
-        } catch (error) {
-            console.error(`Error loading ${level} boundaries with fetch:`, error);
-            showMessage(`Fehler beim Laden der ${level}-Grenzen: ${error.message}`, 'danger');
-
-            // Show error in progress indicator
-            updateProgress(100, 'Fehler beim Laden!');
-            setTimeout(hideProgress, 3000);
-        }
-    }
-    // Administrative boundaries loading functions using direct Overpass API calls
-    async function loadGermanyBorders() {
-        if (germanyLayer.getLayers().length > 0) return; // Already loaded
-
-        console.log('Loading Germany borders from OpenStreetMap...');
-
-        // Use very high fillOpacity for reliable interaction, control visual with CSS
-        loadBoundariesWithFetch('germany', germanyLayer, {
-            color: '#198754',
-            weight: 3,
-            opacity: 0.8,
-            fillOpacity: 0.8, // Very high for reliable click detection
-            fillColor: '#198754',
-            className: 'germany-boundary', // CSS class for visual control
-            interactive: true
-        }, 'Deutschland');
-    }
-
-    async function loadStatesBorders() {
-        if (statesLayer.getLayers().length > 0) return; // Already loaded
-
-        console.log('Loading German states borders from OpenStreetMap...');
-
-        // Use very high fillOpacity for reliable interaction
-        loadBoundariesWithFetch('states', statesLayer, {
-            color: '#ffc107',
-            weight: 2,
-            opacity: 0.7,
-            fillOpacity: 0.8, // Very high for reliable click detection
-            fillColor: '#ffc107',
-            className: 'states-boundary', // CSS class for visual control
-            interactive: true
-        }, 'Bundesland');
-    }
-
-    async function loadCountiesBorders() {
-        if (countiesLayer.getLayers().length > 0) return; // Already loaded
-
-        console.log('Loading German counties borders from OpenStreetMap...');
-
-        // Use high fillOpacity for reliable interaction
-        loadBoundariesWithFetch('counties', countiesLayer, {
-            color: '#0dcaf0',
-            weight: 1,
-            opacity: 0.6,
-            fillOpacity: 0.7, // High for reliable click detection
-            fillColor: '#0dcaf0',
-            className: 'counties-boundary', // CSS class for visual control
-            interactive: true
-        }, 'Landkreis');
-    }
-
-    // Initialize when DOM is ready
-    document.addEventListener('DOMContentLoaded', function () {
-        console.log('Initializing individual company map for company ID:', companyId);
-        // Show initial loading progress
-        showMapLoadingProgress();
-        updateMapLoadingProgress(5, 'DOM geladen, starte Karteninitialisierung...');
-
-        // Small delay to ensure progress bar is visible
-        setTimeout(() => {
-            initializeMap();
-        }, 100);
-    });
-
-    // Handle window resize
-    window.addEventListener('resize', function () {
-        if (map) {
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 100);
-        }
-    });
-
-    // Escape key handler for fullscreen
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && isFullscreen) {
-            toggleFullscreen();
-        }
-    });
+  // Note: Coordinate system definitions removed as transformations are now server-side
+  // GeoJSON data comes pre-transformed in WGS84 format
+
+  // Global variables
+  let map;
+  let companyData;
+  let companyMarker;
+  let serviceAreaLayer;
+  let germanyLayer;
+  let statesLayer;
+  let countiesLayer;
+  let currentTileLayer;
+  let satelliteLayer;
+  let isFullscreen = false;
+  // Note: Using direct Overpass API calls instead of overpass-frontend library
+
+  // Tracking für automatisches Neuladen bei Kartenänderungen
+  let lastCountiesLoadBounds = null;
+  let lastCountiesLoadZoom = null;
+  let countiesLoadTimeout = null;
+
+  // Intelligentes Caching-System für Counties
+  let countiesCache = new Map(); // Key: "lat1,lng1,lat2,lng2", Value: {features: [], timestamp: Date}
+  let countiesCacheTimeout = 10 * 60 * 1000; // 10 Minuten Cache-Gültigkeit
+  let loadedBounds = []; // Array von Bounds-Objekten, die bereits geladen wurden
+
+  // Cache-Hilfsfunktionen
+  function getBoundsKey(bounds) {
+      return `${bounds.getSouth().toFixed(3)},${bounds.getWest().toFixed(3)},${bounds.getNorth().toFixed(3)},${bounds.getEast().toFixed(3)}`;
+  }
+
+  function isBoundsInCache(targetBounds) {
+      const now = Date.now();
+
+      // Prüfe ob der Zielbereich bereits vollständig von gecachten Bereichen abgedeckt ist
+      for (const cachedArea of loadedBounds) {
+          if (now - cachedArea.timestamp > countiesCacheTimeout) {
+              continue; // Cache abgelaufen
+          }
+
+          // Prüfe ob targetBounds vollständig in cachedArea.bounds enthalten ist
+          if (targetBounds.getSouth() >= cachedArea.bounds.getSouth() &&
+              targetBounds.getNorth() <= cachedArea.bounds.getNorth() &&
+              targetBounds.getWest() >= cachedArea.bounds.getWest() &&
+              targetBounds.getEast() <= cachedArea.bounds.getEast()) {
+              return true; // Vollständig gecacht
+          }
+      }
+      return false;
+  }
+
+  function getExpandedBounds(bounds, factor = 1.5) {
+      // Erweitere Bounds um einen Faktor für besseres Caching
+      const latDiff = (bounds.getNorth() - bounds.getSouth()) * (factor - 1) / 2;
+      const lngDiff = (bounds.getEast() - bounds.getWest()) * (factor - 1) / 2;
+
+      return L.latLngBounds(
+          L.latLng(Math.max(bounds.getSouth() - latDiff, 47.0), Math.max(bounds.getWest() - lngDiff, 5.8)),
+          L.latLng(Math.min(bounds.getNorth() + latDiff, 55.1), Math.min(bounds.getEast() + lngDiff, 15.1))
+      );
+  }
+
+  function cleanupCache() {
+      const now = Date.now();
+
+      // Entferne abgelaufene Cache-Einträge
+      for (const [key, entry] of countiesCache.entries()) {
+          if (now - entry.timestamp > countiesCacheTimeout) {
+              countiesCache.delete(key);
+          }
+      }
+
+      // Entferne abgelaufene Bounds
+      loadedBounds = loadedBounds.filter(area => now - area.timestamp <= countiesCacheTimeout);
+  }
+
+  function getCachedFeaturesForBounds(targetBounds) {
+      const now = Date.now();
+      const features = [];
+
+      for (const cachedArea of loadedBounds) {
+          if (now - cachedArea.timestamp > countiesCacheTimeout) {
+              continue; // Cache abgelaufen
+          }
+
+          // Hole Features für diesen Bereich aus dem Cache
+          const key = getBoundsKey(cachedArea.bounds);
+          const cacheEntry = countiesCache.get(key);
+          if (cacheEntry && now - cacheEntry.timestamp <= countiesCacheTimeout) {
+              // Filtere Features, die im Zielbereich liegen
+              for (const feature of cacheEntry.features) {
+                  if (isFeatureInBounds(feature, targetBounds)) {
+                      features.push(feature);
+                  }
+              }
+          }
+      }
+
+      return features;
+  }
+
+  function isFeatureInBounds(feature, bounds) {
+      // Einfache Prüfung ob Feature-Zentrum in Bounds liegt
+      // Für komplexere Geometrien könnte man das verfeinern
+      try {
+          if (feature.geometry && feature.geometry.coordinates) {
+              let coords = feature.geometry.coordinates;
+
+              // Flatten coordinates to find center
+              while (Array.isArray(coords[0][0])) {
+                  coords = coords.flat();
+              }
+
+              if (coords.length > 0) {
+                  const center = coords.reduce((acc, coord) => [
+                      acc[0] + coord[0] / coords.length,
+                      acc[1] + coord[1] / coords.length
+                  ], [0, 0]);
+
+                  return bounds.contains(L.latLng(center[1], center[0]));
+              }
+          }
+      } catch (e) {
+          console.warn('Error checking feature bounds:', e);
+      }
+      return false;
+  }
+
+  // Helper function to create consistent feature handlers for counties
+  function createCountyFeatureHandler(popupPrefix) {
+      return function (feature, layer) {
+          // Tooltip für den Hover-Effekt
+          layer.bindTooltip(feature.properties.name, {
+              sticky: true,
+              direction: 'center',
+              className: 'boundary-tooltip'
+          });
+
+          // Klick-Event für das Popup
+          layer.on('click', function (e) {
+              const popupContent = `
+                  <div style="font-family: Arial, sans-serif;">
+                      <h6 style="margin: 0 0 8px 0; color: #333;">
+                          <i class="fas fa-map-marker-alt" style="margin-right: 5px;"></i>
+                          ${popupPrefix}
+                      </h6>
+                      <p style="margin: 0; font-size: 14px; font-weight: bold;">
+                          ${feature.properties.name}
+                      </p>
+                      <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
+                          Verwaltungsebene: ${feature.properties.admin_level}<br>
+                          Geometrie: ${feature.geometry.type}
+                      </p>
+                  </div>
+              `;
+              L.popup()
+                  .setLatLng(e.latlng)
+                  .setContent(popupContent)
+                  .openOn(map);
+          });
+
+          // Hover-Effekte für jedes einzelne Polygon
+          layer.on('mouseover', function (e) {
+              this.setStyle({
+                  weight: 3,
+                  fillOpacity: Math.min(0.9, 0.7 + 0.2)
+              });
+          });
+
+          layer.on('mouseout', function (e) {
+              this.setStyle({
+                  weight: 1,
+                  fillOpacity: 0.7
+              });
+          });
+      };
+  }
+
+  // Helferfunktion zum korrekten Zusammenfügen von OSM-Geometrien zu geschlossenen Polygonen
+  function buildPolygonsFromOverpass(members) {
+      const ways = new Map();
+      const nodes = new Map();
+
+      // 1. Sammle alle Wege und ihre Start-/Endpunkte
+      for (const member of members) {
+          if (member.type === 'way' && member.geometry) {
+              const wayId = member.ref;
+              const coords = member.geometry.map(node => [node.lon, node.lat]);
+              if (coords.length < 2) continue;
+
+              const firstNodeId = `${coords[0][0]},${coords[0][1]}`;
+              const lastNodeId = `${coords[coords.length - 1][0]},${coords[coords.length - 1][1]}`;
+
+              ways.set(wayId, {
+                  coords: coords,
+                  first: firstNodeId,
+                  last: lastNodeId
+              });
+
+              if (!nodes.has(firstNodeId)) nodes.set(firstNodeId, []);
+              if (!nodes.has(lastNodeId)) nodes.set(lastNodeId, []);
+              nodes.get(firstNodeId).push(wayId);
+              nodes.get(lastNodeId).push(wayId);
+          }
+      }
+
+      const polygons = [];
+      const usedWays = new Set();
+
+      // 2. Füge die Wege zu Polygon-Ringen zusammen
+      for (const [startWayId, startWay] of ways.entries()) {
+          if (usedWays.has(startWayId)) continue;
+
+          let currentRing = [...startWay.coords];
+          usedWays.add(startWayId);
+
+          let pathOpen = true;
+          while (pathOpen) {
+              const lastNodeId = `${currentRing[currentRing.length - 1][0]},${currentRing[currentRing.length - 1][1]}`;
+
+              let foundNext = false;
+              // Finde den nächsten Weg, der am Ende des aktuellen Rings beginnt
+              if (nodes.has(lastNodeId)) {
+                  for (const nextWayId of nodes.get(lastNodeId)) {
+                      if (usedWays.has(nextWayId)) continue;
+
+                      const nextWay = ways.get(nextWayId);
+                      usedWays.add(nextWayId);
+
+                      let nextCoords = nextWay.coords;
+                      // Wenn der nächste Weg in die falsche Richtung zeigt, drehe ihn um
+                      if (nextWay.last === lastNodeId) {
+                          nextCoords = [...nextCoords].reverse();
+                      }
+
+                      // Füge die Koordinaten hinzu (ohne den ersten, doppelten Punkt)
+                      currentRing.push(...nextCoords.slice(1));
+                      foundNext = true;
+                      break;
+                  }
+              }
+
+              // Wenn kein weiterer Weg gefunden wurde, ist der Ring (hoffentlich) geschlossen
+              if (!foundNext) {
+                  pathOpen = false;
+              }
+          }
+          polygons.push(currentRing);
+      }
+
+      if (polygons.length === 0) return null;
+
+      // Gib die Geometrie als MultiPolygon zurück (auch wenn es nur ein Polygon ist)
+      return {
+          type: 'MultiPolygon',
+          coordinates: polygons.map(ring => [ring]) // Jeder Ring muss in ein extra Array gepackt werden
+      };
+  }
+
+  const companyId = {{ company_id }};
+  const bdewCode = "{{ bdew_code if bdew_code else '' }}";
+  const companyName = "{{ company_name if company_name else '' }}";
+
+  // Map configuration
+  const MAP_CONFIG = {
+      center: [49.5897, 11.0045], // Default to Erlangen
+      defaultZoom: 10,
+      maxZoom: 19,
+      minZoom: 5
+  };
+
+  // Note: GeoJSON data is now pre-transformed to WGS84 on the server side
+  // No coordinate transformation is needed in the frontend
+
+  // Initialize map
+  function initializeMap() {
+      try {
+          // Show loading progress
+          showMapLoadingProgress();
+          updateMapLoadingProgress(10, 'Lade Kartenkomponenten...');
+
+          // Note: Coordinate transformation is now handled server-side
+          console.log('Initializing map with pre-transformed GeoJSON data');
+
+          // Create map
+          updateMapLoadingProgress(30, 'Erstelle Karte...');
+          map = L.map('map', {
+              center: MAP_CONFIG.center,
+              zoom: MAP_CONFIG.defaultZoom,
+              maxZoom: MAP_CONFIG.maxZoom,
+              minZoom: MAP_CONFIG.minZoom,
+              zoomControl: true,
+              attributionControl: true
+          });
+
+          // Add OpenStreetMap tile layer
+          updateMapLoadingProgress(50, 'Lade Kartenkacheln...');
+          currentTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+              maxZoom: 19
+          }).addTo(map);
+
+          // Create satellite layer
+          updateMapLoadingProgress(60, 'Initialisiere Satellitenansicht...');
+          satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+              attribution: '© <a href="https://www.arcgis.com/">ArcGIS</a>',
+              maxZoom: 19
+          });
+
+          // Initialize layers with proper Z-index order (bottom to top)
+          updateMapLoadingProgress(70, 'Initialisiere Ebenen...');
+          // Deutschland (unterste Ebene)
+          germanyLayer = L.layerGroup();
+          // Bundesländer (darüber)
+          statesLayer = L.layerGroup();
+          // Landkreise (fast oberste Ebene)
+          countiesLayer = L.layerGroup();
+          // Servicebereich (ganz oben)
+          serviceAreaLayer = L.layerGroup().addTo(map);
+
+          // Load company data
+          updateMapLoadingProgress(80, 'Lade Unternehmensdaten...');
+          loadCompanyData();
+
+          updateMapLoadingProgress(90, 'Lade Servicebereich...');
+          loadServiceArea();
+
+          updateMapLoadingProgress(100, 'Karte erfolgreich geladen!');
+
+          // Setup event listeners for automatic counties reloading
+          map.on('moveend', handleMapViewChange);
+          map.on('zoomend', handleMapViewChange);
+
+          // Hide loading progress after a short delay
+          setTimeout(() => {
+              hideMapLoadingProgress();
+              showMessage('Karte erfolgreich geladen', 'success');
+          }, 500);
+
+      } catch (error) {
+          console.error('Error initializing map:', error);
+          updateMapLoadingProgress(100, 'Fehler beim Laden der Karte!');
+          setTimeout(() => {
+              hideMapLoadingProgress();
+              showMessage('Fehler beim Laden der Karte: ' + error.message, 'danger');
+          }, 1000);
+      }
+  }
+
+  // Load company data
+  async function loadCompanyData() {
+      try {
+          const response = await apiRequest(`/companies/api/${companyId}`);
+          companyData = response;
+
+          // Update UI
+          document.getElementById('companyTitle').textContent = `${response.bdew_name} Details`;
+          document.getElementById('companyName').textContent = response.bdew_name;
+          document.getElementById('companyCode').textContent = response.bdew_code;
+          document.getElementById('companyCity').textContent = response.bdew_city || 'N/A';
+
+          // Update address information
+          updateAddressDisplay(response);
+
+          // Add company marker if coordinates are available and update location info
+          const hasMarker = addCompanyMarker(response);
+          const locationContainer = document.getElementById('companyLocationContainer');
+          const locationEl = document.getElementById('companyLocation');
+
+          if (hasMarker && response.company_latitude && response.company_longitude) {
+              const lat = parseFloat(response.company_latitude);
+              const lng = parseFloat(response.company_longitude);
+              locationEl.innerHTML = `<span class="text-success"><i class="fas fa-map-marker-alt me-1"></i>Geocoded</span>`;
+              locationContainer.style.display = 'block';
+          } else {
+              locationEl.innerHTML = '<span class="text-muted">No coordinates</span>';
+              locationContainer.style.display = 'block';
+          }
+
+          // Update rollout match with link if available
+          const rolloutMatchEl = document.getElementById('rolloutMatch');
+          if (response.rollout_quota && response.rollout_quota.bnetza_name) {
+              // Use BDEW ID for highlighting in rollout list
+              const rolloutName = response.rollout_quota.bnetza_name;
+              rolloutMatchEl.innerHTML = `
+                  <a href="/rollout/?highlight_bdew_id=${response.id}"
+                     class="text-primary text-decoration-none"
+                     title="View in Roll-Out Data">
+                      ${rolloutName}
+                      <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
+                  </a>
+              `;
+          } else if (response.rollout_report_name) {
+              // Fallback to rollout_report_name if available (legacy support)
+              rolloutMatchEl.innerHTML = `
+                  <a href="/rollout/?highlight=${encodeURIComponent(response.rollout_report_name)}"
+                     class="text-primary text-decoration-none"
+                     title="View in Roll-Out Data">
+                      ${response.rollout_report_name}
+                      <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
+                  </a>
+              `;
+          } else {
+              rolloutMatchEl.innerHTML = '<span class="text-muted">No match</span>';
+          }
+
+          // Update rollout quota if available
+          const rolloutQuotaContainer = document.getElementById('rolloutQuotaContainer');
+          const rolloutQuotaEl = document.getElementById('rolloutQuota');
+          if (response.rollout_quota) {
+              const quota = response.rollout_quota;
+              rolloutQuotaEl.innerHTML = `
+                  <span class="fw-bold ${quota.quota_percentage >= 80 ? 'text-success' : quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">${quota.quota_percentage}%</span>
+                  <small class="text-muted d-block">Stichtag: ${quota.reference_date}</small>
+              `;
+              rolloutQuotaContainer.style.display = 'block';
+          } else if (response.rollout_report_name || (response.rollout_quota && response.rollout_quota.bnetza_name)) {
+              // Show "no quota data" if there's a match but no quota
+              rolloutQuotaEl.innerHTML = '<span class="text-muted">No quota data available</span>';
+              rolloutQuotaContainer.style.display = 'block';
+          } else {
+              rolloutQuotaContainer.style.display = 'none';
+          }
+
+          // Show company info, hide loading
+          document.getElementById('loadingCompanyInfo').style.display = 'none';
+          document.getElementById('companyInfo').style.display = 'block';
+
+      } catch (error) {
+          console.error('Error loading company data:', error);
+          // Only show message if not during initial loading
+          if (!document.getElementById('mapLoadingProgress').style.display ||
+              document.getElementById('mapLoadingProgress').style.display === 'none') {
+              showMessage('Error loading company data: ' + error.message, 'danger');
+          }
+
+          document.getElementById('loadingCompanyInfo').innerHTML =
+              '<div class="text-danger"><i class="fas fa-exclamation-triangle"></i> Error loading company data</div>';
+      }
+  }
+
+  // Add company marker to map
+  function addCompanyMarker(companyData) {
+      // Remove existing marker if present
+      if (companyMarker) {
+          map.removeLayer(companyMarker);
+          companyMarker = null;
+      }
+
+      // Check if company has coordinates
+      if (companyData.company_latitude && companyData.company_longitude) {
+          const lat = parseFloat(companyData.company_latitude);
+          const lng = parseFloat(companyData.company_longitude);
+
+          // Validate coordinates
+          if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+              // Create custom icon for company marker
+              const companyIcon = L.divIcon({
+                  className: 'company-marker',
+                  html: '<i class="fas fa-building"></i>',
+                  iconSize: [30, 30],
+                  iconAnchor: [15, 30],
+                  popupAnchor: [0, -30]
+              });
+
+              // Create marker
+              companyMarker = L.marker([lat, lng], { icon: companyIcon });
+
+              // Create popup content
+              const popupContent = `
+                  <div class="company-popup">
+                      <h6 class="popup-title">
+                          <i class="fas fa-building me-2 text-primary"></i>
+                          ${companyData.bdew_name}
+                      </h6>
+                      <div class="popup-content">
+                          <div class="detail-row">
+                              <strong>BDEW Code:</strong> ${companyData.bdew_code}
+                          </div>
+                          ${buildAddressDisplay(companyData)}
+                          <div class="detail-row">
+                              <strong>Koordinaten:</strong> ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                          </div>
+                          ${companyData.rollout_quota ? `
+                              <div class="detail-row">
+                                  <strong>Roll-Out Quote:</strong>
+                                  <span class="fw-bold ${companyData.rollout_quota.quota_percentage >= 80 ? 'text-success' : companyData.rollout_quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">
+                                      ${companyData.rollout_quota.quota_percentage}%
+                                  </span>
+                                  <small class="text-muted d-block">Stichtag: ${companyData.rollout_quota.reference_date}</small>
+                              </div>
+                          ` : ''}
+                      </div>
+                  </div>
+              `;
+
+              companyMarker.bindPopup(popupContent);
+
+              // Add marker to map
+              companyMarker.addTo(map);
+
+              console.log(`Company marker added at coordinates: ${lat}, ${lng}`);
+
+              // Update "Center on Company" button functionality
+              window.centerOnCompanyMarker = function () {
+                  if (companyMarker) {
+                      map.setView([lat, lng], Math.max(map.getZoom(), 12));
+                      companyMarker.openPopup();
+                      showMessage('Centered on company location', 'success');
+                  }
+              };
+
+              // Show the marker info button
+              const showMarkerBtn = document.getElementById('showMarkerBtn');
+              if (showMarkerBtn) {
+                  showMarkerBtn.style.display = 'block';
+              }
+
+              return true; // Marker was added
+          } else {
+              console.warn('Invalid company coordinates:', lat, lng);
+          }
+      } else {
+          console.log('No coordinates available for company');
+      }
+
+      return false; // No marker was added
+  }
+
+  // Helper function to build formatted address display
+  function buildAddressDisplay(companyData) {
+      const addressParts = [];
+      let hasAddress = false;
+
+      // Street address
+      if (companyData.vnbdigital_address) {
+          addressParts.push(`<strong>Adresse:</strong> ${companyData.vnbdigital_address}`);
+          hasAddress = true;
+      }
+
+      // Build city line with postcode
+      const cityParts = [];
+      if (companyData.vnbdigital_postcode) {
+          cityParts.push(companyData.vnbdigital_postcode);
+      }
+
+      const city = companyData.vnbdigital_city || companyData.bdew_city;
+      if (city) {
+          cityParts.push(city.trim());
+      }
+
+      if (cityParts.length > 0) {
+          const cityLine = cityParts.join(' ');
+          if (hasAddress) {
+              // If we have a street address, show city as separate line
+              addressParts.push(`<strong>Ort:</strong> ${cityLine}`);
+          } else {
+              // If no street address, show city as main address
+              addressParts.push(`<strong>Stadt:</strong> ${cityLine}`);
+          }
+      }
+
+      // Return formatted address HTML
+      if (addressParts.length > 0) {
+          return addressParts.map(part => `<div class="detail-row">${part}</div>`).join('');
+      } else {
+          return '<div class="detail-row"><strong>Stadt:</strong> N/A</div>';
+      }
+  }
+
+  // Helper function to update address display in the UI
+  function updateAddressDisplay(companyData) {
+      const addressContainer = document.getElementById('companyAddressContainer');
+      const addressEl = document.getElementById('companyAddress');
+
+      const addressParts = [];
+
+      // Build street address
+      if (companyData.vnbdigital_address) {
+          addressParts.push(companyData.vnbdigital_address);
+      }
+
+      // Build city with postcode
+      const cityParts = [];
+      if (companyData.vnbdigital_postcode) {
+          cityParts.push(companyData.vnbdigital_postcode);
+      }
+
+      const city = companyData.vnbdigital_city || companyData.bdew_city;
+      if (city) {
+          cityParts.push(city.trim());
+      }
+
+      if (cityParts.length > 0) {
+          addressParts.push(cityParts.join(' '));
+      }
+
+      // Update UI
+      if (addressParts.length > 0) {
+          addressEl.innerHTML = addressParts.join('<br>');
+          addressContainer.style.display = 'block';
+      } else {
+          addressContainer.style.display = 'none';
+      }
+  }
+
+  // Load service area
+  async function loadServiceArea() {
+      try {
+          const response = await apiRequest(`/companies/api/${companyId}/geojson`);
+
+          if (response.has_geojson) {
+              console.log('Original GeoJSON:', response.geojson);
+
+              // Always try to transform coordinates
+              let geojsonData = response.geojson;
+
+              // GeoJSON data is already in WGS84 format (transformed server-side)
+              console.log('Using pre-transformed GeoJSON data');
+
+              // Handle FeatureCollection - no transformation needed
+              if (geojsonData.type === 'FeatureCollection') {
+                  console.log('Using FeatureCollection directly');
+              } else {
+                  console.log('Using single Feature/Geometry directly');
+              }
+
+              console.log('GeoJSON data ready for mapping:', geojsonData);
+
+              // Add transformed GeoJSON to map
+              const geoJsonLayer = L.geoJSON(geojsonData, {
+                  style: {
+                      color: '#007bff',
+                      weight: 2,
+                      opacity: 0.8,
+                      fillOpacity: 0.3
+                  },
+                  onEachFeature: function (feature, layer) {
+                      // Add popup with feature info if available
+                      if (feature.properties) {
+                          const popupContent = Object.entries(feature.properties)
+                              .filter(([key, value]) => value && key !== 'geometry' && !key.startsWith('_'))
+                              .slice(0, 5) // Limit to first 5 properties
+                              .map(([key, value]) => `<strong>${key.replace('properties.', '')}:</strong> ${value}`)
+                              .join('<br>');
+
+                          if (popupContent) {
+                              layer.bindPopup(`
+                                  <div class="popup-content">
+                                      <h6><i class="fas fa-map-marked-alt me-2"></i>Service Area</h6>
+                                      ${popupContent}
+                                  </div>
+                              `);
+                          }
+                      }
+                  }
+              });
+
+              serviceAreaLayer.addLayer(geoJsonLayer);
+
+              // Try to fit map to service area bounds
+              try {
+                  const bounds = geoJsonLayer.getBounds();
+                  if (bounds.isValid()) {
+                      console.log('Fitting to bounds:', bounds);
+                      map.fitBounds(bounds, { padding: [20, 20] });
+                  } else {
+                      console.warn('Invalid bounds, using fallback location');
+                      // Center on Germany as fallback
+                      map.setView([51.1657, 10.4515], 6);
+                  }
+              } catch (boundsError) {
+                  console.error('Error with bounds:', boundsError);
+                  map.setView([51.1657, 10.4515], 6);
+              }
+
+              // Update service area info
+              const coordCount = geojsonData.features?.[0]?.geometry?.coordinates?.[0]?.length ||
+                  geojsonData.geometry?.coordinates?.[0]?.length || 0;
+              document.getElementById('serviceAreaInfo').innerHTML = `
+                  <div class="text-success">
+                      <i class="fas fa-check-circle mb-2"></i>
+                      <p class="mb-1"><strong>Service area loaded</strong></p>
+                      <p class="mb-1 small text-muted">
+                          Type: ${geojsonData.type}<br>
+                          Features: ${geojsonData.features?.length || 1}<br>
+                          ${coordCount > 0 ? `Coordinates: ${coordCount} points` : ''}
+                      </p>
+                      <div class="d-grid gap-1 mt-2">
+                          <button class="btn btn-outline-primary btn-sm" onclick="fitServiceArea()">
+                              <i class="fas fa-expand-arrows-alt me-1"></i>
+                              Zoom to Area
+                          </button>
+                      </div>
+                  </div>
+              `;
+
+          } else {
+              // No service area data
+              document.getElementById('serviceAreaInfo').innerHTML = `
+                  <div class="text-muted">
+                      <i class="fas fa-info-circle mb-2"></i>
+                      <p class="mb-1"><strong>No service area data</strong></p>
+                      <p class="mb-0 small">This company has no geographical service area defined</p>
+                  </div>
+              `;
+
+              // Center on Erlangen as fallback
+              map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
+          }
+
+      } catch (error) {
+          console.error('Error loading service area:', error);
+
+          // Only show message if not during initial loading
+          if (!document.getElementById('mapLoadingProgress').style.display ||
+              document.getElementById('mapLoadingProgress').style.display === 'none') {
+              showMessage('Error loading service area: ' + error.message, 'danger');
+          }
+
+          document.getElementById('serviceAreaInfo').innerHTML = `
+              <div class="text-danger">
+                  <i class="fas fa-exclamation-triangle mb-2"></i>
+                  <p class="mb-1"><strong>Error loading service area</strong></p>
+                  <p class="mb-0 small">${error.message}</p>
+              </div>
+          `;
+      }
+  }
+
+  // Utility function to show messages
+  function showMessage(message, type = 'info') {
+      // Create a simple toast-like notification
+      const toast = document.createElement('div');
+      toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+      toast.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 250px;';
+      toast.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      document.body.appendChild(toast);
+
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+          if (toast.parentNode) {
+              toast.remove();
+          }
+      }, 3000);
+  }
+
+  // Map control functions
+  function resetMapView() {
+      if (map) {
+          map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
+          showMessage('Map view reset', 'info');
+      }
+  }
+
+  function centerOnCompany() {
+      // Priority 1: Center on company marker if available
+      if (companyMarker) {
+          const markerLatLng = companyMarker.getLatLng();
+          map.setView(markerLatLng, Math.max(map.getZoom(), 12));
+          companyMarker.openPopup();
+          showMessage('Centered on company location', 'success');
+          return;
+      }
+
+      // Priority 2: Center on service area if available
+      if (map && serviceAreaLayer && serviceAreaLayer.getLayers().length > 0) {
+          const group = new L.featureGroup(serviceAreaLayer.getLayers());
+          const bounds = group.getBounds();
+          if (bounds.isValid()) {
+              const center = bounds.getCenter();
+              map.panTo(center);
+              showMessage('Centered on service area', 'success');
+              return;
+          }
+      }
+
+      // Fallback: Default location
+      map.setView(MAP_CONFIG.center, MAP_CONFIG.defaultZoom);
+      showMessage('No specific location found, centered on default location', 'info');
+  }
+
+  function showCompanyMarkerPopup() {
+      if (companyMarker) {
+          companyMarker.openPopup();
+          showMessage('Showing company marker information', 'info');
+      } else {
+          showMessage('No company marker available', 'warning');
+      }
+  }
+
+  function fitServiceArea() {
+      if (map && serviceAreaLayer && serviceAreaLayer.getLayers().length > 0) {
+          // Get bounds from all layers in the service area layer group
+          const group = new L.featureGroup(serviceAreaLayer.getLayers());
+          const bounds = group.getBounds();
+          if (bounds.isValid()) {
+              map.fitBounds(bounds);
+              showMessage('Fitted to service area', 'success');
+          } else {
+              showMessage('Service area has no valid bounds', 'warning');
+          }
+      } else {
+          showMessage('No service area to fit to', 'warning');
+      }
+  }
+
+  function toggleLayer(layerType) {
+      const button = document.getElementById(layerType.replace('-', '') + 'Toggle');
+
+      if (layerType === 'service-area') {
+          if (map.hasLayer(serviceAreaLayer)) {
+              map.removeLayer(serviceAreaLayer);
+              button.classList.add('btn-secondary');
+              button.classList.remove('btn-outline-secondary');
+          } else {
+              map.addLayer(serviceAreaLayer);
+              button.classList.remove('btn-secondary');
+              button.classList.add('btn-outline-secondary');
+          }
+      } else if (layerType === 'germany') {
+          if (map.hasLayer(germanyLayer)) {
+              map.removeLayer(germanyLayer);
+              button.classList.remove('btn-success');
+              button.classList.add('btn-outline-success');
+              // Removed notification to avoid interference with progress bar
+          } else {
+              loadGermanyBorders();
+              // Add Germany layer first (bottom)
+              map.addLayer(germanyLayer);
+              // Ensure correct layer order by re-adding other layers
+              ensureLayerOrder();
+              button.classList.add('btn-success');
+              button.classList.remove('btn-outline-success');
+              // Removed notification to avoid interference with progress bar
+          }
+      } else if (layerType === 'states') {
+          if (map.hasLayer(statesLayer)) {
+              map.removeLayer(statesLayer);
+              button.classList.remove('btn-warning');
+              button.classList.add('btn-outline-warning');
+              // Removed notification to avoid interference with progress bar
+          } else {
+              loadStatesBorders();
+              // Add states layer and ensure correct order
+              map.addLayer(statesLayer);
+              ensureLayerOrder();
+              button.classList.add('btn-warning');
+              button.classList.remove('btn-outline-warning');
+              // Removed notification to avoid interference with progress bar
+          }
+      } else if (layerType === 'counties') {
+          if (map.hasLayer(countiesLayer)) {
+              map.removeLayer(countiesLayer);
+              button.classList.remove('btn-info');
+              button.classList.add('btn-outline-info');
+              // Cache bleibt erhalten für späteren Toggle
+          } else {
+              // Prüfe beim Einblenden, ob neue Daten nötig sind
+              if (shouldReloadCounties()) {
+                  loadCountiesBorders();
+              } else {
+                  console.log('Loading counties from cache for toggle...');
+                  // Lade aus Cache für aktuellen Bereich
+                  const currentBounds = map.getBounds();
+                  const cachedFeatures = getCachedFeaturesForBounds(currentBounds);
+
+                  if (cachedFeatures.length > 0) {
+                      countiesLayer.clearLayers();
+                      const cachedFeatureCollection = {
+                          type: "FeatureCollection",
+                          features: cachedFeatures
+                      };
+
+                      const boundaryLayer = L.geoJSON(cachedFeatureCollection, {
+                          style: {
+                              color: '#0dcaf0',
+                              weight: 1,
+                              opacity: 0.6,
+                              fillOpacity: 0.7,
+                              fillColor: '#0dcaf0',
+                              className: 'counties-boundary',
+                              interactive: true
+                          },
+                          onEachFeature: createCountyFeatureHandler('Landkreis')
+                      });
+                      countiesLayer.addLayer(boundaryLayer);
+                      console.log(`Loaded ${cachedFeatures.length} counties from cache for toggle`);
+                  } else {
+                      // Fallback: Lade von API
+                      loadCountiesBorders();
+                  }
+              }
+
+              // Add counties layer and ensure correct order
+              map.addLayer(countiesLayer);
+              ensureLayerOrder();
+              button.classList.add('btn-info');
+              button.classList.remove('btn-outline-info');
+          }
+      }
+  }
+
+  function toggleSatelliteView() {
+      if (map.hasLayer(currentTileLayer)) {
+          map.removeLayer(currentTileLayer);
+          map.addLayer(satelliteLayer);
+          showMessage('Satellite view activated', 'info');
+      } else {
+          map.removeLayer(satelliteLayer);
+          map.addLayer(currentTileLayer);
+          showMessage('Street map activated', 'info');
+      }
+  }
+
+  function toggleFullscreen() {
+      const mapContainer = document.getElementById('map');
+      const button = event.target.closest('button');
+      const icon = button.querySelector('i');
+
+      if (!isFullscreen) {
+          mapContainer.style.position = 'fixed';
+          mapContainer.style.top = '0';
+          mapContainer.style.left = '0';
+          mapContainer.style.width = '100vw';
+          mapContainer.style.height = '100vh';
+          mapContainer.style.zIndex = '9999';
+          mapContainer.style.backgroundColor = 'white';
+
+          icon.className = 'fas fa-compress me-1';
+          button.innerHTML = '<i class="fas fa-compress me-1"></i>Exit Fullscreen';
+          isFullscreen = true;
+
+          setTimeout(() => {
+              if (map) map.invalidateSize();
+          }, 100);
+
+      } else {
+          mapContainer.style.position = '';
+          mapContainer.style.top = '';
+          mapContainer.style.left = '';
+          mapContainer.style.width = '';
+          mapContainer.style.height = '';
+          mapContainer.style.zIndex = '';
+          mapContainer.style.backgroundColor = '';
+
+          icon.className = 'fas fa-expand me-1';
+          button.innerHTML = '<i class="fas fa-expand me-1"></i>Fullscreen';
+          isFullscreen = false;
+
+          setTimeout(() => {
+              if (map) map.invalidateSize();
+          }, 100);
+      }
+  }
+
+  // Helper function to detect German counties
+  function isGermanCounty(element) {
+      if (!element.tags) return false;
+
+      const name = element.tags.name.toLowerCase();
+      const countryTag = element.tags['is_in:country'] || element.tags['is_in:country_code'];
+
+      // German county indicators
+      const germanCountyIndicators = [
+          'kreis', 'landkreis', 'stadtkreis', 'kreisfreie stadt',
+          'regionalverband', 'städteregion'
+      ];
+
+      const hasGermanCountyName = germanCountyIndicators.some(indicator =>
+          name.includes(indicator)
+      );
+
+      const isInGermany = countryTag === 'Germany' ||
+          countryTag === 'Deutschland' ||
+          countryTag === 'DE';
+
+      return hasGermanCountyName || isInGermany;
+  }
+
+  // Progress indicator functions
+  function showProgress(title, text = 'Initialisierung...') {
+      const progressEl = document.getElementById('boundaryProgress');
+      const titleEl = progressEl.querySelector('.progress-title');
+      const textEl = document.getElementById('progressText');
+      const fillEl = document.getElementById('progressFill');
+
+      titleEl.textContent = title;
+      textEl.textContent = text;
+      fillEl.style.width = '0%';
+      progressEl.style.display = 'block';
+  }
+
+  function updateProgress(percent, text) {
+      const fillEl = document.getElementById('progressFill');
+      const textEl = document.getElementById('progressText');
+
+      fillEl.style.width = percent + '%';
+      textEl.textContent = text;
+  }
+
+  function hideProgress() {
+      document.getElementById('boundaryProgress').style.display = 'none';
+  }
+
+  // Map loading progress functions
+  function showMapLoadingProgress() {
+      const progressEl = document.getElementById('mapLoadingProgress');
+      progressEl.style.display = 'block';
+      updateMapLoadingProgress(0, 'Initialisiere Karte...');
+  }
+
+  function updateMapLoadingProgress(percent, text) {
+      const fillEl = document.getElementById('mapLoadingFill');
+      const textEl = document.getElementById('mapLoadingText');
+
+      fillEl.style.width = percent + '%';
+      textEl.textContent = text;
+  }
+
+  function hideMapLoadingProgress() {
+      const progressEl = document.getElementById('mapLoadingProgress');
+      progressEl.style.display = 'none';
+  }
+
+  // Function to ensure correct layer order (bottom to top)
+  function ensureLayerOrder() {
+      // Remove all layers first
+      if (map.hasLayer(germanyLayer)) map.removeLayer(germanyLayer);
+      if (map.hasLayer(statesLayer)) map.removeLayer(statesLayer);
+      if (map.hasLayer(countiesLayer)) map.removeLayer(countiesLayer);
+      if (map.hasLayer(serviceAreaLayer)) map.removeLayer(serviceAreaLayer);
+
+      // Add them back in correct order (bottom to top)
+      // 1. Deutschland (unterste Ebene)
+      if (germanyLayer.getLayers().length > 0) {
+          map.addLayer(germanyLayer);
+      }
+      // 2. Bundesländer (darüber)
+      if (statesLayer.getLayers().length > 0) {
+          map.addLayer(statesLayer);
+      }
+      // 3. Landkreise (fast oberste Ebene)
+      if (countiesLayer.getLayers().length > 0) {
+          map.addLayer(countiesLayer);
+      }
+      // 4. Servicebereich (ganz oben)
+      if (serviceAreaLayer.getLayers().length > 0) {
+          map.addLayer(serviceAreaLayer);
+      }
+  }
+
+  // Check if counties need to be reloaded based on current map view
+  function shouldReloadCounties() {
+      cleanupCache(); // Entferne abgelaufene Cache-Einträge
+
+      const currentBounds = map.getBounds();
+
+      // Prüfe ob der aktuelle Bereich bereits vollständig gecacht ist
+      if (isBoundsInCache(currentBounds)) {
+          console.log('Counties already cached for current view');
+          return false;
+      }
+
+      console.log('Counties need to be loaded for current view');
+      return true;
+  }
+
+  // Invalidate counties when map view changes significantly
+  function invalidateCounties() {
+      if (map.hasLayer(countiesLayer)) {
+          console.log('Invalidating counties due to map view change');
+          // Clear the counties layer
+          countiesLayer.clearLayers();
+          // Reset tracking variables
+          lastCountiesLoadBounds = null;
+          lastCountiesLoadZoom = null;
+          // Reload counties for new view
+          loadCountiesBorders();
+      }
+  }
+
+  // Debounced function to handle map movement/zoom
+  function handleMapViewChange() {
+      // Clear existing timeout
+      if (countiesLoadTimeout) {
+          clearTimeout(countiesLoadTimeout);
+      }
+
+      // Only check if counties layer is active
+      if (map.hasLayer(countiesLayer)) {
+          // Set timeout to reload after user stops moving for 1 second
+          countiesLoadTimeout = setTimeout(() => {
+              if (shouldReloadCounties()) {
+                  console.log('Map view changed significantly, reloading counties...');
+                  invalidateCounties();
+              }
+          }, 1000);
+      }
+  }
+
+  // KORRIGIERTE Funktion für direkte Overpass API Aufrufe mit FeatureCollection und intelligentem Caching
+  async function loadBoundariesWithFetch(level, layerGroup, style, popupPrefix) {
+      try {
+          if (layerGroup.getLayers().length > 0 && level !== 'counties') return; // Already loaded (except counties)
+
+          // Für Counties: Prüfe Cache und lade nur wenn nötig
+          if (level === 'counties') {
+              cleanupCache();
+
+              const currentBounds = map.getBounds();
+
+              // Prüfe ob bereits gecacht
+              if (isBoundsInCache(currentBounds)) {
+                  console.log('Loading counties from cache...');
+
+                  // Lade gecachte Features für aktuellen Bereich
+                  const cachedFeatures = getCachedFeaturesForBounds(currentBounds);
+
+                  if (cachedFeatures.length > 0) {
+                      // Erstelle FeatureCollection aus Cache
+                      const cachedFeatureCollection = {
+                          type: "FeatureCollection",
+                          features: cachedFeatures
+                      };
+
+                      // Lösche aktuellen Layer und erstelle neuen mit gecachten Features
+                      layerGroup.clearLayers();
+                      const boundaryLayer = L.geoJSON(cachedFeatureCollection, {
+                          style: style,
+                          onEachFeature: createCountyFeatureHandler(popupPrefix)
+                      });
+                      layerGroup.addLayer(boundaryLayer);
+
+                      console.log(`Loaded ${cachedFeatures.length} counties from cache`);
+                      return; // Fertig mit Cache
+                  }
+              }
+
+              // Wenn nicht gecacht, lade von API mit erweiterten Bounds für besseres Caching
+              const expandedBounds = getExpandedBounds(currentBounds);
+              console.log(`Loading counties from API for expanded bounds: ${getBoundsKey(expandedBounds)}`);
+
+              // Lösche aktuellen Layer für Neuladen
+              layerGroup.clearLayers();
+          }
+
+          // Show progress for all levels
+          let progressTitle = '';
+          switch (level) {
+              case 'germany':
+                  progressTitle = 'Lade Deutschland-Grenzen...';
+                  break;
+              case 'states':
+                  progressTitle = 'Lade Bundesländer...';
+                  break;
+              case 'counties':
+                  progressTitle = 'Lade Landkreise...';
+                  break;
+          }
+          showProgress(progressTitle, 'Bereite Anfrage vor...');
+
+          let query = '';
+          let loadBounds = null;
+
+          switch (level) {
+              case 'germany':
+                  query = `[out:json][timeout:25];(relation["ISO3166-1"="DE"]["admin_level"="2"]["type"="boundary"];);out geom;`;
+                  break;
+              case 'states':
+                  query = `[out:json][timeout:30];
+                  (
+                    relation["admin_level"="4"]["type"="boundary"]["place"!="island"]
+                    ["name"~"^(Bayern|Baden-Württemberg|Nordrhein-Westfalen|Niedersachsen|Hessen|Sachsen|Rheinland-Pfalz|Schleswig-Holstein|Brandenburg|Sachsen-Anhalt|Thüringen|Hamburg|Bremen|Berlin|Mecklenburg-Vorpommern|Saarland)$"];
+                  );
+                  out geom;`;
+                  break;
+              case 'counties':
+                  loadBounds = getExpandedBounds(map.getBounds());
+                  const south = Math.max(loadBounds.getSouth(), 47.0);
+                  const west = Math.max(loadBounds.getWest(), 5.8);
+                  const north = Math.min(loadBounds.getNorth(), 55.1);
+                  const east = Math.min(loadBounds.getEast(), 15.1);
+                  query = `[out:json][timeout:30];
+                  (
+                    relation["admin_level"="6"]["type"="boundary"]
+                    ["name"]
+                    ["name"!~"^.*(Bezirk|District|Arrondissement|Canton|Province).*$"]
+                    (${south},${west},${north},${east});
+                  );
+                  out geom;`;
+
+                  console.log(`Loading counties for expanded bounds: ${south},${west},${north},${east}`);
+                  break;
+          }            updateProgress(20, 'Sende Anfrage an OpenStreetMap...');
+
+          const response = await fetch('https://overpass-api.de/api/interpreter', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'text/plain',
+              },
+              body: query
+          });
+
+          if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          updateProgress(40, 'Verarbeite Antwort...');
+          const data = await response.json();
+
+          updateProgress(60, `Gefunden: ${data.elements?.length || 0} Objekte`);
+
+          // KORREKTUR 1: Erstelle eine leere FeatureCollection, um alle Ergebnisse zu sammeln
+          const featureCollection = {
+              type: "FeatureCollection",
+              features: []
+          };
+
+          const totalElements = data.elements?.length || 0;
+          let processedCount = 0;
+
+          for (const element of data.elements || []) {
+              processedCount++;
+              updateProgress(60 + Math.floor((processedCount / totalElements) * 30),
+                  `Verarbeite: ${element.tags?.name || 'Unbenannt'} (${processedCount}/${totalElements})`);
+
+              if (element.type === 'relation' && element.tags && element.tags.name) {
+                  // Enhanced filtering for German administrative units
+                  if (level === 'counties') {
+                      const name = element.tags.name.toLowerCase();
+                      const isGermanCountyName = name.includes('kreis') ||
+                          name.includes('stadt') ||
+                          name.includes('region') ||
+                          /^(lk|sk|)\s/.test(name) ||
+                          element.tags['is_in:country'] === 'Germany' ||
+                          element.tags['is_in:country_code'] === 'DE';
+
+                      // Skip if clearly not German
+                      if (!isGermanCountyName &&
+                          (name.includes('austria') || name.includes('schweiz') ||
+                              name.includes('czech') || name.includes('poland') ||
+                              element.tags['is_in:country'] &&
+                              element.tags['is_in:country'] !== 'Germany' &&
+                              element.tags['is_in:country'] !== 'Deutschland')) {
+                          continue;
+                      }
+                  }
+
+                  // KORREKTUR: Verwende die neue Helferfunktion für korrekte Polygon-Geometrie
+                  const geometry = buildPolygonsFromOverpass(element.members || []);
+
+                  // Wenn die Funktion eine gültige Geometrie zurückgibt, erstelle Feature
+                  if (geometry) {
+                      const geoJsonFeature = {
+                          type: 'Feature',
+                          properties: {
+                              name: element.tags.name,
+                              admin_level: element.tags.admin_level || level,
+                          },
+                          geometry: geometry // Korrekt zusammengefügte Polygon-Geometrie
+                      };
+
+                      // Füge dieses Feature zur Sammlung hinzu
+                      featureCollection.features.push(geoJsonFeature);
+                  }
+              }
+          }            // KORREKTUR 4: Erstelle EINEN EINZIGEN L.geoJSON Layer aus der GESAMTEN FeatureCollection
+          if (featureCollection.features.length > 0) {
+              const boundaryLayer = L.geoJSON(featureCollection, {
+                  style: style,
+                  // Verwende die standardisierte Feature-Handler-Funktion für Counties
+                  onEachFeature: level === 'counties' ?
+                      createCountyFeatureHandler(popupPrefix) :
+                      function (feature, layer) {
+                          // Standard-Handler für Deutschland und Bundesländer
+                          layer.bindTooltip(feature.properties.name, {
+                              sticky: true,
+                              direction: 'center',
+                              className: 'boundary-tooltip'
+                          });
+
+                          layer.on('click', function (e) {
+                              const popupContent = `
+                                  <div style="font-family: Arial, sans-serif;">
+                                      <h6 style="margin: 0 0 8px 0; color: #333;">
+                                          <i class="fas fa-map-marker-alt" style="margin-right: 5px;"></i>
+                                          ${popupPrefix}
+                                      </h6>
+                                      <p style="margin: 0; font-size: 14px; font-weight: bold;">
+                                          ${feature.properties.name}
+                                      </p>
+                                      <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">
+                                          Verwaltungsebene: ${feature.properties.admin_level}<br>
+                                          Geometrie: ${feature.geometry.type}
+                                      </p>
+                                  </div>
+                              `;
+                              L.popup()
+                                  .setLatLng(e.latlng)
+                                  .setContent(popupContent)
+                                  .openOn(map);
+                          });
+
+                          layer.on('mouseover', function (e) {
+                              this.setStyle({
+                                  weight: style.weight + 2,
+                                  fillOpacity: Math.min((style.fillOpacity || 0.2) + 0.2, 0.9)
+                              });
+                          });
+
+                          layer.on('mouseout', function (e) {
+                              this.setStyle(style);
+                          });
+                      }
+              });
+
+              // Füge den EINEN großen Layer zur LayerGroup hinzu
+              layerGroup.addLayer(boundaryLayer);
+
+              // Cache die Features wenn es Counties sind
+              if (level === 'counties' && loadBounds) {
+                  const cacheKey = getBoundsKey(loadBounds);
+                  const timestamp = Date.now();
+
+                  // Speichere Features im Cache
+                  countiesCache.set(cacheKey, {
+                      features: featureCollection.features,
+                      timestamp: timestamp
+                  });
+
+                  // Füge zu geladenen Bereichen hinzu
+                  loadedBounds.push({
+                      bounds: loadBounds,
+                      timestamp: timestamp
+                  });
+
+                  console.log(`Cached ${featureCollection.features.length} counties for bounds: ${cacheKey}`);
+              }
+
+              updateProgress(100, `Erfolgreich geladen: ${featureCollection.features.length} Gebiete dargestellt!`);
+              setTimeout(hideProgress, 2000);
+
+              // Layer-Ordnung sicherstellen
+              setTimeout(() => {
+                  ensureLayerOrder();
+              }, 100);
+          } else {
+              updateProgress(100, 'Keine gültigen Grenzen gefunden.');
+              setTimeout(hideProgress, 3000);
+          }
+
+          console.log(`${level} boundaries loaded successfully with ${featureCollection.features.length} features`);
+      } catch (error) {
+          console.error(`Error loading ${level} boundaries with fetch:`, error);
+          showMessage(`Fehler beim Laden der ${level}-Grenzen: ${error.message}`, 'danger');
+
+          // Show error in progress indicator
+          updateProgress(100, 'Fehler beim Laden!');
+          setTimeout(hideProgress, 3000);
+      }
+  }
+  // Administrative boundaries loading functions using direct Overpass API calls
+  async function loadGermanyBorders() {
+      if (germanyLayer.getLayers().length > 0) return; // Already loaded
+
+      console.log('Loading Germany borders from OpenStreetMap...');
+
+      // Use very high fillOpacity for reliable interaction, control visual with CSS
+      loadBoundariesWithFetch('germany', germanyLayer, {
+          color: '#198754',
+          weight: 3,
+          opacity: 0.8,
+          fillOpacity: 0.8, // Very high for reliable click detection
+          fillColor: '#198754',
+          className: 'germany-boundary', // CSS class for visual control
+          interactive: true
+      }, 'Deutschland');
+  }
+
+  async function loadStatesBorders() {
+      if (statesLayer.getLayers().length > 0) return; // Already loaded
+
+      console.log('Loading German states borders from OpenStreetMap...');
+
+      // Use very high fillOpacity for reliable interaction
+      loadBoundariesWithFetch('states', statesLayer, {
+          color: '#ffc107',
+          weight: 2,
+          opacity: 0.7,
+          fillOpacity: 0.8, // Very high for reliable click detection
+          fillColor: '#ffc107',
+          className: 'states-boundary', // CSS class for visual control
+          interactive: true
+      }, 'Bundesland');
+  }
+
+  async function loadCountiesBorders() {
+      if (countiesLayer.getLayers().length > 0) return; // Already loaded
+
+      console.log('Loading German counties borders from OpenStreetMap...');
+
+      // Use high fillOpacity for reliable interaction
+      loadBoundariesWithFetch('counties', countiesLayer, {
+          color: '#0dcaf0',
+          weight: 1,
+          opacity: 0.6,
+          fillOpacity: 0.7, // High for reliable click detection
+          fillColor: '#0dcaf0',
+          className: 'counties-boundary', // CSS class for visual control
+          interactive: true
+      }, 'Landkreis');
+  }
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', function () {
+      console.log('Initializing individual company map for company ID:', companyId);
+      // Show initial loading progress
+      showMapLoadingProgress();
+      updateMapLoadingProgress(5, 'DOM geladen, starte Karteninitialisierung...');
+
+      // Small delay to ensure progress bar is visible
+      setTimeout(() => {
+          initializeMap();
+      }, 100);
+  });
+
+  // Handle window resize
+  window.addEventListener('resize', function () {
+      if (map) {
+          setTimeout(() => {
+              map.invalidateSize();
+          }, 100);
+      }
+  });
+
+  // Escape key handler for fullscreen
+  document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isFullscreen) {
+          toggleFullscreen();
+      }
+  });
 </script>
 {% endblock %}

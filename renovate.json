@@ -24,72 +24,48 @@
   "packageRules": [
     {
       "description": "Group all pre-commit hooks updates",
-      "matchManagers": [
-        "pre-commit"
-      ],
+      "matchManagers": ["pre-commit"],
       "groupName": "pre-commit hooks",
       "semanticCommitType": "chore",
       "semanticCommitScope": "deps"
     },
     {
       "description": "Auto-merge pre-commit hooks minor updates",
-      "matchManagers": [
-        "pre-commit"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
+      "matchManagers": ["pre-commit"],
+      "matchUpdateTypes": ["minor", "patch"],
       "automerge": true,
       "platformAutomerge": true
     },
     {
       "description": "GitHub Actions dependencies",
-      "matchManagers": [
-        "github-actions"
-      ],
+      "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "semanticCommitType": "chore",
       "semanticCommitScope": "ci"
     },
     {
       "description": "Auto-merge GitHub Actions patch updates",
-      "matchManagers": [
-        "github-actions"
-      ],
-      "matchUpdateTypes": [
-        "patch"
-      ],
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch"],
       "automerge": true,
       "platformAutomerge": true
     },
     {
       "description": "Python dependencies grouping",
-      "matchManagers": [
-        "pip_requirements",
-        "pip_setup",
-        "pipenv",
-        "poetry"
-      ],
+      "matchManagers": ["pip_requirements", "pip_setup", "pipenv", "poetry"],
       "groupName": "Python dependencies",
       "semanticCommitType": "chore",
       "semanticCommitScope": "deps"
     },
     {
       "description": "Development dependencies",
-      "matchDepTypes": [
-        "devDependencies"
-      ],
+      "matchDepTypes": ["devDependencies"],
       "groupName": "Development dependencies",
       "semanticCommitType": "chore",
       "semanticCommitScope": "dev-deps"
     }
   ],
   "timezone": "Europe/Berlin",
-  "assignees": [
-    "the78mole"
-  ],
-  "reviewers": [
-    "the78mole"
-  ]
+  "assignees": ["the78mole"],
+  "reviewers": ["the78mole"]
 }

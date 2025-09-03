@@ -19,10 +19,7 @@
   },
   "customizations": {
     "codespaces": {
-      "openFiles": [
-        "README.md",
-        "streamlit_app.py"
-      ]
+      "openFiles": ["README.md", "streamlit_app.py"]
     },
     "vscode": {
       "settings": {
@@ -32,11 +29,7 @@
           "DATABASE_URL": "postgresql://postgres@localhost:5432/postgres"
         }
       },
-      "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "ckolkman.vscode-postgres"
-      ]
+      "extensions": ["ms-python.python", "ms-python.vscode-pylance", "ckolkman.vscode-postgres"]
     }
   },
   "updateContentCommand": ".devcontainer/updateContentCommand.sh",
@@ -54,8 +47,5 @@
     }
   },
   "postCreateCommand": ".devcontainer/postCreateCommand.sh",
-  "forwardPorts": [
-    8501,
-    5432
-  ]
+  "forwardPorts": [8501, 5432]
 }

@@ -24,14 +24,14 @@ This script will:
 
 The initialization script creates these tables:
 
-| Table | Purpose |
-|-------|---------|
-| `companies` | BDEW companies with vnbdigital.de integration and geocoding |
-| `rollout_companies` | BNetzA company names linked to BDEW companies via `bdew_code` |
-| `rollout_quotas` | Time-series rollout quota data with quarter/year tracking |
-| `rollout_update_logs` | Automated report processing logs and statistics |
-| `rollout_reports` | BNetzA report metadata and AI analysis results |
-| `download_sessions` | Download session tracking for report automation |
+| Table                 | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `companies`           | BDEW companies with vnbdigital.de integration and geocoding   |
+| `rollout_companies`   | BNetzA company names linked to BDEW companies via `bdew_code` |
+| `rollout_quotas`      | Time-series rollout quota data with quarter/year tracking     |
+| `rollout_update_logs` | Automated report processing logs and statistics               |
+| `rollout_reports`     | BNetzA report metadata and AI analysis results                |
+| `download_sessions`   | Download session tracking for report automation               |
 
 ### Key Relationships
 

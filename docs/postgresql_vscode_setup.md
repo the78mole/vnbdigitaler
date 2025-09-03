@@ -22,14 +22,17 @@ Die PostgreSQL-Extensions für VS Code sind bereits konfiguriert:
 ### **Option 1: SQLTools (Empfohlen)**
 
 1. **Öffne die SQLTools-Sidebar**:
+
    - Klicke auf das Datenbank-Symbol in der linken Seitenleiste
    - Oder: `Ctrl+Shift+P` → "SQLTools: Focus on Explorer"
 
 2. **Verbinde zur Datenbank**:
+
    - Klicke auf "VNB Digitaler" in der Verbindungsliste
    - Die Verbindung sollte automatisch ohne Passwort erfolgen
 
 3. **Browse die Datenbank**:
+
    - Erweitere "Tables" um die 4 BDEW-Tabellen zu sehen:
      - `bdew_companies`
      - `bdew_import_logs`

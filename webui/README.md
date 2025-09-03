@@ -34,6 +34,7 @@ A comprehensive FastAPI-based web administration interface for managing German e
    ```
 
 2. **Configure Environment**:
+
    - Copy `.env.example` to `.env`
    - Set database connection string and other configuration
 

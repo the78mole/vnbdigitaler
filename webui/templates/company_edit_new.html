@@ -1,292 +1,293 @@
-{% extends "base.html" %}
-
-{% block title %}Edit Company #{{ company_id }} - VNBdigitaler Admin{% endblock %}
-
-{% block toolbar %}
+{% extends "base.html" %} {% block title %}Edit Company #{{ company_id }} - VNBdigitaler Admin{%
+endblock %} {% block toolbar %}
 <div class="btn-group" role="group">
-    <a href="/companies/" class="btn btn-secondary">
-        <i class="fas fa-arrow-left me-1"></i> Back to List
-    </a>
-    <button type="button" class="btn btn-primary" onclick="saveCompany()">
-        <i class="fas fa-save me-1"></i> Save Changes
-    </button>
+  <a href="/companies/" class="btn btn-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Back to List
+  </a>
+  <button type="button" class="btn btn-primary" onclick="saveCompany()">
+    <i class="fas fa-save me-1"></i> Save Changes
+  </button>
 </div>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <!-- Loading indicator -->
 <div id="loadingIndicator" class="text-center py-4 loading show">
-    <div class="spinner-border" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-    <p class="mt-2">Loading company details...</p>
+  <div class="spinner-border" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <p class="mt-2">Loading company details...</p>
 </div>
 
 <!-- Company edit form -->
-<div id="editForm" style="display: none;">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-edit me-2"></i>
-                        Company Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <form id="companyForm">
-                        <!-- BDEW Information (Read-only) -->
-                        <fieldset>
-                            <legend class="h6 text-muted border-bottom pb-2">BDEW Information (Read-only)</legend>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">BDEW Code</label>
-                                    <input type="text" class="form-control" id="bdewCode" readonly>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">City</label>
-                                    <input type="text" class="form-control" id="bdewCity" readonly>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">BDEW Company Name</label>
-                                <input type="text" class="form-control" id="bdewName" readonly>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Normalized Name</label>
-                                <input type="text" class="form-control" id="bdewNameNormalized" readonly>
-                            </div>
-                        </fieldset>
-
-                        <!-- Editable Fields -->
-                        <fieldset class="mt-4">
-                            <legend class="h6 text-primary border-bottom pb-2">Additional Information (Editable)
-                            </legend>
-
-                            <div class="mb-3">
-                                <label for="notes" class="form-label">
-                                    Notes
-                                    <small class="text-muted">(Internal notes)</small>
-                                </label>
-                                <textarea class="form-control" id="notes" rows="3"
-                                    placeholder="Add any notes about this company..."></textarea>
-                                <div class="form-text">
-                                    Internal notes for administrative purposes.
-                                </div>
-                            </div>
-                        </fieldset>
-                    </form>
-                </div>
-            </div>
+<div id="editForm" style="display: none">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-edit me-2"></i>
+            Company Information
+          </h5>
         </div>
+        <div class="card-body">
+          <form id="companyForm">
+            <!-- BDEW Information (Read-only) -->
+            <fieldset>
+              <legend class="h6 text-muted border-bottom pb-2">BDEW Information (Read-only)</legend>
 
-        <div class="col-md-4">
-            <!-- Rollout Information (Read-only) -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-clipboard-list me-2"></i>
-                        Rollout Information
-                    </h5>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label">BDEW Code</label>
+                  <input type="text" class="form-control" id="bdewCode" readonly />
                 </div>
-                <div class="card-body">
-                    <div id="rolloutInfo">
-                        <p class="text-muted">Loading rollout information...</p>
-                    </div>
+                <div class="col-md-6">
+                  <label class="form-label">City</label>
+                  <input type="text" class="form-control" id="bdewCity" readonly />
                 </div>
-            </div>
+              </div>
 
-            <!-- Service Area Information -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-map me-2"></i>
-                        Service Area
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div id="serviceAreaInfo">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
+              <div class="mb-3">
+                <label class="form-label">BDEW Company Name</label>
+                <input type="text" class="form-control" id="bdewName" readonly />
+              </div>
 
-                    <div class="d-grid gap-2 mt-3">
-                        <button type="button" class="btn btn-outline-success" id="viewMapBtn" onclick="viewOnMap()"
-                            disabled>
-                            <i class="fas fa-map me-1"></i> View on Map
-                        </button>
-                    </div>
-                </div>
-            </div>
+              <div class="mb-3">
+                <label class="form-label">Normalized Name</label>
+                <input type="text" class="form-control" id="bdewNameNormalized" readonly />
+              </div>
+            </fieldset>
 
-            <!-- Actions -->
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-cogs me-2"></i>
-                        Actions
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary" onclick="saveCompany()">
-                            <i class="fas fa-save me-1"></i> Save Changes
-                        </button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
-                            <i class="fas fa-undo me-1"></i> Reset Form
-                        </button>
-                        <hr>
-                        <a href="/companies/{{ company_id }}" class="btn btn-outline-info">
-                            <i class="fas fa-info-circle me-1"></i> View Details
-                        </a>
-                    </div>
-                </div>
-            </div>
+            <!-- Editable Fields -->
+            <fieldset class="mt-4">
+              <legend class="h6 text-primary border-bottom pb-2">
+                Additional Information (Editable)
+              </legend>
+
+              <div class="mb-3">
+                <label for="notes" class="form-label">
+                  Notes
+                  <small class="text-muted">(Internal notes)</small>
+                </label>
+                <textarea
+                  class="form-control"
+                  id="notes"
+                  rows="3"
+                  placeholder="Add any notes about this company..."
+                ></textarea>
+                <div class="form-text">Internal notes for administrative purposes.</div>
+              </div>
+            </fieldset>
+          </form>
         </div>
+      </div>
     </div>
+
+    <div class="col-md-4">
+      <!-- Rollout Information (Read-only) -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-clipboard-list me-2"></i>
+            Rollout Information
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="rolloutInfo">
+            <p class="text-muted">Loading rollout information...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Service Area Information -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-map me-2"></i>
+            Service Area
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="serviceAreaInfo">
+            <!-- Will be populated by JavaScript -->
+          </div>
+
+          <div class="d-grid gap-2 mt-3">
+            <button
+              type="button"
+              class="btn btn-outline-success"
+              id="viewMapBtn"
+              onclick="viewOnMap()"
+              disabled
+            >
+              <i class="fas fa-map me-1"></i> View on Map
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-cogs me-2"></i>
+            Actions
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button type="button" class="btn btn-outline-primary" onclick="saveCompany()">
+              <i class="fas fa-save me-1"></i> Save Changes
+            </button>
+            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+              <i class="fas fa-undo me-1"></i> Reset Form
+            </button>
+            <hr />
+            <a href="/companies/{{ company_id }}" class="btn btn-outline-info">
+              <i class="fas fa-info-circle me-1"></i> View Details
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <script>
-    let originalData = {};
-    let companyId = {{ company_id }};
+  let originalData = {};
+  let companyId = {{ company_id }};
 
-    async function loadCompanyData() {
-        try {
-            showLoading(true);
+  async function loadCompanyData() {
+      try {
+          showLoading(true);
 
-            // Load company data
-            const data = await apiRequest(`/companies/api/${companyId}`);
-            originalData = { ...data };
+          // Load company data
+          const data = await apiRequest(`/companies/api/${companyId}`);
+          originalData = { ...data };
 
-            // Populate form fields
-            document.getElementById('bdewCode').value = data.bdew_code || '';
-            document.getElementById('bdewName').value = data.bdew_name || '';
-            document.getElementById('bdewCity').value = data.bdew_city || '';
-            document.getElementById('bdewNameNormalized').value = data.bdew_name_normalized || '';
-            document.getElementById('notes').value = data.notes || '';
+          // Populate form fields
+          document.getElementById('bdewCode').value = data.bdew_code || '';
+          document.getElementById('bdewName').value = data.bdew_name || '';
+          document.getElementById('bdewCity').value = data.bdew_city || '';
+          document.getElementById('bdewNameNormalized').value = data.bdew_name_normalized || '';
+          document.getElementById('notes').value = data.notes || '';
 
-            // Update service area information
-            updateServiceAreaInfo(data);
+          // Update service area information
+          updateServiceAreaInfo(data);
 
-            // Load rollout information
-            await loadRolloutInfo();
+          // Load rollout information
+          await loadRolloutInfo();
 
-            showLoading(false);
+          showLoading(false);
 
-        } catch (error) {
-            console.error('Error loading company data:', error);
-            showMessage('Failed to load company data: ' + error.message, 'danger');
-            showLoading(false);
-        }
-    }
+      } catch (error) {
+          console.error('Error loading company data:', error);
+          showMessage('Failed to load company data: ' + error.message, 'danger');
+          showLoading(false);
+      }
+  }
 
-    async function loadRolloutInfo() {
-        try {
-            const rolloutData = await apiRequest(`/rollout/api/company/${companyId}`);
-            const rolloutInfoDiv = document.getElementById('rolloutInfo');
+  async function loadRolloutInfo() {
+      try {
+          const rolloutData = await apiRequest(`/rollout/api/company/${companyId}`);
+          const rolloutInfoDiv = document.getElementById('rolloutInfo');
 
-            if (rolloutData && rolloutData.length > 0) {
-                rolloutInfoDiv.innerHTML = rolloutData.map(rollout => `
-                    <div class="mb-2">
-                        <strong>${rollout.rollout_name}</strong>
-                        <br>
-                        <small class="text-muted">Report: ${rollout.report_name}</small>
-                        <br>
-                        <small class="text-muted">Quarter: ${rollout.quarter_year}</small>
-                    </div>
-                `).join('<hr>');
-            } else {
-                rolloutInfoDiv.innerHTML = '<p class="text-muted">No rollout information available.</p>';
-            }
-        } catch (error) {
-            console.error('Error loading rollout info:', error);
-            document.getElementById('rolloutInfo').innerHTML = '<p class="text-danger">Failed to load rollout information.</p>';
-        }
-    }
+          if (rolloutData && rolloutData.length > 0) {
+              rolloutInfoDiv.innerHTML = rolloutData.map(rollout => `
+                  <div class="mb-2">
+                      <strong>${rollout.rollout_name}</strong>
+                      <br>
+                      <small class="text-muted">Report: ${rollout.report_name}</small>
+                      <br>
+                      <small class="text-muted">Quarter: ${rollout.quarter_year}</small>
+                  </div>
+              `).join('<hr>');
+          } else {
+              rolloutInfoDiv.innerHTML = '<p class="text-muted">No rollout information available.</p>';
+          }
+      } catch (error) {
+          console.error('Error loading rollout info:', error);
+          document.getElementById('rolloutInfo').innerHTML = '<p class="text-danger">Failed to load rollout information.</p>';
+      }
+  }
 
-    function updateServiceAreaInfo(data) {
-        const serviceAreaDiv = document.getElementById('serviceAreaInfo');
-        const viewMapBtn = document.getElementById('viewMapBtn');
+  function updateServiceAreaInfo(data) {
+      const serviceAreaDiv = document.getElementById('serviceAreaInfo');
+      const viewMapBtn = document.getElementById('viewMapBtn');
 
-        if (data.has_service_area) {
-            serviceAreaDiv.innerHTML = `
-                <div class="alert alert-success" role="alert">
-                    <i class="fas fa-check-circle"></i>
-                    <strong>Service area available</strong>
-                    <p class="mb-0 mt-1">This company has geographic service area data.</p>
-                </div>
-            `;
-            viewMapBtn.disabled = false;
-        } else {
-            serviceAreaDiv.innerHTML = `
-                <div class="alert alert-warning" role="alert">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>No service area data</strong>
-                    <p class="mb-0 mt-1">No geographic service area information available.</p>
-                </div>
-            `;
-            viewMapBtn.disabled = true;
-        }
-    }
+      if (data.has_service_area) {
+          serviceAreaDiv.innerHTML = `
+              <div class="alert alert-success" role="alert">
+                  <i class="fas fa-check-circle"></i>
+                  <strong>Service area available</strong>
+                  <p class="mb-0 mt-1">This company has geographic service area data.</p>
+              </div>
+          `;
+          viewMapBtn.disabled = false;
+      } else {
+          serviceAreaDiv.innerHTML = `
+              <div class="alert alert-warning" role="alert">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <strong>No service area data</strong>
+                  <p class="mb-0 mt-1">No geographic service area information available.</p>
+              </div>
+          `;
+          viewMapBtn.disabled = true;
+      }
+  }
 
-    async function saveCompany() {
-        try {
-            // Get form data
-            const formData = {
-                notes: document.getElementById('notes').value.trim() || null
-            };
+  async function saveCompany() {
+      try {
+          // Get form data
+          const formData = {
+              notes: document.getElementById('notes').value.trim() || null
+          };
 
-            // Check if anything changed
-            if (formData.notes === (originalData.notes || null)) {
-                showMessage('No changes to save', 'info');
-                return;
-            }
+          // Check if anything changed
+          if (formData.notes === (originalData.notes || null)) {
+              showMessage('No changes to save', 'info');
+              return;
+          }
 
-            // Save changes
-            await apiRequest(`/companies/api/${companyId}`, {
-                method: 'PUT',
-                body: JSON.stringify(formData)
-            });
+          // Save changes
+          await apiRequest(`/companies/api/${companyId}`, {
+              method: 'PUT',
+              body: JSON.stringify(formData)
+          });
 
-            // Update original data
-            originalData.notes = formData.notes;
+          // Update original data
+          originalData.notes = formData.notes;
 
-            showMessage('Company updated successfully', 'success');
+          showMessage('Company updated successfully', 'success');
 
-        } catch (error) {
-            console.error('Error saving company:', error);
-            showMessage('Failed to save company: ' + error.message, 'danger');
-        }
-    }
+      } catch (error) {
+          console.error('Error saving company:', error);
+          showMessage('Failed to save company: ' + error.message, 'danger');
+      }
+  }
 
-    function resetForm() {
-        if (confirm('Are you sure you want to reset all changes?')) {
-            loadCompanyData();
-        }
-    }
+  function resetForm() {
+      if (confirm('Are you sure you want to reset all changes?')) {
+          loadCompanyData();
+      }
+  }
 
-    function viewOnMap() {
-        window.open(`/companies/map?company_id=${companyId}`, '_blank');
-    }
+  function viewOnMap() {
+      window.open(`/companies/map?company_id=${companyId}`, '_blank');
+  }
 
-    function showLoading(show) {
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const editForm = document.getElementById('editForm');
+  function showLoading(show) {
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const editForm = document.getElementById('editForm');
 
-        if (show) {
-            loadingIndicator.style.display = 'block';
-            editForm.style.display = 'none';
-        } else {
-            loadingIndicator.style.display = 'none';
-            editForm.style.display = 'block';
-        }
-    }
+      if (show) {
+          loadingIndicator.style.display = 'block';
+          editForm.style.display = 'none';
+      } else {
+          loadingIndicator.style.display = 'none';
+          editForm.style.display = 'block';
+      }
+  }
 
-    // Load data when page loads
-    document.addEventListener('DOMContentLoaded', loadCompanyData);
+  // Load data when page loads
+  document.addEventListener('DOMContentLoaded', loadCompanyData);
 </script>
 {% endblock %}

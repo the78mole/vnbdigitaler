@@ -1,115 +1,133 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% block title %}VNBdigitaler Admin{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
     <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
     <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <!-- Custom Admin CSS -->
-    <link href="/static/css/admin.css" rel="stylesheet">
+    <link href="/static/css/admin.css" rel="stylesheet" />
 
     {% block extra_css %}{% endblock %}
-</head>
+  </head>
 
-<body>
+  <body>
     <!-- Mobile Sidebar Overlay -->
-    <div class="d-md-none position-fixed w-100 h-100 bg-dark opacity-50 d-none" id="sidebar-overlay"
-        style="z-index: 1030;"></div>
+    <div
+      class="d-md-none position-fixed w-100 h-100 bg-dark opacity-50 d-none"
+      id="sidebar-overlay"
+      style="z-index: 1030"
+    ></div>
 
     <div class="container-fluid p-0">
-        <div class="row g-0">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 sidebar" id="sidebar">
-                <div class="position-relative h-100">
-                    <!-- Brand -->
-                    <div class="d-flex align-items-center justify-content-between p-3">
-                        <a class="navbar-brand m-0" href="/">
-                            <i class="fas fa-bolt me-2"></i>
-                            VNBdigitaler
-                        </a>
-                        <button class="btn btn-link d-md-none p-0" id="sidebar-close">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+      <div class="row g-0">
+        <!-- Sidebar -->
+        <nav class="col-md-3 col-lg-2 sidebar" id="sidebar">
+          <div class="position-relative h-100">
+            <!-- Brand -->
+            <div class="d-flex align-items-center justify-content-between p-3">
+              <a class="navbar-brand m-0" href="/">
+                <i class="fas fa-bolt me-2"></i>
+                VNBdigitaler
+              </a>
+              <button class="btn btn-link d-md-none p-0" id="sidebar-close">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
 
-                    <!-- Navigation -->
-                    <ul class="nav flex-column px-2">
-                        <li class="nav-item">
-                            <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/">
-                                <i class="fas fa-tachometer-alt me-2"></i>
-                                Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if active_page == 'companies' %}active{% endif %}" href="/companies/">
-                                <i class="fas fa-building me-2"></i>
-                                Companies
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if active_page == 'rollout' %}active{% endif %}" href="/rollout/">
-                                <i class="fas fa-list-check me-2"></i>
-                                Roll-Out Data
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if active_page == 'stats' %}active{% endif %}" href="/stats">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                Statistics
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {% if active_page == 'map' %}active{% endif %}" href="/companies/map">
-                                <i class="fas fa-map me-2"></i>
-                                Map View
-                            </a>
-                        </li>
-                    </ul>
+            <!-- Navigation -->
+            <ul class="nav flex-column px-2">
+              <li class="nav-item">
+                <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="/">
+                  <i class="fas fa-tachometer-alt me-2"></i>
+                  Dashboard
+                </a>
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link {% if active_page == 'companies' %}active{% endif %}"
+                  href="/companies/"
+                >
+                  <i class="fas fa-building me-2"></i>
+                  Companies
+                </a>
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link {% if active_page == 'rollout' %}active{% endif %}"
+                  href="/rollout/"
+                >
+                  <i class="fas fa-list-check me-2"></i>
+                  Roll-Out Data
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link {% if active_page == 'stats' %}active{% endif %}" href="/stats">
+                  <i class="fas fa-chart-bar me-2"></i>
+                  Statistics
+                </a>
+              </li>
+              <li class="nav-item">
+                <a
+                  class="nav-link {% if active_page == 'map' %}active{% endif %}"
+                  href="/companies/map"
+                >
+                  <i class="fas fa-map me-2"></i>
+                  Map View
+                </a>
+              </li>
+            </ul>
 
-                    <!-- Footer -->
-                    <div class="sidebar-footer">
-                        <div class="text-muted">
-                            <p class="mb-1">
-                                <i class="fas fa-info-circle me-1"></i>
-                                VNBdigitaler Admin
-                            </p>
-                            <p class="mb-0 small">Version 1.0.0</p>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <!-- Footer -->
+            <div class="sidebar-footer">
+              <div class="text-muted">
+                <p class="mb-1">
+                  <i class="fas fa-info-circle me-1"></i>
+                  VNBdigitaler Admin
+                </p>
+                <p class="mb-0 small">Version 1.0.0</p>
+              </div>
+            </div>
+          </div>
+        </nav>
 
-            <!-- Main Content -->
-            <main class="col-md-9 col-lg-10 main-content">
-                <!-- Mobile Header -->
-                <div class="d-md-none d-flex align-items-center justify-content-between p-3 border-bottom">
-                    <button class="btn btn-outline-secondary" id="sidebar-toggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <h5 class="m-0">{{ title }}</h5>
-                </div>
+        <!-- Main Content -->
+        <main class="col-md-9 col-lg-10 main-content">
+          <!-- Mobile Header -->
+          <div
+            class="d-md-none d-flex align-items-center justify-content-between p-3 border-bottom"
+          >
+            <button class="btn btn-outline-secondary" id="sidebar-toggle">
+              <i class="fas fa-bars"></i>
+            </button>
+            <h5 class="m-0">{{ title }}</h5>
+          </div>
 
-                <!-- Page Header -->
-                <div class="page-header d-flex justify-content-between align-items-center">
-                    <h1 class="page-title">{{ title }}</h1>
-                    <div class="toolbar">
-                        {% block toolbar %}{% endblock %}
-                    </div>
-                </div>
+          <!-- Page Header -->
+          <div class="page-header d-flex justify-content-between align-items-center">
+            <h1 class="page-title">{{ title }}</h1>
+            <div class="toolbar">{% block toolbar %}{% endblock %}</div>
+          </div>
 
-                <!-- Page Content -->
-                <div class="page-content">
-                    {% block content %}{% endblock %}
-                </div>
-            </main>
-        </div>
+          <!-- Page Content -->
+          <div class="page-content">{% block content %}{% endblock %}</div>
+        </main>
+      </div>
     </div>
 
     <!-- Toast Container -->
@@ -120,69 +138,69 @@
 
     <!-- Common JavaScript -->
     <script>
-        // Mobile Sidebar Toggle
-        document.addEventListener('DOMContentLoaded', function () {
-            const sidebarToggle = document.getElementById('sidebar-toggle');
-            const sidebarClose = document.getElementById('sidebar-close');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
+      // Mobile Sidebar Toggle
+      document.addEventListener("DOMContentLoaded", function () {
+        const sidebarToggle = document.getElementById("sidebar-toggle");
+        const sidebarClose = document.getElementById("sidebar-close");
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebar-overlay");
 
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function () {
-                    sidebar.classList.add('show');
-                    overlay.classList.remove('d-none');
-                });
-            }
-
-            if (sidebarClose) {
-                sidebarClose.addEventListener('click', function () {
-                    sidebar.classList.remove('show');
-                    overlay.classList.add('d-none');
-                });
-            }
-
-            if (overlay) {
-                overlay.addEventListener('click', function () {
-                    sidebar.classList.remove('show');
-                    overlay.classList.add('d-none');
-                });
-            }
-        });
-
-        // Utility Functions
-        function showLoading(element) {
-            if (element) {
-                element.style.display = 'block';
-            }
+        if (sidebarToggle) {
+          sidebarToggle.addEventListener("click", function () {
+            sidebar.classList.add("show");
+            overlay.classList.remove("d-none");
+          });
         }
 
-        function hideLoading(element) {
-            if (element) {
-                element.style.display = 'none';
-            }
+        if (sidebarClose) {
+          sidebarClose.addEventListener("click", function () {
+            sidebar.classList.remove("show");
+            overlay.classList.add("d-none");
+          });
         }
 
-        function showMessage(message, type = 'info') {
-            const toastContainer = document.getElementById('toast-container');
-            if (!toastContainer) return;
+        if (overlay) {
+          overlay.addEventListener("click", function () {
+            sidebar.classList.remove("show");
+            overlay.classList.add("d-none");
+          });
+        }
+      });
 
-            const toastId = 'toast-' + Date.now();
+      // Utility Functions
+      function showLoading(element) {
+        if (element) {
+          element.style.display = "block";
+        }
+      }
 
-            const typeConfig = {
-                'success': { bg: 'text-bg-success', icon: 'fas fa-check-circle' },
-                'danger': { bg: 'text-bg-danger', icon: 'fas fa-exclamation-circle' },
-                'warning': { bg: 'text-bg-warning', icon: 'fas fa-exclamation-triangle' },
-                'info': { bg: 'text-bg-info', icon: 'fas fa-info-circle' },
-                'primary': { bg: 'text-bg-primary', icon: 'fas fa-info-circle' }
-            };
+      function hideLoading(element) {
+        if (element) {
+          element.style.display = "none";
+        }
+      }
 
-            const config = typeConfig[type] || typeConfig['info'];
+      function showMessage(message, type = "info") {
+        const toastContainer = document.getElementById("toast-container");
+        if (!toastContainer) return;
 
-            const toastElement = document.createElement('div');
-            toastElement.id = toastId;
-            toastElement.className = `toast ${config.bg}`;
-            toastElement.setAttribute('role', 'alert');
-            toastElement.innerHTML = `
+        const toastId = "toast-" + Date.now();
+
+        const typeConfig = {
+          success: { bg: "text-bg-success", icon: "fas fa-check-circle" },
+          danger: { bg: "text-bg-danger", icon: "fas fa-exclamation-circle" },
+          warning: { bg: "text-bg-warning", icon: "fas fa-exclamation-triangle" },
+          info: { bg: "text-bg-info", icon: "fas fa-info-circle" },
+          primary: { bg: "text-bg-primary", icon: "fas fa-info-circle" },
+        };
+
+        const config = typeConfig[type] || typeConfig["info"];
+
+        const toastElement = document.createElement("div");
+        toastElement.id = toastId;
+        toastElement.className = `toast ${config.bg}`;
+        toastElement.setAttribute("role", "alert");
+        toastElement.innerHTML = `
                 <div class="toast-header">
                     <i class="${config.icon} me-2"></i>
                     <strong class="me-auto">Notification</strong>
@@ -193,76 +211,77 @@
                 </div>
             `;
 
-            toastContainer.appendChild(toastElement);
+        toastContainer.appendChild(toastElement);
 
-            const toast = new bootstrap.Toast(toastElement, {
-                autohide: true,
-                delay: 5000
-            });
+        const toast = new bootstrap.Toast(toastElement, {
+          autohide: true,
+          delay: 5000,
+        });
 
-            toast.show();
+        toast.show();
 
-            toastElement.addEventListener('hidden.bs.toast', function () {
-                if (toastElement.parentNode) {
-                    toastElement.remove();
-                }
-            });
+        toastElement.addEventListener("hidden.bs.toast", function () {
+          if (toastElement.parentNode) {
+            toastElement.remove();
+          }
+        });
+      }
+
+      // API Helper Functions
+      async function apiRequest(url, options = {}) {
+        try {
+          const response = await fetch(url, {
+            headers: {
+              "Content-Type": "application/json",
+              ...options.headers,
+            },
+            ...options,
+          });
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({ detail: "Unknown error" }));
+            throw new Error(error.detail || `HTTP ${response.status}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          console.error("API request failed:", error);
+          showMessage(`API Error: ${error.message}`, "danger");
+          throw error;
         }
+      }
 
-        // API Helper Functions
-        async function apiRequest(url, options = {}) {
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
-                    ...options
-                });
+      // Form Validation Helper
+      function validateForm(formElement) {
+        const inputs = formElement.querySelectorAll(
+          "input[required], select[required], textarea[required]"
+        );
+        let isValid = true;
 
-                if (!response.ok) {
-                    const error = await response.json().catch(() => ({ detail: 'Unknown error' }));
-                    throw new Error(error.detail || `HTTP ${response.status}`);
-                }
+        inputs.forEach(input => {
+          if (!input.value.trim()) {
+            input.classList.add("is-invalid");
+            isValid = false;
+          } else {
+            input.classList.remove("is-invalid");
+          }
+        });
 
-                return await response.json();
-            } catch (error) {
-                console.error('API request failed:', error);
-                showMessage(`API Error: ${error.message}`, 'danger');
-                throw error;
-            }
+        return isValid;
+      }
+
+      // Loading State Helper
+      function setLoadingState(button, isLoading) {
+        if (isLoading) {
+          button.disabled = true;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+        } else {
+          button.disabled = false;
+          button.innerHTML = button.getAttribute("data-original-text") || "Submit";
         }
-
-        // Form Validation Helper
-        function validateForm(formElement) {
-            const inputs = formElement.querySelectorAll('input[required], select[required], textarea[required]');
-            let isValid = true;
-
-            inputs.forEach(input => {
-                if (!input.value.trim()) {
-                    input.classList.add('is-invalid');
-                    isValid = false;
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-            });
-
-            return isValid;
-        }
-
-        // Loading State Helper
-        function setLoadingState(button, isLoading) {
-            if (isLoading) {
-                button.disabled = true;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
-            } else {
-                button.disabled = false;
-                button.innerHTML = button.getAttribute('data-original-text') || 'Submit';
-            }
-        }
+      }
     </script>
 
     {% block extra_js %}{% endblock %}
-</body>
-
+  </body>
 </html>

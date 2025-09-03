@@ -37,22 +37,24 @@ uv run python tools/geocode_companies.py --force-update --limit 5
 
 ### Parameter
 
-| Parameter | Beschreibung |
-|-----------|-------------|
-| `--dry-run` | Test-Modus, keine Datenbank-Updates |
-| `--limit N` | Beschränke auf N Companies |
-| `--force-update` | Update auch bereits geocodierte Companies |
-| `--city NAME` | Filtere nach Stadt-Namen (case-insensitive) |
+| Parameter        | Beschreibung                                |
+| ---------------- | ------------------------------------------- |
+| `--dry-run`      | Test-Modus, keine Datenbank-Updates         |
+| `--limit N`      | Beschränke auf N Companies                  |
+| `--force-update` | Update auch bereits geocodierte Companies   |
+| `--city NAME`    | Filtere nach Stadt-Namen (case-insensitive) |
 
 ## Adress-Logik
 
 Das Script baut Adressen mit folgender Priorität:
 
 1. **vnbdigital.de Daten** (falls verfügbar):
+
    - `vnbdigital_address`
    - `vnbdigital_postcode` + `vnbdigital_city`
 
 2. **BDEW Daten** (Fallback):
+
    - `bdew_city`
    - `bdew_name` (als letzter Ausweg)
 

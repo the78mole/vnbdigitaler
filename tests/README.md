@@ -29,22 +29,26 @@ These files were removed during cleanup and should NOT be recreated:
 ### BDEW Integration Tests (test_bdew_integration.py)
 
 1. **TestBDEWRepositoryBasics** (4 tests)
+
    - Single company creation
    - Bulk insert operations
    - Operator ID lookup
    - Company counting
 
 2. **TestBDEWRepositorySearch** (4 tests)
+
    - Name-based search
    - Federal state filtering
    - Postal code filtering
    - Pagination support
 
 3. **TestBDEWRepositoryQuality** (2 tests)
+
    - Data quality statistics
    - Complete data validation
 
 4. **TestBDEWRepositoryEdgeCases** (5 tests)
+
    - Empty database handling
    - Minimal data creation
    - Non-existent searches

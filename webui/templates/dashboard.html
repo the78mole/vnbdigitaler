@@ -1,272 +1,265 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - VNBdigitaler Admin{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Dashboard - VNBdigitaler Admin{% endblock %} {% block
+content %}
 <div class="row">
-    <div class="col-md-3 mb-4">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">Companies</h4>
-                        <p class="card-text" id="total-companies">Loading...</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-building fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/companies/" class="text-white text-decoration-none">
-                    View Details <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
+  <div class="col-md-3 mb-4">
+    <div class="card text-white bg-primary">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h4 class="card-title">Companies</h4>
+            <p class="card-text" id="total-companies">Loading...</p>
+          </div>
+          <div class="align-self-center">
+            <i class="fas fa-building fa-2x"></i>
+          </div>
         </div>
+      </div>
+      <div class="card-footer">
+        <a href="/companies/" class="text-white text-decoration-none">
+          View Details <i class="fas fa-arrow-circle-right"></i>
+        </a>
+      </div>
     </div>
+  </div>
 
-    <div class="col-md-3 mb-4">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">Matched</h4>
-                        <p class="card-text" id="matched-companies">Loading...</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/companies/?has_rollout_name=true" class="text-white text-decoration-none">
-                    View Matched <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
+  <div class="col-md-3 mb-4">
+    <div class="card text-white bg-success">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h4 class="card-title">Matched</h4>
+            <p class="card-text" id="matched-companies">Loading...</p>
+          </div>
+          <div class="align-self-center">
+            <i class="fas fa-check-circle fa-2x"></i>
+          </div>
         </div>
+      </div>
+      <div class="card-footer">
+        <a href="/companies/?has_rollout_name=true" class="text-white text-decoration-none">
+          View Matched <i class="fas fa-arrow-circle-right"></i>
+        </a>
+      </div>
     </div>
+  </div>
 
-    <div class="col-md-3 mb-4">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">Unmatched</h4>
-                        <p class="card-text" id="unmatched-companies">Loading...</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-question-circle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/companies/?has_rollout_name=false" class="text-white text-decoration-none">
-                    View Unmatched <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
+  <div class="col-md-3 mb-4">
+    <div class="card text-white bg-warning">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h4 class="card-title">Unmatched</h4>
+            <p class="card-text" id="unmatched-companies">Loading...</p>
+          </div>
+          <div class="align-self-center">
+            <i class="fas fa-question-circle fa-2x"></i>
+          </div>
         </div>
+      </div>
+      <div class="card-footer">
+        <a href="/companies/?has_rollout_name=false" class="text-white text-decoration-none">
+          View Unmatched <i class="fas fa-arrow-circle-right"></i>
+        </a>
+      </div>
     </div>
+  </div>
 
-    <div class="col-md-3 mb-4">
-        <div class="card text-white bg-secondary">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h4 class="card-title">Service Areas</h4>
-                        <p class="card-text" id="service-areas">Loading...</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-map fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer">
-                <a href="/companies/map" class="text-white text-decoration-none">
-                    View Map <i class="fas fa-arrow-circle-right"></i>
-                </a>
-            </div>
+  <div class="col-md-3 mb-4">
+    <div class="card text-white bg-secondary">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <h4 class="card-title">Service Areas</h4>
+            <p class="card-text" id="service-areas">Loading...</p>
+          </div>
+          <div class="align-self-center">
+            <i class="fas fa-map fa-2x"></i>
+          </div>
         </div>
+      </div>
+      <div class="card-footer">
+        <a href="/companies/map" class="text-white text-decoration-none">
+          View Map <i class="fas fa-arrow-circle-right"></i>
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 
 <div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-chart-line me-2"></i>
-                    Quick Actions
-                </h5>
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-chart-line me-2"></i>
+          Quick Actions
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <a href="/companies/" class="btn btn-primary btn-lg">
+                <i class="fas fa-list me-2"></i>
+                Manage Companies
+              </a>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <a href="/companies/" class="btn btn-primary btn-lg">
-                                <i class="fas fa-list me-2"></i>
-                                Manage Companies
-                            </a>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            View and edit company matching data
-                        </small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <a href="/rollout/" class="btn btn-warning btn-lg">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                BNetzA Roll-Out Data
-                            </a>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            Review unmatched BNetzA entries
-                        </small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <a href="/companies/map" class="btn btn-success btn-lg">
-                                <i class="fas fa-map me-2"></i>
-                                View on Map
-                            </a>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            Simple map view centered on Erlangen
-                        </small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <a href="/stats" class="btn btn-info btn-lg">
-                                <i class="fas fa-chart-bar me-2"></i>
-                                View Statistics
-                            </a>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            Detailed database statistics
-                        </small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="d-grid">
-                            <button class="btn btn-warning btn-lg" onclick="refreshData()">
-                                <i class="fas fa-sync me-2"></i>
-                                Refresh Data
-                            </button>
-                        </div>
-                        <small class="text-muted d-block mt-1">
-                            Reload dashboard statistics
-                        </small>
-                    </div>
-                </div>
+            <small class="text-muted d-block mt-1"> View and edit company matching data </small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <a href="/rollout/" class="btn btn-warning btn-lg">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                BNetzA Roll-Out Data
+              </a>
             </div>
+            <small class="text-muted d-block mt-1"> Review unmatched BNetzA entries </small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <a href="/companies/map" class="btn btn-success btn-lg">
+                <i class="fas fa-map me-2"></i>
+                View on Map
+              </a>
+            </div>
+            <small class="text-muted d-block mt-1"> Simple map view centered on Erlangen </small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <a href="/stats" class="btn btn-info btn-lg">
+                <i class="fas fa-chart-bar me-2"></i>
+                View Statistics
+              </a>
+            </div>
+            <small class="text-muted d-block mt-1"> Detailed database statistics </small>
+          </div>
+          <div class="col-md-6 mb-3">
+            <div class="d-grid">
+              <button class="btn btn-warning btn-lg" onclick="refreshData()">
+                <i class="fas fa-sync me-2"></i>
+                Refresh Data
+              </button>
+            </div>
+            <small class="text-muted d-block mt-1"> Reload dashboard statistics </small>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-info-circle me-2"></i>
+          System Status
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span>Database Connection:</span>
+          <span class="badge bg-success" id="db-status">Connected</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span>WebUI Version:</span>
+          <span class="text-muted">1.0.0</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span>Last Update:</span>
+          <span class="text-muted" id="last-update">Loading...</span>
+        </div>
+      </div>
     </div>
 
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-info-circle me-2"></i>
-                    System Status
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>Database Connection:</span>
-                    <span class="badge bg-success" id="db-status">Connected</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span>WebUI Version:</span>
-                    <span class="text-muted">1.0.0</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>Last Update:</span>
-                    <span class="text-muted" id="last-update">Loading...</span>
-                </div>
-            </div>
+    <div class="card mt-3">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-tools me-2"></i>
+          Recent Activities
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="text-muted text-center py-3">
+          <i class="fas fa-clock fa-2x mb-2"></i>
+          <p>Activity tracking coming soon...</p>
         </div>
-
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-tools me-2"></i>
-                    Recent Activities
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="text-muted text-center py-3">
-                    <i class="fas fa-clock fa-2x mb-2"></i>
-                    <p>Activity tracking coming soon...</p>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <script>
-    async function loadDashboardStats() {
-        try {
-            // Load statistics from dashboard API
-            const statsData = await apiRequest('/api/dashboard/stats');
+  async function loadDashboardStats() {
+    try {
+      // Load statistics from dashboard API
+      const statsData = await apiRequest("/api/dashboard/stats");
 
-            // Update the dashboard cards with real data
-            document.getElementById('total-companies').textContent = statsData.total_companies.toLocaleString();
-            document.getElementById('matched-companies').textContent = statsData.matched_companies.toLocaleString();
-            document.getElementById('unmatched-companies').textContent = statsData.unmatched_companies.toLocaleString();
-            document.getElementById('service-areas').textContent = statsData.service_areas ? statsData.service_areas.toLocaleString() : '0';
+      // Update the dashboard cards with real data
+      document.getElementById("total-companies").textContent =
+        statsData.total_companies.toLocaleString();
+      document.getElementById("matched-companies").textContent =
+        statsData.matched_companies.toLocaleString();
+      document.getElementById("unmatched-companies").textContent =
+        statsData.unmatched_companies.toLocaleString();
+      document.getElementById("service-areas").textContent = statsData.service_areas
+        ? statsData.service_areas.toLocaleString()
+        : "0";
 
-            // Update database status
-            const dbStatus = document.getElementById('db-status');
-            if (statsData.database_status === 'connected') {
-                dbStatus.textContent = 'Connected';
-                dbStatus.className = 'badge bg-success';
-            } else {
-                dbStatus.textContent = 'Error';
-                dbStatus.className = 'badge bg-danger';
-            }
+      // Update database status
+      const dbStatus = document.getElementById("db-status");
+      if (statsData.database_status === "connected") {
+        dbStatus.textContent = "Connected";
+        dbStatus.className = "badge bg-success";
+      } else {
+        dbStatus.textContent = "Error";
+        dbStatus.className = "badge bg-danger";
+      }
 
-            // Update last update time
-            document.getElementById('last-update').textContent = new Date().toLocaleString();
+      // Update last update time
+      document.getElementById("last-update").textContent = new Date().toLocaleString();
 
-            // Show success message
-            showMessage('Dashboard updated successfully', 'success');
+      // Show success message
+      showMessage("Dashboard updated successfully", "success");
+    } catch (error) {
+      console.error("Failed to load dashboard stats:", error);
 
-        } catch (error) {
-            console.error('Failed to load dashboard stats:', error);
-
-            // Show error state
-            ['total-companies', 'matched-companies', 'unmatched-companies', 'service-areas'].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.textContent = 'Error loading data';
-            });
-
-            const dbStatus = document.getElementById('db-status');
-            if (dbStatus) {
-                dbStatus.textContent = 'Error';
-                dbStatus.className = 'badge bg-danger';
-            }
-
-            document.getElementById('last-update').textContent = 'Failed to load';
-            showMessage('Failed to load dashboard data: ' + error.message, 'danger');
+      // Show error state
+      ["total-companies", "matched-companies", "unmatched-companies", "service-areas"].forEach(
+        id => {
+          const element = document.getElementById(id);
+          if (element) element.textContent = "Error loading data";
         }
+      );
+
+      const dbStatus = document.getElementById("db-status");
+      if (dbStatus) {
+        dbStatus.textContent = "Error";
+        dbStatus.className = "badge bg-danger";
+      }
+
+      document.getElementById("last-update").textContent = "Failed to load";
+      showMessage("Failed to load dashboard data: " + error.message, "danger");
     }
+  }
 
-    function refreshData() {
-        showMessage('Refreshing dashboard data...', 'info');
+  function refreshData() {
+    showMessage("Refreshing dashboard data...", "info");
 
-        // Show loading state
-        ['total-companies', 'matched-companies', 'unmatched-companies', 'manual-verification'].forEach(id => {
-            const element = document.getElementById(id);
-            if (element) element.textContent = 'Loading...';
-        });
+    // Show loading state
+    ["total-companies", "matched-companies", "unmatched-companies", "manual-verification"].forEach(
+      id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = "Loading...";
+      }
+    );
 
-        loadDashboardStats();
-    }
+    loadDashboardStats();
+  }
 
-    // Load data when page loads
-    document.addEventListener('DOMContentLoaded', function () {
-        console.log('Loading dashboard data...');
-        loadDashboardStats();
-    });
+  // Load data when page loads
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("Loading dashboard data...");
+    loadDashboardStats();
+  });
 </script>
 {% endblock %}

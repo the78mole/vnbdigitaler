@@ -88,12 +88,14 @@ Actions Workflows integriert werden kann.
 ### Prioritäten für Neuimplementierung
 
 1. **Transparenz-orientierte Datenquellen**
+
    - Umfassende BDEW-Integration (öffentlich verfügbare Marktteilnehmer-Daten)
    - §14a-spezifische Preisdaten-Extraktion von Netzbetreiber-Websites
    - BNetzA-Rollout-Berichte für Smart-Meter-Transparenz
    - Robuste Fehlerbehandlung und Datenvalidierung
 
 2. **Vergleichbarkeits-Pipeline**
+
    - Normalisierung unterschiedlicher Preisstrukturen
    - Standardisierte §14a-Netzentgelt-Formate
    - Cross-Validation zwischen verschiedenen Datenquellen
@@ -310,4 +312,4 @@ src/
 
 ---
 
-*Diese Anweisungen sind ein lebendiges Dokument und sollen bei Bedarf aktualisiert werden.*
+_Diese Anweisungen sind ein lebendiges Dokument und sollen bei Bedarf aktualisiert werden._
