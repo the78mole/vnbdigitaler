@@ -373,9 +373,8 @@
       companiesLayer.addTo(map);
 
       // Update map title and info
-      document.querySelector(
-        ".card-title"
-      ).innerHTML = `<i class="fas fa-map me-2 text-primary"></i>Unternehmen Map - ${data.total_count} Unternehmen`;
+      document.querySelector(".card-title").innerHTML =
+        `<i class="fas fa-map me-2 text-primary"></i>Unternehmen Map - ${data.total_count} Unternehmen`;
 
       // Update statistics
       const companiesCountElement = document.getElementById("companiesCount");
