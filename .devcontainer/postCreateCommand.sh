@@ -3,15 +3,14 @@
 # Configure git
 git config --global core.autocrlf input
 
-# Install uv if not present
-if ! command -v uv &> /dev/null; then
-    echo "Installing uv..."
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-    # Add to PATH for current session
-    export PATH="$HOME/.local/bin:$PATH"
+# Initialize PostgreSQL (if available)
+if command -v /usr/local/share/pq-init.sh &> /dev/null; then
+    echo "Initializing PostgreSQL..."
+    sudo /usr/local/share/pq-init.sh
+    echo "PostgreSQL initialized successfully"
 fi
 
-# Install dependencies using uv
+# Install dependencies using uv (should already be available through feature)
 echo "Installing Python dependencies with uv..."
 uv sync
 
@@ -24,4 +23,4 @@ cat > ~/.streamlit/credentials.toml <<HERE
     gatherUsageStats = false
 HERE
 
-echo '✅ DevContainer setup completed with uv'
+echo '✅ DevContainer setup completed with uv and PostgreSQL'
