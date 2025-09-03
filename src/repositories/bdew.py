@@ -1,30 +1,36 @@
 """
-BDEW Repository für Datenbankzugriff.
+BDEW Repository für PostgreSQL-Datenbankzugriff.
 
-Repository-Pattern für BDEW-Datenoperationen mit SQLAlchemy.
+Repository-Pattern für BDEW-Datenoperationen mit erweiterten PostgreSQL-Features
+wie JSONB-Abfragen, Full-Text-Search und Geo-Queries.
 """
 
 import hashlib
-from datetime import datetime
+import uuid
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import desc, func, or_
+from sqlalchemy import func, text
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.bdew import BDEWCompany, BDEWImportLog, BDEWValidationRule
+from ..models.bdew import (
+    BDEWCompany,
+    BDEWDataHistory,
+    BDEWImportLog,
+)
 
 
 class BDEWRepository:
-    """Repository für BDEW-Datenbankoperationen."""
+    """Repository für BDEW-Datenbankoperationen mit PostgreSQL-Features."""
 
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
 
     # Company Operations
 
-    def create_company(self, company_data: dict[str, Any]) -> BDEWCompany:
+    async def create_company(self, company_data: dict[str, Any]) -> BDEWCompany:
         """
         Erstelle neuen BDEW-Unternehmensdatensatz.
 
@@ -34,174 +40,379 @@ class BDEWRepository:
         Returns:
             BDEWCompany: Erstellter Datensatz
         """
+        # Normalisiere Firmennamen automatisch
+        if (
+            "company_name" in company_data
+            and "company_name_normalized" not in company_data
+        ):
+            company_data["company_name_normalized"] = (
+                BDEWCompany.normalize_company_name(company_data["company_name"])
+            )
+
         company = BDEWCompany(**company_data)
         self.session.add(company)
-        self._commit_with_rollback()
+        await self._commit_with_rollback()
         return company
 
-    def update_company(
-        self, company_id: str, updates: dict[str, Any]
-    ) -> BDEWCompany | None:
+    async def upsert_company(
+        self, company_data: dict[str, Any]
+    ) -> tuple[BDEWCompany, bool]:
         """
-        Aktualisiere BDEW-Unternehmensdatensatz.
+        Upsert (Insert oder Update) eines Unternehmens.
 
         Args:
-            company_id: Unternehmens-ID
-            updates: Zu aktualisierende Felder
+            company_data: Unternehmensdaten
 
         Returns:
-            BDEWCompany: Aktualisierter Datensatz oder None
+            Tuple[BDEWCompany, bool]: (Unternehmen, wurde_erstellt)
         """
-        company = (
-            self.session.query(BDEWCompany).filter(BDEWCompany.id == company_id).first()
+        # PostgreSQL UPSERT mit ON CONFLICT
+        stmt = insert(BDEWCompany).values(**company_data)
+
+        # Bei Konflikt mit network_operator_id oder bdew_code: Update
+        conflict_cols = ["network_operator_id"]
+        if company_data.get("bdew_code"):
+            conflict_cols.append("bdew_code")
+
+        # Werte für Update (exklusive Timestamps)
+        update_values = {
+            k: v for k, v in company_data.items() if k not in ["id", "created_at"]
+        }
+        update_values["updated_at"] = func.now()
+
+        stmt = stmt.on_conflict_do_update(
+            index_elements=conflict_cols, set_=update_values
+        ).returning(BDEWCompany)
+
+        result = await self.session.execute(stmt)
+        company = result.scalar_one()
+        await self._commit_with_rollback()
+
+        # Check if newly created by comparing timestamps
+        was_created = (
+            getattr(company, "created_at", None) == getattr(company, "updated_at", None)
+            if hasattr(company, "created_at") and hasattr(company, "updated_at")
+            else False
         )
 
-        if not company:
-            return None
+        return company, was_created
 
-        for key, value in updates.items():
-            if hasattr(company, key):
-                setattr(company, key, value)
-
-        company.last_validated = datetime.utcnow()
-        self._commit_with_rollback()
-        return company
-
-    def find_company_by_operator_id(self, operator_id: str) -> BDEWCompany | None:
+    async def find_company_by_operator_id(self, operator_id: str) -> BDEWCompany | None:
         """
         Finde Unternehmen anhand der Betreiber-ID.
 
         Args:
-            operator_id: Netzbetreiber-ID
+            operator_id: Betreiber-ID
 
         Returns:
             BDEWCompany: Gefundenes Unternehmen oder None
         """
-        return (
-            self.session.query(BDEWCompany)
-            .filter(
-                BDEWCompany.network_operator_id == operator_id,
-                BDEWCompany.is_active,
-            )
-            .first()
+        result = await self.session.execute(
+            text(
+                """
+                SELECT * FROM bdew_companies
+                WHERE network_operator_id = :operator_id
+                AND is_active = true
+            """
+            ),
+            {"operator_id": operator_id},
         )
+        row = result.mappings().first()
+        return BDEWCompany(**row) if row else None
 
-    def search_companies(
-        self,
-        query: str | None = None,
-        federal_state: str | None = None,
-        postal_code: str | None = None,
-        limit: int = 100,
-        offset: int = 0,
+    async def find_companies_by_location(
+        self, latitude: float, longitude: float, radius_km: float = 50
     ) -> list[BDEWCompany]:
         """
-        Suche Unternehmen mit Filtern.
+        Finde Unternehmen in geografischer Nähe.
 
         Args:
-            query: Suchtext für Unternehmensname
-            federal_state: Bundesland-Filter
-            postal_code: Postleitzahl-Filter
+            latitude: Breitengrad
+            longitude: Längengrad
+            radius_km: Suchradius in Kilometern
+
+        Returns:
+            List[BDEWCompany]: Unternehmen in der Nähe
+        """
+        # PostGIS-ähnliche Entfernungsberechnung (vereinfacht)
+        result = await self.session.execute(
+            text(
+                """
+                SELECT *,
+                       (6371 * acos(cos(radians(:lat)) * cos(radians(latitude))
+                                  * cos(radians(longitude) - radians(:lng))
+                                  + sin(radians(:lat)) * sin(radians(latitude)))) AS distance
+                FROM bdew_companies
+                WHERE latitude IS NOT NULL
+                  AND longitude IS NOT NULL
+                  AND is_active = true
+                  AND (6371 * acos(cos(radians(:lat)) * cos(radians(latitude))
+                                 * cos(radians(longitude) - radians(:lng))
+                                 + sin(radians(:lat)) * sin(radians(latitude)))) <= :radius
+                ORDER BY distance
+            """
+            ),
+            {"lat": latitude, "lng": longitude, "radius": radius_km},
+        )
+        return [BDEWCompany(**row) for row in result.mappings()]
+
+    async def search_companies_fulltext(
+        self, search_term: str, limit: int = 50, min_quality_score: int | None = None
+    ) -> list[BDEWCompany]:
+        """
+        Full-Text-Suche in Unternehmensdaten.
+
+        Args:
+            search_term: Suchbegriff
             limit: Maximale Anzahl Ergebnisse
-            offset: Ergebnisse überspringen
+            min_quality_score: Minimaler Qualitätsscore
 
         Returns:
             List[BDEWCompany]: Gefundene Unternehmen
         """
-        query_obj = self.session.query(BDEWCompany).filter(BDEWCompany.is_active)
+        # PostgreSQL Full-Text-Search mit rohen SQL
+        sql_query = """
+            SELECT *,
+                   ts_rank(
+                       to_tsvector('german',
+                           COALESCE(company_name, '') || ' ' ||
+                           COALESCE(city, '') || ' ' ||
+                           COALESCE(federal_state, '')
+                       ),
+                       plainto_tsquery('german', :search_term)
+                   ) as relevance_score
+            FROM bdew_companies
+            WHERE is_active = true
+              AND to_tsvector('german',
+                      COALESCE(company_name, '') || ' ' ||
+                      COALESCE(city, '') || ' ' ||
+                      COALESCE(federal_state, '')
+                  ) @@ plainto_tsquery('german', :search_term)
+        """
 
-        if query:
-            query_obj = query_obj.filter(BDEWCompany.company_name.ilike(f"%{query}%"))
+        params: dict[str, Any] = {"search_term": search_term}
 
-        if federal_state:
-            query_obj = query_obj.filter(BDEWCompany.federal_state == federal_state)
+        if min_quality_score:
+            sql_query += " AND data_quality_score >= :min_quality_score"
+            params["min_quality_score"] = min_quality_score
 
-        if postal_code:
-            query_obj = query_obj.filter(
-                BDEWCompany.postal_code.like(f"{postal_code}%")
-            )
-
-        return query_obj.offset(offset).limit(limit).all()
-
-    def get_companies_count(self) -> int:
-        """Gesamtanzahl aktiver Unternehmen."""
-        return (
-            self.session.query(func.count(BDEWCompany.id))
-            .filter(BDEWCompany.is_active)
-            .scalar()
+        sql_query += (
+            " ORDER BY relevance_score DESC, data_quality_score DESC LIMIT :limit"
         )
+        params["limit"] = limit
 
-    def get_companies_by_location(
-        self, postal_codes: list[str] | None = None, cities: list[str] | None = None
+        result = await self.session.execute(text(sql_query), params)
+        return [BDEWCompany(**row) for row in result.mappings()]
+
+    async def find_similar_companies(
+        self, company_name: str, threshold: float = 0.7
     ) -> list[BDEWCompany]:
         """
-        Hole Unternehmen nach Standorten.
+        Finde ähnliche Unternehmen basierend auf Namens-Similarity.
 
         Args:
-            postal_codes: Liste von Postleitzahlen
-            cities: Liste von Städten
+            company_name: Unternehmensname
+            threshold: Ähnlichkeits-Schwellenwert (0-1)
 
         Returns:
-            List[BDEWCompany]: Unternehmen an den Standorten
+            List[BDEWCompany]: Ähnliche Unternehmen
         """
-        query_obj = self.session.query(BDEWCompany).filter(BDEWCompany.is_active)
+        normalized_name = BDEWCompany.normalize_company_name(company_name)
 
-        conditions = []
+        # PostgreSQL similarity() Funktion (falls pg_trgm aktiviert)
+        result = await self.session.execute(
+            text(
+                """
+                SELECT *, similarity(company_name_normalized, :name) as sim_score
+                FROM bdew_companies
+                WHERE similarity(company_name_normalized, :name) > :threshold
+                  AND is_active = true
+                ORDER BY sim_score DESC
+                LIMIT 20
+            """
+            ),
+            {"name": normalized_name, "threshold": threshold},
+        )
+        return [BDEWCompany(**row) for row in result.mappings()]
 
-        if postal_codes:
-            conditions.append(BDEWCompany.postal_code.in_(postal_codes))
+    # Advanced Analytics
 
-        if cities:
-            conditions.append(BDEWCompany.city.in_(cities))
-
-        if conditions:
-            query_obj = query_obj.filter(or_(*conditions))
-
-        return query_obj.all()
-
-    # Bulk Operations
-
-    def bulk_insert_companies(self, companies_data: list[dict[str, Any]]) -> int:
+    async def get_companies_by_federal_state(self) -> dict[str, int]:
         """
-        Bulk-Insert für Unternehmensdaten.
-
-        Args:
-            companies_data: Liste von Unternehmensdaten
+        Gruppiere Unternehmen nach Bundesländern.
 
         Returns:
-            int: Anzahl eingefügter Datensätze
+            Dict[str, int]: {Bundesland: Anzahl}
         """
-        companies = [BDEWCompany(**data) for data in companies_data]
-        self.session.bulk_save_objects(companies, return_defaults=True)
-        self._commit_with_rollback()
-        return len(companies)
-
-    def deactivate_old_companies(self, import_timestamp: datetime) -> int:
-        """
-        Deaktiviere Unternehmen, die vor einem bestimmten Zeitpunkt importiert wurden.
-
-        Args:
-            import_timestamp: Zeitstempel-Grenze
-
-        Returns:
-            int: Anzahl deaktivierter Datensätze
-        """
-        count = (
-            self.session.query(BDEWCompany)
-            .filter(
-                BDEWCompany.import_timestamp < import_timestamp,
-                BDEWCompany.is_active,
+        result = await self.session.execute(
+            text(
+                """
+                SELECT federal_state, COUNT(*) as count
+                FROM bdew_companies
+                WHERE is_active = true AND federal_state IS NOT NULL
+                GROUP BY federal_state
+                ORDER BY count DESC
+            """
             )
-            .update({"is_active": False})
+        )
+        return {
+            str(getattr(row, "federal_state", "")): int(getattr(row, "count", 0))
+            for row in result
+        }
+
+    async def get_quality_distribution(self) -> dict[str, Any]:
+        """
+        Analyse der Datenqualitäts-Verteilung.
+
+        Returns:
+            Dict[str, Any]: Qualitätsstatistiken
+        """
+        result = await self.session.execute(
+            text(
+                """
+                SELECT
+                    COUNT(*) as total,
+                    AVG(data_quality_score) as avg_score,
+                    PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY data_quality_score) as median_score,
+                    COUNT(*) FILTER (WHERE data_quality_score >= 80) as high_quality,
+                    COUNT(*) FILTER (WHERE data_quality_score < 50) as low_quality,
+                    COUNT(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL) as with_coordinates
+                FROM bdew_companies
+                WHERE is_active = true
+            """
+            )
         )
 
-        self._commit_with_rollback()
-        return count
+        row = result.first()
+        if not row:
+            return {
+                "total_companies": 0,
+                "average_quality_score": 0.0,
+                "median_quality_score": 0.0,
+                "high_quality_count": 0,
+                "low_quality_count": 0,
+                "with_coordinates_count": 0,
+                "coordinate_coverage_percent": 0.0,
+            }
 
-    # Import Log Operations
+        return {
+            "total_companies": int(getattr(row, "total", 0)),
+            "average_quality_score": float(getattr(row, "avg_score", 0) or 0),
+            "median_quality_score": float(getattr(row, "median_score", 0) or 0),
+            "high_quality_count": int(getattr(row, "high_quality", 0)),
+            "low_quality_count": int(getattr(row, "low_quality", 0)),
+            "with_coordinates_count": int(getattr(row, "with_coordinates", 0)),
+            "coordinate_coverage_percent": (
+                (getattr(row, "with_coordinates", 0) / getattr(row, "total", 1) * 100)
+                if getattr(row, "total", 0) > 0
+                else 0.0
+            ),
+        }
 
-    def create_import_log(self, log_data: dict[str, Any]) -> BDEWImportLog:
+    # JSONB Operations
+
+    async def update_service_territory(
+        self, company_id: uuid.UUID, geojson_data: dict[str, Any]
+    ) -> bool:
         """
-        Erstelle Import-Log-Eintrag.
+        Aktualisiere Service-Territorium mit GeoJSON-Daten.
+
+        Args:
+            company_id: Unternehmens-ID
+            geojson_data: GeoJSON-Daten
+
+        Returns:
+            bool: True wenn erfolgreich
+        """
+        result = await self.session.execute(
+            text(
+                """
+                UPDATE bdew_companies
+                SET service_territory = :geojson,
+                    updated_at = NOW()
+                WHERE id = :company_id
+                RETURNING id
+            """
+            ),
+            {"company_id": company_id, "geojson": geojson_data},
+        )
+
+        await self._commit_with_rollback()
+        return result.first() is not None
+
+    async def find_companies_with_service_area(self) -> list[BDEWCompany]:
+        """
+        Finde alle Unternehmen mit definierten Service-Gebieten.
+
+        Returns:
+            List[BDEWCompany]: Unternehmen mit Service-Territorien
+        """
+        result = await self.session.execute(
+            text(
+                """
+                SELECT * FROM bdew_companies
+                WHERE service_territory IS NOT NULL
+                  AND service_territory != 'null'::jsonb
+                  AND is_active = true
+                ORDER BY company_name
+            """
+            )
+        )
+        return [BDEWCompany(**row) for row in result.mappings()]
+
+    # Change Tracking
+
+    async def track_data_change(
+        self,
+        company_id: uuid.UUID,
+        change_type: str,
+        old_values: dict[str, Any] | None = None,
+        new_values: dict[str, Any] | None = None,
+        changed_by: str | None = None,
+        import_log_id: uuid.UUID | None = None,
+    ) -> BDEWDataHistory:
+        """
+        Verfolge Datenänderungen für Auditing.
+
+        Args:
+            company_id: Unternehmens-ID
+            change_type: Art der Änderung (INSERT, UPDATE, DELETE)
+            old_values: Alte Werte
+            new_values: Neue Werte
+            changed_by: Wer hat geändert
+            import_log_id: Referenz zum Import-Log
+
+        Returns:
+            BDEWDataHistory: Historien-Eintrag
+        """
+        # Ermittle geänderte Felder
+        changed_fields = []
+        if old_values and new_values:
+            changed_fields = [
+                field
+                for field in new_values
+                if old_values.get(field) != new_values.get(field)
+            ]
+
+        history_entry = BDEWDataHistory(
+            company_id=company_id,
+            change_type=change_type,
+            old_values=old_values,
+            new_values=new_values,
+            changed_fields=changed_fields,
+            changed_by=changed_by,
+            import_log_id=import_log_id,
+        )
+
+        self.session.add(history_entry)
+        await self._commit_with_rollback()
+        return history_entry
+
+    # Import Logs with Enhanced Features
+
+    async def create_import_log(self, log_data: dict[str, Any]) -> BDEWImportLog:
+        """
+        Erstelle erweiterten Import-Log-Eintrag.
 
         Args:
             log_data: Log-Daten
@@ -211,82 +422,80 @@ class BDEWRepository:
         """
         import_log = BDEWImportLog(**log_data)
         self.session.add(import_log)
-        self._commit_with_rollback()
+        await self._commit_with_rollback()
         return import_log
 
-    def get_recent_imports(self, limit: int = 10) -> list[BDEWImportLog]:
+    async def get_import_statistics(self, days: int = 30) -> dict[str, Any]:
         """
-        Hole letzte Import-Logs.
+        Hole Import-Statistiken der letzten Tage.
 
         Args:
-            limit: Maximale Anzahl Logs
+            days: Anzahl Tage zurück
 
         Returns:
-            List[BDEWImportLog]: Import-Logs
+            Dict[str, Any]: Import-Statistiken
         """
-        return (
-            self.session.query(BDEWImportLog)
-            .order_by(desc(BDEWImportLog.import_timestamp))
-            .limit(limit)
-            .all()
+        result = await self.session.execute(
+            text(
+                """
+                SELECT
+                    COUNT(*) as total_imports,
+                    COUNT(*) FILTER (WHERE import_status = 'SUCCESS') as successful_imports,
+                    SUM(records_imported) as total_records,
+                    AVG(processing_time_seconds) as avg_processing_time,
+                    SUM(file_size_bytes) as total_data_processed
+                FROM bdew_import_logs
+                WHERE import_timestamp >= NOW() - INTERVAL ':days days'
+            """
+            ),
+            {"days": days},
         )
 
-    def check_file_already_imported(self, file_hash: str) -> BDEWImportLog | None:
-        """
-        Prüfe ob Datei bereits importiert wurde.
+        row = result.first()
+        if not row:
+            return {
+                "total_imports": 0,
+                "successful_imports": 0,
+                "success_rate": 0.0,
+                "total_records_imported": 0,
+                "average_processing_time": 0.0,
+                "total_data_processed_mb": 0.0,
+            }
 
-        Args:
-            file_hash: SHA-256 Hash der Datei
-
-        Returns:
-            BDEWImportLog: Existierender Import oder None
-        """
-        return (
-            self.session.query(BDEWImportLog)
-            .filter(
-                BDEWImportLog.file_hash == file_hash,
-                BDEWImportLog.import_status == "SUCCESS",
+        return {
+            "total_imports": int(getattr(row, "total_imports", 0)),
+            "successful_imports": int(getattr(row, "successful_imports", 0)),
+            "success_rate": (
+                (
+                    getattr(row, "successful_imports", 0)
+                    / getattr(row, "total_imports", 1)
+                    * 100
+                )
+                if getattr(row, "total_imports", 0) > 0
+                else 0.0
+            ),
+            "total_records_imported": int(getattr(row, "total_records", 0) or 0),
+            "average_processing_time": float(
+                getattr(row, "avg_processing_time", 0) or 0
+            ),
+            "total_data_processed_mb": float(
+                getattr(row, "total_data_processed", 0) or 0
             )
-            .first()
-        )
-
-    # Validation Rules
-
-    def get_active_validation_rules(self) -> list[BDEWValidationRule]:
-        """Hole alle aktiven Validierungsregeln."""
-        return (
-            self.session.query(BDEWValidationRule)
-            .filter(BDEWValidationRule.is_active)
-            .all()
-        )
-
-    def create_validation_rule(self, rule_data: dict[str, Any]) -> BDEWValidationRule:
-        """
-        Erstelle neue Validierungsregel.
-
-        Args:
-            rule_data: Regel-Daten
-
-        Returns:
-            BDEWValidationRule: Erstellte Regel
-        """
-        rule = BDEWValidationRule(**rule_data)
-        self.session.add(rule)
-        self._commit_with_rollback()
-        return rule
+            / (1024 * 1024),
+        }
 
     # Utility Methods
 
-    def _commit_with_rollback(self):
+    async def _commit_with_rollback(self):
         """Commit mit automatischem Rollback bei Fehlern."""
         try:
-            self.session.commit()
+            await self.session.commit()
         except SQLAlchemyError:
-            self.session.rollback()
+            await self.session.rollback()
             raise
 
     @staticmethod
-    def calculate_file_hash(file_path: str) -> str:
+    def calculate_file_hash(file_path: str | Path) -> str:
         """
         Berechne SHA-256 Hash einer Datei.
 
@@ -302,58 +511,55 @@ class BDEWRepository:
                 hash_sha256.update(chunk)
         return hash_sha256.hexdigest()
 
-    def get_data_quality_stats(self) -> dict[str, Any]:
+    # Health Checks
+
+    async def health_check(self) -> dict[str, Any]:
         """
-        Hole Datenqualitäts-Statistiken.
+        Gesundheitsprüfung der Datenbank und Daten.
 
         Returns:
-            Dict[str, Any]: Qualitätsstats
+            Dict[str, Any]: Gesundheitsstatus
         """
-        total_companies = self.get_companies_count()
+        try:
+            # Basis-Verbindungstest
+            await self.session.execute(text("SELECT 1"))
 
-        # Unternehmen mit vollständigen Adressdaten
-        complete_address = (
-            self.session.query(func.count(BDEWCompany.id))
-            .filter(
-                BDEWCompany.is_active,
-                BDEWCompany.postal_code.isnot(None),
-                BDEWCompany.city.isnot(None),
-                BDEWCompany.federal_state.isnot(None),
+            # Datenqualitätsprüfungen
+            quality_stats = await self.get_quality_distribution()
+
+            # Letzte Import-Aktivität
+            last_import = await self.session.execute(
+                text(
+                    """
+                    SELECT import_timestamp, import_status
+                    FROM bdew_import_logs
+                    ORDER BY import_timestamp DESC
+                    LIMIT 1
+                """
+                )
             )
-            .scalar()
-        )
+            last_import_row = last_import.first()
 
-        # Unternehmen mit Kontaktdaten
-        with_contact = (
-            self.session.query(func.count(BDEWCompany.id))
-            .filter(
-                BDEWCompany.is_active,
-                or_(
-                    BDEWCompany.email.isnot(None),
-                    BDEWCompany.phone.isnot(None),
-                    BDEWCompany.website.isnot(None),
-                ),
-            )
-            .scalar()
-        )
+            return {
+                "database_connection": "healthy",
+                "total_companies": quality_stats["total_companies"],
+                "average_quality_score": quality_stats["average_quality_score"],
+                "last_import": {
+                    "timestamp": (
+                        last_import_row.import_timestamp.isoformat()
+                        if last_import_row
+                        else None
+                    ),
+                    "status": (
+                        last_import_row.import_status if last_import_row else None
+                    ),
+                },
+                "status": "healthy",
+            }
 
-        # Durchschnittlicher Qualitätsscore
-        avg_quality = (
-            self.session.query(func.avg(BDEWCompany.data_quality_score))
-            .filter(
-                BDEWCompany.is_active,
-                BDEWCompany.data_quality_score.isnot(None),
-            )
-            .scalar()
-        )
-
-        return {
-            "total_companies": total_companies,
-            "complete_address_percentage": (
-                (complete_address / total_companies * 100) if total_companies > 0 else 0
-            ),
-            "with_contact_percentage": (
-                (with_contact / total_companies * 100) if total_companies > 0 else 0
-            ),
-            "average_quality_score": float(avg_quality) if avg_quality else 0,
-        }
+        except Exception as e:
+            return {
+                "database_connection": "unhealthy",
+                "error": str(e),
+                "status": "unhealthy",
+            }

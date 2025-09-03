@@ -1,10 +1,18 @@
 # VNB Digitaler
 
-Streamlit-Anwendung zur Verwaltung und Analyse von deutschen Verteilnetzbetreiber-Daten (VNB).
+Streamlit-Anwendung zur Verwaltung und Analyse von deutschen Verteilnetzbetreiber-Daten (VNB) mit PostgreSQL-Backend.
 
 ## 🚀 Quick Start
 
 ```bash
+# Entwicklungsumgebung mit DevContainer starten
+# Datenbank initialisieren
+uv run python scripts/init_database.py
+
+# Test-Daten einfügen (optional)
+uv run python scripts/seed_test_data.py
+
+# Anwendung starten
 uv run streamlit run streamlit_app.py
 ```
 
@@ -12,20 +20,33 @@ uv run streamlit run streamlit_app.py
 
 Diese Anwendung ermöglicht die Verwaltung und Analyse von:
 
-- VNB-Daten und -Territorien
-- Rollout-Quoten und -Berichte
-- Smart Meter Ausbaupläne
-- Geographische Visualisierungen
+- VNB-Daten und -Territorien mit PostgreSQL-Backend
+- Rollout-Quoten und -Berichte mit erweiterten Analytics
+- Smart Meter Ausbaupläne mit Geo-Daten
+- Geographische Visualisierungen mit JSONB-Service-Territorien
+- Datenqualitäts-Tracking und Import-Logs
 
 ## 🛠️ Entwicklung
 
 ### Voraussetzungen
 
 - Python 3.11+
-- PostgreSQL (für Produktionsdatenbank)
+- PostgreSQL 16+ (automatisch via DevContainer verfügbar)
 - uv (Package Manager)
+- Docker/DevContainer Support
 
-### Setup
+### DevContainer Setup
+
+Das Projekt nutzt einen DevContainer mit integrierten PostgreSQL und uv Features:
+
+```bash
+# DevContainer öffnen (VS Code)
+# PostgreSQL läuft automatisch auf Port 5432
+# Datenbank: vnbdigitaler
+# User: postgres (ohne Passwort für Entwicklung)
+```
+
+### Manuelle Entwicklungsumgebung
 
 ```bash
 # Repository klonen
@@ -35,8 +56,145 @@ cd vnbdigitaler
 # Dependencies installieren
 uv sync
 
+# PostgreSQL-Server starten (falls nicht via DevContainer)
+# Umgebungsvariablen setzen
+export DATABASE_URL="postgresql+asyncpg://postgres@localhost:5432/vnbdigitaler"
+export POSTGRES_USER="postgres"
+export POSTGRES_DB="vnbdigitaler"
+
+# Datenbank initialisieren
+uv run python scripts/init_database.py
+
 # Entwicklungsserver starten
 uv run streamlit run streamlit_app.py
+```
+
+## 🗄️ Datenbank-Schema
+
+### PostgreSQL-Features
+
+Das System nutzt erweiterte PostgreSQL-Features:
+
+- **JSONB-Spalten**: Flexible Speicherung von Metadaten und GeoJSON-Territorien
+- **Full-Text-Search**: Deutsche Volltextsuche in Unternehmensdaten
+- **Trigram-Suche**: Ähnlichkeitssuche für Unternehmensnamen
+- **Performance-Indices**: Optimierte Abfragen für große Datensätze
+- **Change Tracking**: Vollständiges Auditing aller Datenänderungen
+
+### Haupttabellen
+
+- `bdew_companies`: BDEW-Unternehmensdaten mit JSONB-Territorien
+- `bdew_import_logs`: Erweiterte Import-Logs mit Metadaten
+- `bdew_validation_rules`: Flexible Validierungsregeln
+- `bdew_data_history`: Change-Tracking für Auditing
+
+### Datenbank-Operationen
+
+```bash
+# Datenbank zurücksetzen
+uv run python scripts/init_database.py
+
+# Test-Daten laden
+uv run python scripts/seed_test_data.py
+
+# Datenbank-Status prüfen
+psql postgresql://postgres@localhost:5432/vnbdigitaler -c "\dt"
+```
+
+## 🏗️ Architektur
+
+### Repository Pattern
+
+Das System verwendet das Repository-Pattern für Datenzugriff:
+
+```python
+from database import DatabaseManager
+from repositories.bdew import BDEWRepository
+
+# Async Database Operations
+async with DatabaseManager().get_session() as session:
+    repo = BDEWRepository(session)
+    companies = await repo.search_companies_fulltext("München")
+```
+
+### Async/Sync Support
+
+- **Async**: Für Performance-kritische Operationen
+- **Sync**: Für einfache Streamlit-Integration
+- **Connection Pooling**: Automatische Verbindungsoptimierung
+
+## 🔍 Erweiterte Features
+
+### Full-Text-Suche
+
+```python
+# Deutsche Volltextsuche
+companies = await repo.search_companies_fulltext(
+    search_term="Stadtwerke München",
+    min_quality_score=80
+)
+```
+
+### Geo-Queries
+
+```python
+# Unternehmen in geografischer Nähe
+nearby = await repo.find_companies_by_location(
+    latitude=48.1351,
+    longitude=11.5820,
+    radius_km=50
+)
+```
+
+### JSONB-Operationen
+
+```python
+# Service-Territory mit GeoJSON speichern
+await repo.update_service_territory(
+    company_id=company.id,
+    geojson_data={
+        "type": "Feature",
+        "geometry": {...},
+        "properties": {...}
+    }
+)
+```
+
+### Change Tracking
+
+```python
+# Datenänderungen verfolgen
+await repo.track_data_change(
+    company_id=company.id,
+    change_type="UPDATE",
+    old_values=old_data,
+    new_values=new_data,
+    changed_by="user@example.com"
+)
+```
+
+## 📊 Datenqualität
+
+### Qualitäts-Scoring
+
+Das System berechnet automatisch Datenqualitäts-Scores basierend auf:
+
+- Vollständigkeit der Pflichtfelder
+- Validität von Email/Telefon/Website
+- Verfügbarkeit von Geo-Koordinaten
+- Konsistenz der Adressdaten
+
+### Analytics
+
+```python
+# Qualitätsverteilung abrufen
+stats = await repo.get_quality_distribution()
+# {
+#   "total_companies": 1500,
+#   "average_quality_score": 85.2,
+#   "high_quality_count": 1200,
+#   "with_coordinates_count": 1350
+# }
 ```
 
 ## 📚 Dokumentation

@@ -7,7 +7,6 @@ This directory contains the development container configuration for the VNBdigit
 - `devcontainer.json` - Main DevContainer configuration
 - `postCreateCommand.sh` - Script executed after container creation
 - `updateContentCommand.sh` - Script executed when container content is updated
-- `Dockerfile.backup` - Backup of the previous custom Dockerfile
 
 ## Features
 
@@ -137,6 +136,6 @@ uv run python -c "import sys; print(sys.path)"
 # Test PostgreSQL connection
 psql -U postgres -c "SELECT version();"
 
-# Test Streamlit
-uv run streamlit run streamlit_app.py
+# Test Streamlit, currently not in Scope
+#uv run streamlit run streamlit_app.py
 ```

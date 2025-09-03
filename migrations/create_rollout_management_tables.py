@@ -19,7 +19,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from config import get_config
-from database import get_engine
 from rollout_models import (
     Base,
     RolloutCompany,
@@ -27,6 +26,8 @@ from rollout_models import (
     RolloutReport,
     WorkflowExecution,
 )
+
+from database import get_engine
 
 
 def create_rollout_tables():
