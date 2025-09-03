@@ -3619,6 +3619,13 @@ dev = [
     { name = "ruff" },
     { name = "safety" },
 ]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-mock" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -3684,6 +3691,13 @@ dev = [
     { name = "pydocstyle", specifier = ">=6.3.0" },
     { name = "ruff", specifier = ">=0.12.9" },
     { name = "safety", specifier = ">=3.6.1" },
+]
+test = [
+    { name = "httpx", specifier = ">=0.24.0" },
+    { name = "pytest", specifier = ">=7.4.0" },
+    { name = "pytest-asyncio", specifier = ">=0.21.0" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
+    { name = "pytest-mock", specifier = ">=3.11.0" },
 ]
 
 [[package]]

@@ -187,3 +187,9 @@ cython_debug/
 nohup.out
 .secrets
 rollout_workflow_state.json
+
+# Test cleanup - prevent redundant test files from being recreated
+tests/test_bdew_simple.py
+tests/test_bdew_working.py
+tests/test_bdew_integration_full.py
+tests/test_bdew_repository_complete.py

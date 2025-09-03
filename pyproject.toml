@@ -215,6 +215,7 @@ addopts = [
     "--junitxml=junit.xml",
     "-o",
     "junit_family=legacy",
+    "--ignore=tests/archive",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
@@ -259,10 +260,13 @@ skips = [
 [tool.pydocstyle]
 convention = "google"
 add_ignore = [
-    "D100",
-    "D104",
-    "D105",
-    "D403",
+    "D100",  # Missing docstring in public module
+    "D104",  # Missing docstring in public package
+    "D105",  # Missing docstring in magic method
+    "D107",  # Missing docstring in __init__
+    "D200",  # One-line docstring should fit on one line
+    "D212",  # Multi-line docstring summary should start at the first line
+    "D403",  # First word of the first line should be properly capitalized
 ] # Missing docstrings in some cases + allow acronyms
 # Allow technical acronyms and official abbreviations in docstring first words
 
@@ -273,4 +277,11 @@ dev = [
     "pydocstyle>=6.3.0",
     "ruff>=0.12.9",
     "safety>=3.6.1",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
+    "pytest-mock>=3.11.0",
 ]

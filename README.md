@@ -5,12 +5,7 @@ Streamlit-Anwendung zur Verwaltung und Analyse von deutschen Verteilnetzbetreibe
 ## 🚀 Quick Start
 
 ```bash
-# Mit uv (empfohlen)
 uv run streamlit run streamlit_app.py
-
-# Oder mit pip
-pip install -r requirements.txt
-streamlit run streamlit_app.py
 ```
 
 ## 📋 Überblick
@@ -60,7 +55,7 @@ Dieser Service basiert auf der kostenlosen Version von Streamlit.
 
 ### Auf dem eigenen Rechner ausführen
 
-1. uv installieren (empfohlen)
+1. uv installieren
 
    ```bash
    # macOS/Linux
@@ -167,29 +162,6 @@ Die Tools verwenden das `tmp/` Verzeichnis im Workspace für temporäre Dateien:
 
 Für KI-Features siehe: [`docs/API_KEY_SETUP.md`](docs/API_KEY_SETUP.md)
 
-#### Alternative mit pip
-
-1. Python Virtual Environment erstellen
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Linux/macOS
-   # oder
-   venv\Scripts\activate     # Windows
-   ```
-
-2. Dependencies installieren
-
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-3. App starten
-
-   ```bash
-   streamlit run streamlit_app.py
-   ```
-
 ## Datenherkunft
 
 Die Daten stammen von der Bundesnetzagentur und den Preisblättern der einzelnen Netzbetreiber:
@@ -238,3 +210,252 @@ Die Automatisierung läuft über GitHub Actions Workflows in `.github/workflows/
 - `reusable-rollout-company-update.yml` - Company-Matching
 
 Manuelle Ausführung über die GitHub Actions Weboberfläche möglich.
+
+## 🏭 BDEW-Integration (Phase 2)
+
+Die BDEW-Integration ermöglicht die automatisierte Verarbeitung und Verwaltung von BDEW-Unternehmensdaten mit vollständiger Pipeline-Unterstützung.
+
+### 📊 Verfügbare Module
+
+- **Database Models**: SQLAlchemy-basierte Datenbankmodelle für BDEW-Daten
+- **Repository Pattern**: Strukturierte Datenzugriffsmuster mit CRUD-Operationen
+- **Import Pipeline**: 4-stufige Verarbeitungspipeline für BDEW-Datenimporte
+- **Validierung**: Umfassende Datenvalidierung und Qualitätsprüfung
+
+### 🛠️ Manuelle Verwendung
+
+#### 1. Python-Umgebung vorbereiten
+
+```bash
+# Dependencies installieren und Shell aktivieren
+uv sync
+uv shell
+```
+
+#### 2. BDEW-Pipeline ausführen
+
+```python
+import asyncio
+from src.pipelines.core import PipelineManager
+from src.pipelines.bdew_import import BDEWImportPipeline
+
+async def run_bdew_import():
+    """BDEW-Daten importieren und verarbeiten"""
+
+    # Pipeline-Manager initialisieren
+    manager = PipelineManager()
+
+    # BDEW-Import-Pipeline erstellen
+    pipeline = BDEWImportPipeline()
+
+    # Pipeline ausführen
+    context = {
+        'source_file': 'data/bdew_companies.csv',  # Pfad zur BDEW-Datei
+        'validation_rules': {
+            'require_name': True,
+            'require_location': True,
+            'max_name_length': 200
+        }
+    }
+
+    result = await manager.execute_pipeline(pipeline, context)
+
+    if result.success:
+        print(f"✅ Import erfolgreich: {result.metadata}")
+    else:
+        print(f"❌ Import fehlgeschlagen: {result.error}")
+
+# Pipeline ausführen
+asyncio.run(run_bdew_import())
+```
+
+#### 3. Repository für Datenzugriff verwenden
+
+```python
+from src.repositories.bdew import BDEWRepository
+from src.database import get_session
+
+def search_companies():
+    """BDEW-Unternehmen durchsuchen"""
+
+    with get_session() as session:
+        repo = BDEWRepository(session)
+
+        # Alle Unternehmen abrufen
+        all_companies = repo.get_all()
+        print(f"Gefunden: {len(all_companies)} Unternehmen")
+
+        # Nach Namen suchen
+        search_results = repo.search_by_name("Stadtwerke")
+        print(f"Stadtwerke gefunden: {len(search_results)}")
+
+        # Nach PLZ filtern
+        regional_companies = repo.get_by_postal_code("80333")
+        print(f"München (80333): {len(regional_companies)} Unternehmen")
+
+        # Datenqualität prüfen
+        quality_stats = repo.get_data_quality_stats()
+        print(f"Qualität: {quality_stats}")
+
+search_companies()
+```
+
+#### 4. Direkte Datenbankoperationen
+
+```python
+from src.models.bdew import BDEWCompany
+from src.database import get_session
+
+def manual_data_operations():
+    """Manuelle Datenbankoperationen"""
+
+    with get_session() as session:
+        # Neues Unternehmen erstellen
+        new_company = BDEWCompany(
+            name="Beispiel Stadtwerke GmbH",
+            bdew_id="12345",
+            street="Musterstraße 1",
+            postal_code="12345",
+            city="Musterstadt",
+            phone="+49 123 456789",
+            email="info@beispiel-stadtwerke.de",
+            website="https://www.beispiel-stadtwerke.de"
+        )
+
+        session.add(new_company)
+        session.commit()
+        print(f"✅ Unternehmen erstellt: {new_company.id}")
+
+        # Unternehmen suchen und aktualisieren
+        company = session.query(BDEWCompany).filter_by(bdew_id="12345").first()
+        if company:
+            company.phone = "+49 123 456790"  # Telefonnummer aktualisieren
+            session.commit()
+            print(f"✅ Unternehmen aktualisiert: {company.name}")
+
+        # Batch-Operations
+        companies_in_berlin = session.query(BDEWCompany).filter(
+            BDEWCompany.city.ilike("%Berlin%")
+        ).all()
+        print(f"Berlin: {len(companies_in_berlin)} Unternehmen")
+
+manual_data_operations()
+```
+
+#### 5. Datenvalidierung und -bereinigung
+
+```python
+from src.pipelines.bdew_import import BDEWValidationStep
+from src.models.bdew import BDEWValidationRule
+
+def validate_data():
+    """Datenvalidierung durchführen"""
+
+    # Validierungsregeln definieren
+    rules = [
+        BDEWValidationRule(
+            field_name="name",
+            rule_type="required",
+            rule_value="true"
+        ),
+        BDEWValidationRule(
+            field_name="email",
+            rule_type="format",
+            rule_value="email"
+        )
+    ]
+
+    # Validierung ausführen
+    validator = BDEWValidationStep()
+
+    sample_data = {
+        'name': 'Test Stadtwerke',
+        'email': 'invalid-email',  # Ungültiges Format
+        'city': 'Teststadt'
+    }
+
+    is_valid, errors = validator.validate_record(sample_data, rules)
+
+    if is_valid:
+        print("✅ Daten sind valide")
+    else:
+        print(f"❌ Validierungsfehler: {errors}")
+
+validate_data()
+```
+
+#### 6. Import-Logs und Monitoring
+
+```python
+from src.models.bdew import BDEWImportLog
+from src.database import get_session
+from datetime import datetime, timedelta
+
+def check_import_status():
+    """Import-Status und -Logs überprüfen"""
+
+    with get_session() as session:
+        # Letzte Imports anzeigen
+        recent_imports = session.query(BDEWImportLog).filter(
+            BDEWImportLog.timestamp >= datetime.now() - timedelta(days=7)
+        ).order_by(BDEWImportLog.timestamp.desc()).all()
+
+        print(f"Imports der letzten 7 Tage: {len(recent_imports)}")
+
+        for import_log in recent_imports[:5]:  # Top 5 anzeigen
+            status = "✅" if import_log.success else "❌"
+            print(f"{status} {import_log.timestamp}: {import_log.records_processed} Datensätze")
+            if import_log.error_message:
+                print(f"   Fehler: {import_log.error_message}")
+
+        # Erfolgsstatistiken
+        total_imports = len(recent_imports)
+        successful_imports = len([log for log in recent_imports if log.success])
+        success_rate = (successful_imports / total_imports * 100) if total_imports > 0 else 0
+
+        print(f"Erfolgsrate: {success_rate:.1f}% ({successful_imports}/{total_imports})")
+
+check_import_status()
+```
+
+### 🧪 Tests ausführen
+
+```bash
+# Alle BDEW-Tests ausführen
+uv run python -m pytest tests/test_bdew_integration.py -v
+
+# Spezifische Test-Kategorien
+uv run python -m pytest tests/test_bdew_integration.py::TestBDEWRepository -v
+uv run python -m pytest tests/test_bdew_integration.py::TestBDEWSearch -v
+
+# Mit Coverage-Report
+uv run python -m pytest tests/test_bdew_integration.py --cov=src.repositories.bdew --cov=src.models.bdew
+```
+
+### 📁 Verzeichnisstruktur
+
+```
+src/
+├── models/
+│   └── bdew.py              # SQLAlchemy-Datenbankmodelle
+├── repositories/
+│   └── bdew.py              # Repository-Pattern für Datenzugriff
+└── pipelines/
+    └── bdew_import.py       # 4-stufige Import-Pipeline
+
+tests/
+└── test_bdew_integration.py # Umfassende Test-Suite
+```
+
+### 🔧 Konfiguration
+
+Die BDEW-Integration nutzt die Standard-Datenbankverbindung:
+
+```python
+# In src/database.py konfiguriert
+DATABASE_URL = "postgresql://user:password@localhost/vnbdigitaler"
+```
+
+Für lokale Entwicklung wird automatisch SQLite verwendet (siehe Tests).
+
+````
