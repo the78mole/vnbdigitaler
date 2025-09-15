@@ -1,6 +1,14 @@
 # BDEW-Datenquellen Spezifikation
 
+## Links
+
+1. [Portalseite](https://www.bdew.de/service/)
+
 ## Basisdaten
+
+Website: [BDEW-UID und BDEW-Codenummern pro Rolle](https://bdew-codes.de/Codenumbers/BDEWCodes/CodeOverview)
+
+API:
 
 - **URL:** <https://bdew-codes.de/Codenumbers/BDEWCodes/GetCompanyList?jtStartIndex=1100&jtPageSize=50>
 - **Payload:**
@@ -41,7 +49,9 @@
   }
   ```
 
-## Detaildaten
+### Detaildaten
+
+API:
 
 - **URL:** <https://bdew-codes.de/Codenumbers/BDEWCodes/GetBdewCodeListOfCompany?companyId=948&filter=>
 - **Payload:**
@@ -80,3 +90,17 @@
     ]
   }
   ```
+
+## Stromnetzbetreiber-Nummern (BDEW-Codes)
+
+Website: [BDEW-Code bzw. Stromnetzbetreibernummern](https://bdew-codes.de/Codenumbers/ElectricityGridOperatorCodes/ElectricityGridCodeNumbers)
+
+API:
+
+- **URL:** <https://bdew-codes.de/Codenumbers/ElectricityGridOperatorCodes/GetElectricityGridCodeList?filter=>
+
+## Stromnetzbetreiber Details
+
+Website: [BDEW-Detailinfos zu VNBs](https://vnbdigital.de/)
+
+Alte Implementierung: src/archive/vnbclient.py
