@@ -1,0 +1,28 @@
+# Prefect Project Configuration
+name: "vnb-digitaler"
+prefect-version: "2.20.22"
+
+# Global settings
+build: null
+push: null
+pull: []
+
+# Default work pool
+work_pool:
+  name: "vnb-digitaler-dev"
+  work_queue_name: "default"
+
+# Default parameters
+parameters: {}
+
+# Deploy configurations
+deployments:
+  - name: "vnb-example-deployment"
+    version: "1.0.0"
+    description: "Example deployment for VNB Digitaler Flow testing"
+    entrypoint: "flows/example_flow.py:vnb_example_flow"
+    parameters:
+      enable_analysis: true
+      generate_detailed_report: true
+    work_pool:
+      name: "vnb-digitaler-dev"

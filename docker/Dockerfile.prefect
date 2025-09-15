@@ -1,0 +1,46 @@
+FROM python:3.11-slim
+
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install UV for fast dependency management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# App setup
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies (including prefect)
+RUN uv sync --frozen --no-cache
+
+# Copy application code
+COPY src/ src/
+COPY flows/ flows/
+COPY prefect_config/ prefect_config/
+
+# Create directories for runtime data
+RUN mkdir -p /app/data /app/logs
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash prefect
+RUN chown -R prefect:prefect /app
+USER prefect
+
+# Environment variables
+ENV PYTHONPATH=/app
+ENV PREFECT_LOGGING_LEVEL=INFO
+ENV VNB_ENV=development
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Default command (can be overridden)
+ENTRYPOINT ["uv", "run"]
+CMD ["prefect", "worker", "start", "--pool", "vnb-digitaler-dev"]

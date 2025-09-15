@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  prefect-server:
+    image: prefecthq/prefect:2.19-python3.11
+    restart: unless-stopped
+    volumes:
+      - prefect_data:/root/.prefect
+      - ./data:/app/data
+    environment:
+      - PREFECT_SERVER_API_HOST=0.0.0.0
+      - PREFECT_SERVER_API_PORT=4200
+      - PREFECT_API_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////root/.prefect/prefect.db
+      - PREFECT_SERVER_ANALYTICS_ENABLED=false
+      - PREFECT_LOGGING_LEVEL=INFO
+    ports:
+      - "4200:4200"
+    command: prefect server start --host 0.0.0.0
+    networks:
+      - prefect-network
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python -c ''import socket; s=socket.socket(); s.connect(("localhost", 4200)); s.close()''',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  prefect-worker:
+    image: vnb-digitaler/prefect-worker:latest
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prefect
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+      - ./flows:/app/flows
+      - ./prefect_config:/app/prefect_config
+      - /var/run/docker.sock:/var/run/docker.sock # For docker-based deployments
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+      - PREFECT_WORKER_HEARTBEAT_SECONDS=30
+      - PREFECT_LOGGING_LEVEL=INFO
+      - PYTHONPATH=/app
+      # VNB Digitaler specific
+      - VNB_ENV=development
+      - VNB_DATABASE_URL=sqlite+aiosqlite:///app/data/vnb_digitaler.db
+      - VNB_ENABLE_DEBUG_LOGGING=true
+      - VNB_DRY_RUN_MODE=true
+    env_file:
+      - .env.prefect
+    command: prefect worker start --pool vnb-digitaler-dev --type process
+    networks:
+      - prefect-network
+
+  # Optional: Prefect UI (Alternative zur eingebauten UI)
+  prefect-ui:
+    image: prefecthq/prefect:2.19-python3.11
+    restart: unless-stopped
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+      - PREFECT_UI_SERVE_BASE=/
+    ports:
+      - "4201:4201"
+    command: prefect server start --host 0.0.0.0 --port 4201 --ui-only
+    networks:
+      - prefect-network
+
+volumes:
+  prefect_data:
+    driver: local
+
+networks:
+  prefect-network:
+    driver: bridge

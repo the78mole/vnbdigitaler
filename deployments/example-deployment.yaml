@@ -1,0 +1,23 @@
+name: "VNB Example Deployment"
+description: "Example deployment for VNB Digitaler Flow testing"
+
+# Flow Configuration
+entrypoint: "flows/example_flow.py:vnb_example_flow"
+
+# Work Pool
+work_pool:
+  name: "vnb-digitaler-dev"
+
+# Default Parameters
+parameters:
+  enable_analysis: true
+  generate_detailed_report: true
+
+# Scheduling (optional - for testing we'll run manually)
+# schedule:
+#   interval: 3600  # Every hour for testing
+
+# Pull configuration
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: "/app"
