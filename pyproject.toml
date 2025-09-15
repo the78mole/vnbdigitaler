@@ -38,7 +38,7 @@ dependencies = [
     "httpx>=0.28.1",
     "openai>=1.99.9",
     "jinja2>=3.1.0",
-    "psycopg2-binary>=2.9.0", # PostgreSQL adapter for Neon
+    "psycopg2-binary>=2.9.0",     # PostgreSQL adapter for Neon
     "openpyxl>=3.1.5",
     "beautifulsoup4>=4.13.4",
     "lxml>=6.0.0",
@@ -47,6 +47,8 @@ dependencies = [
     "geopy>=2.4.1",
     "docopt-ng>=0.9.0",
     "python-multipart>=0.0.20",
+    "bonobo>=0.6.4",              # Lightweight ETL framework
+    "bonobo-sqlalchemy>=0.6.0",   # SQLAlchemy integration for Bonobo
 ]
 
 [project.optional-dependencies]
@@ -261,13 +263,13 @@ skips = [
 [tool.pydocstyle]
 convention = "google"
 add_ignore = [
-    "D100",  # Missing docstring in public module
-    "D104",  # Missing docstring in public package
-    "D105",  # Missing docstring in magic method
-    "D107",  # Missing docstring in __init__
-    "D200",  # One-line docstring should fit on one line
-    "D212",  # Multi-line docstring summary should start at the first line
-    "D403",  # First word of the first line should be properly capitalized
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D107", # Missing docstring in __init__
+    "D200", # One-line docstring should fit on one line
+    "D212", # Multi-line docstring summary should start at the first line
+    "D403", # First word of the first line should be properly capitalized
 ] # Missing docstrings in some cases + allow acronyms
 # Allow technical acronyms and official abbreviations in docstring first words
 

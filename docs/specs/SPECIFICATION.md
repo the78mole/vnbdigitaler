@@ -196,12 +196,12 @@ graph TB
     end
 
     subgraph "Data Processing Layer"
-        C1[ETL Pipelines]
-        C2[Data Validation]
-        C3[Transformations]
-        C4[Schedulers]
-        C5[Quality Control]
-        C6[Monitoring]
+        C1[Bonobo ETL Pipelines]
+        C2[Data Validation Nodes]
+        C3[Transformation Graphs]
+        C4[Cron Schedulers]
+        C5[Quality Control Jobs]
+        C6[Pipeline Monitoring]
     end
 
     subgraph "Data Layer"
@@ -243,7 +243,8 @@ graph TB
 - **Runtime**: Python 3.11+
 - **Framework**: FastAPI (REST API + Data-Admin-UI + Installateur-Backend), Streamlit (Public WebUI)
 - **Database**: Neon (PostgreSQL 16 as a Service)
-- **Task Queue**: GitHub Actions (für Deployment-Pipelines)
+- **ETL Framework**: Bonobo (leichtgewichtige Datenverarbeitungs-Pipelines)
+- **Task Scheduling**: GitHub Actions (für Deployment + ETL-Pipelines) + Cron (für regelmäßige Datenverarbeitung)
 - **Package Management**: uv
 - **Deployment**: Streamlit Cloud + Docker Host (FastAPI Services)
 
@@ -266,13 +267,14 @@ graph TB
 - **Containerization**: Docker + DevContainer
 - **Database**: Neon (PostgreSQL as a Service)
 - **Object Storage**: Cloudflare R2 (PDF-Preisblätter, Dokumente)
+- **ETL Framework**: Bonobo (Python-native ETL mit einfacher Integration)
 - **Hosting**:
   - Streamlit Cloud (Read-Only Portal)
   - Docker Host (Data-Admin-UI + Installateur-Backend, FastAPI services)
-- **Orchestration**: GitHub Actions (Datenverarbeitung + Deployment)
+- **Orchestration**: GitHub Actions (Deployment) + Cron Jobs (ETL-Scheduling)
 - **CI/CD**: GitHub Actions
-- **Monitoring**: GitHub Actions Status + einfache Health Checks
-- **Logging**: Structured Logging (JSON)
+- **Monitoring**: GitHub Actions Status + einfache Health Checks + Bonobo ETL-Monitoring
+- **Logging**: Structured Logging (JSON) + Bonobo Pipeline-Logs
 
 ### Data Architecture
 
@@ -293,9 +295,9 @@ External Data Sources
 ```
 Ingestion  → Validation → Transform   → Storage         → API        → UI
     ↓            ↓            ↓            ↓              ↓            ↓
-  Crawlers → Validators → Normalizers → PostgreSQL     → REST       → Streamlit
-  APIs     → Parsers    → Enrichers   → Cloudflare R2  → GraphQL    → Mobile
-  Files    → Cleaners   → Aggregators → Cache          → WebSockets → Reports
+  Bonobo   → Validators → Normalizers → PostgreSQL     → REST       → Streamlit
+  Crawlers → Parsers    → Enrichers   → Cloudflare R2  → GraphQL    → Mobile
+  ETL Jobs → Cleaners   → Aggregators → Cache          → WebSockets → Reports
 ```
 
 ---
@@ -480,35 +482,103 @@ Detaillierte API-Spezifikationen für OAuth-Authentication und Installation-Mana
 
 ## 🔄 Datenintegration
 
-### ETL-Pipeline-Architektur
+### ETL-Pipeline-Architektur mit Bonobo
 
 > **🧪 Pipeline-Tests**: Siehe [TESTING.md](./TESTING.md) - Integration & Performance Tests
-> **🚀 Pipeline-Deployment**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - GitHub Actions Workflows
+> **🚀 Pipeline-Deployment**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - Bonobo ETL & GitHub Actions Workflows
 
-Die Datenintegration erfolgt über eine mehrstufige ETL-Pipeline, die automatisiert über GitHub Actions verarbeitet und validiert wird. Die Pipeline umfasst Datenextraktion aus verschiedenen Quellen, Validierung, Transformation und Speicherung sowohl in PostgreSQL als auch in Cloudflare R2 für Dokumente.
+Die Datenintegration erfolgt über Bonobo ETL-Pipelines, die für ihre Einfachheit und Python-native Integration bekannt sind. Bonobo ermöglicht die Erstellung von modularen, testbaren Datenverarbeitungs-Graphen, die sowohl lokalen als auch in containerisierten Umgebungen ausgeführt werden können.
 
-#### Pipeline-Stufen
+#### Bonobo Pipeline-Architektur
 
-1. **Extract**: Datenextraktion aus verschiedenen Quellen (BDEW, BNetzA, VNB-Websites)
-2. **Validate**: Datenvalidierung und Qualitätsprüfung mit Fehler-Tracking
-3. **Transform**: Datentransformation und Normalisierung
-4. **Load**: Datenladung in die PostgreSQL-Datenbank
-5. **Store**: Dokumentenspeicherung in Cloudflare R2 mit Traceability
-6. **Index**: Indizierung für optimierte Suchperformance
-7. **Notify**: Benachrichtigung über Pipeline-Status
+```python
+# Beispiel einer Bonobo ETL-Pipeline
+import bonobo
+
+def get_bdew_graph():
+    return bonobo.Graph(
+        # Extract
+        extract_bdew_data,
+
+        # Transform & Validate
+        validate_company_data,
+        normalize_addresses,
+        enrich_with_geo_data,
+
+        # Load
+        upsert_to_database,
+
+        # Monitor
+        log_pipeline_stats,
+    )
+```
+
+#### Pipeline-Stufen mit Bonobo
+
+1. **Extract**: Bonobo Extractor-Nodes für verschiedene Datenquellen
+2. **Validate**: Transformation-Nodes mit Schema-Validation und Fehler-Handling
+3. **Transform**: Bonobo Transformer für Datennormalisierung und -anreicherung
+4. **Load**: Loader-Nodes für PostgreSQL und Cloudflare R2 Integration
+5. **Monitor**: Built-in Monitoring mit Bonobo Statistics und Custom Metrics
+6. **Schedule**: Cron-basierte Ausführung mit Docker und GitHub Actions Integration
+
+#### Vorteile von Bonobo
+
+- **Einfachheit**: Python-native, minimale Abhängigkeiten
+- **Testbarkeit**: Jeder Pipeline-Node ist isoliert testbar
+- **Flexibilität**: Modulare Graphen, einfache Erweiterung
+- **Performance**: Parallele Verarbeitung, Stream-Processing
+- **Integration**: Nahtlose Integration mit PostgreSQL und APIs
+- **Monitoring**: Built-in Pipeline-Statistiken und Fehler-Tracking
 
 #### Integrierte Datenquellen
 
-- **BDEW-Integration**: Täglich, Marktteilnehmer-Daten mit Delta-Updates
-- **BNetzA-Integration**: Quarterly, Smart-Meter-Rollout-Daten
-- **Website-Scraping**: Wöchentlich, Preisblatt-Extraktion mit Cloudflare R2 Storage
-- **Data Quality**: Kontinuierlich, Datenqualitäts-Monitoring
+- **BDEW-Integration**: Täglich via Bonobo ETL-Pipeline, Marktteilnehmer-Daten mit Delta-Updates
+- **BNetzA-Integration**: Quarterly via Bonobo Jobs, Smart-Meter-Rollout-Daten
+- **Website-Scraping**: Wöchentlich via Bonobo Crawler-Nodes, Preisblatt-Extraktion mit R2 Storage
+- **Data Quality**: Kontinuierlich via Bonobo Monitoring-Nodes, Datenqualitäts-Tracking
 
-### Datenvalidierung
+#### Bonobo ETL-Job-Scheduling
+
+```bash
+# Beispiel Cron-Jobs für Bonobo ETL-Pipelines
+# /etc/crontab
+
+# Täglich: BDEW-Daten synchronisieren
+0 2 * * * /app/scripts/run_bonobo_pipeline.sh bdew_sync
+
+# Wöchentlich: Website-Scraping
+0 3 * * 0 /app/scripts/run_bonobo_pipeline.sh price_scraping
+
+# Monatlich: BNetzA-Rollout-Update
+0 4 1 * * /app/scripts/run_bonobo_pipeline.sh bnetza_rollout
+```
+
+### Datenvalidierung mit Bonobo
 
 > **🧪 Validierungstests**: Siehe [TESTING.md](./TESTING.md) - Datenqualitäts-Tests
 
-Die Datenvalidierung erfolgt über ein mehrstufiges System mit Schema-Validation, Geschäftsregeln-Prüfung, referenzieller Integrität und geografischer Plausibilitätskontrolle.
+Die Datenvalidierung erfolgt über Bonobo Transformation-Nodes mit integrierter Schema-Validation, Geschäftsregeln-Prüfung, referenzieller Integrität und geografischer Plausibilitätskontrolle.
+
+```python
+# Beispiel: Bonobo Validation Node
+@bonobo.decorator.rename(name="validate_company")
+def validate_company_data(company_record):
+    """Validiert Unternehmensdaten nach Geschäftsregeln."""
+
+    # Schema-Validation
+    if not company_record.get('bdew_code'):
+        yield bonobo.Bag({'error': 'Missing BDEW code', 'record': company_record})
+        return
+
+    # Geschäftsregeln
+    if len(company_record['bdew_code']) != 13:
+        yield bonobo.Bag({'error': 'Invalid BDEW code format', 'record': company_record})
+        return
+
+    # Success case
+    yield company_record
+```
 
 ---
 
@@ -526,7 +596,7 @@ Die Qualitätssicherung basiert auf der bewährten Test-Pyramide mit 80% Unit Te
 
 > **🚀 Deployment-Dokumentation**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - Production Setup & Operations
 
-Die Deployment-Architektur nutzt GitHub Actions als Orchestrierungs-Platform für tägliche Datenpipelines und automatisierte Deployments. Das Production Environment läuft auf einem Docker Host mit Nginx für SSL-Termination und einer Neon PostgreSQL-Datenbank für hohe Verfügbarkeit.
+Die Deployment-Architektur nutzt GitHub Actions als CI/CD-Platform mit Bonobo ETL-Pipelines für tägliche Datenverarbeitung. Das Production Environment läuft auf einem Docker Host mit Nginx für SSL-Termination, einer Neon PostgreSQL-Datenbank für hohe Verfügbarkeit und Cron-Jobs für die Bonobo Pipeline-Orchestrierung.
 
 ---
 
