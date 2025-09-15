@@ -11,6 +11,7 @@
 - Technische Details: Siehe [SPECIFICATION.md](./docs/specs/SPECIFICATION.md)
 - Synchronisiere alle drei Dokumente vor größeren Änderungen
 - Erstelle mit der Implementierung (wo möglich) auch immer gleich Unit- und Integrations-Tests
+- Code-Blöcke nicht in die SPECIFICATIONS.md, sondern in separate, spezifischere Dokumente.
 
 ## Anmerkungen
 

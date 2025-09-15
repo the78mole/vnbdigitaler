@@ -302,218 +302,45 @@ Ingestion  → Validation → Transform   → Storage         → API        →
 
 ## 🗄️ Datenmodell
 
-### Core Entities
+> **🗄️ Vollständiges Datenbankschema**: Siehe [DATABASE.md](./DATABASE.md) - Entity Models & Performance Indices
+> **☁️ Object Storage**: Siehe [STORAGE.md](./STORAGE.md) - Cloudflare R2 Integration & Document Management
 
-#### 1. Company (Unternehmen)
+### Datenmodell-Übersicht
 
-```python
-class Company:
-    id: UUID                   # Primary Key
-    code: str                  # BDEW-Code (eindeutig)
-    name: str                  # Unternehmensname
-    legal_name: str            # Juristische Bezeichnung
-    address: Address           # Geschäftsadresse
-    contact_info: ContactInfo  # Kontaktdaten
-    website_url: str           # Website
-    created_at: datetime
-    updated_at: datetime
+Das VNB Digitaler Projekt verwendet ein normalisiertes PostgreSQL-Schema mit vier Haupt-Entitäten:
 
-    # Beziehungen
-    roles: List[CompanyRole]                     # Many-to-Many zu Rollen
-    service_territories: List[ServiceTerritory]  # Netzgebiete
-    price_sheets: List[PriceSheet]               # Preisblätter
-```
+- **Company**: Unternehmen mit BDEW-Codes und Stammdaten
+- **CompanyRole**: Multi-Rollen-System (VNB, ÜNB, MSB, etc.)
+- **ServiceTerritory**: Geografische Netzgebiete mit PLZ-Zuordnung
+- **PriceSheet**: PDF-Preisblätter mit Cloudflare R2-Integration
 
-#### 2. CompanyRole (Unternehmensrollen)
+#### Cloudflare R2 Object Storage
 
-```python
-class CompanyRole:
-    id: UUID
-    company_id: UUID          # Foreign Key zu Company
-    role_type: RoleType       # Enum: VNB, ÜNB, MSB, etc.
-    is_active: bool
-    start_date: date
-    end_date: date
-    role_specific_data: dict  # JSONB für rollenspezifische Daten
-```
+- **PDF-Dokumente**: Automatische Speicherung in strukturierten Pfaden
+- **Traceability**: Vollständige Metadaten für Dokumentenverfolgung
+- **Integrität**: SHA-256 Hashing für Verifizierung
+- **Performance**: S3-kompatible API mit optimierten Indizes
 
-#### 3. ServiceTerritory (Netzgebiet)
-
-```python
-class ServiceTerritory:
-    id: UUID
-    company_id: UUID
-    role_id: UUID
-    territory_type: str       # Strom, Gas, etc.
-    postal_codes: List[str]   # Bediente PLZ
-    geographic_bounds: dict   # GeoJSON Polygon
-    population_served: int
-```
-
-#### 4. PriceSheet (Preisblatt)
-
-```python
-class PriceSheet:
-    id: UUID
-    company_id: UUID
-    document_type: str        # §14a, Standard, etc.
-    effective_date: date
-    document_url: str         # Original URL
-    document_r2_url: str      # Cloudflare R2 stored URL
-    document_hash: str        # SHA-256 for integrity verification
-    extracted_prices: dict    # JSONB mit strukturierten Preisen
-    validation_status: str
-    created_at: datetime
-
-    # Traceability & Verification
-    original_filename: str
-    file_size_bytes: int
-    mime_type: str
-    extraction_method: str    # "manual" | "automated" | "ml"
-    verified_by: str          # Admin user ID for manual verification
-    verification_date: datetime
-
-    # Cloudflare R2 Object Metadata
-    r2_object_key: str        # S3-compatible object key
-    r2_etag: str              # Cloudflare R2 ETag
-    r2_storage_class: str     # Standard, IA, etc.
-```
-
-### Database Schema Features
-
-#### PostgreSQL Extensions
-
-- **pg_trgm**: Trigram-Ähnlichkeitssuche
-- **unaccent**: Akzent-unabhängige Suche
-- **uuid-ossp**: UUID-Generierung
-- **PostGIS**: Geografische Daten (zukünftig)
-
-#### Object Storage (Cloudflare R2)
-
-```python
-# Cloudflare R2 Integration für PDF-Preisblätter
-class R2DocumentStorage:
-    bucket_name: str = "vnbdigitaler"
-    base_path: str = "documents/price-sheets/"
-
-    # Document Organization
-    # vnbdigitaler/
-    #   └── documents/
-    #       ├── price-sheets/
-    #       │   ├── 2025/
-    #       │   │   ├── 09/
-    #       │   │   │   └── {company_code}_{document_type}_{date}.pdf
-    #       │   └── archive/
-    #       ├── tab-documents/
-    #       └── forms/
-
-    def store_price_sheet(self, company_code: str, pdf_content: bytes,
-                         metadata: dict) -> str:
-        """Store PDF with traceability metadata"""
-        object_key = f"documents/price-sheets/{datetime.now().year}/" \
-                    f"{datetime.now().month:02d}/" \
-                    f"{company_code}_{metadata['type']}_{metadata['date']}.pdf"
-
-        # Store with metadata for traceability
-        return self.upload_with_metadata(object_key, pdf_content, metadata)
-
-# S3-compatible client configuration
-import boto3
-r2_client = boto3.client(
-    's3',
-    endpoint_url='https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com',
-    aws_access_key_id=CLOUDFLARE_R2_ACCESS_KEY,
-    aws_secret_access_key=CLOUDFLARE_R2_SECRET_KEY,
-    region_name='auto'
-)
-```
-
-#### Performance Indices
-
-```sql
--- Full-Text Search
-CREATE INDEX idx_company_name_gin ON companies USING gin(to_tsvector('german', name));
-
--- Trigram Similarity
-CREATE INDEX idx_company_name_trgm ON companies USING gin(name gin_trgm_ops);
-
--- Geographic Queries
-CREATE INDEX idx_service_territory_geom ON service_territories USING gist(geographic_bounds);
-
--- Role-based Queries
-CREATE INDEX idx_company_roles_composite ON company_roles(company_id, role_type, is_active);
-
--- Object Storage Lookup
-CREATE INDEX idx_price_sheet_r2_key ON price_sheets(r2_object_key);
-CREATE INDEX idx_price_sheet_hash ON price_sheets(document_hash);
-```
+Detaillierte Implementierungen, Schema-Definitionen und SQL-Indizes finden Sie in der Datenbank-Dokumentation.
 
 ---
 
 ## 🔌 API-Spezifikation
 
-### REST API Endpoints
+> **🔌 Vollständige API-Dokumentation**: Siehe [API.md](./API.md) - REST & GraphQL Endpoints mit Beispielen
 
-#### Companies
+### API-Übersicht
 
-```http
-GET    /api/v1/companies                 # Liste aller Unternehmen
-GET    /api/v1/companies/{id}            # Einzelnes Unternehmen
-GET    /api/v1/companies/search          # Suchfunktion
-POST   /api/v1/companies                 # Neues Unternehmen (Admin)
-PUT    /api/v1/companies/{id}            # Unternehmen aktualisieren
-DELETE /api/v1/companies/{id}            # Unternehmen löschen
-```
+Das VNB Digitaler Projekt bietet eine umfassende API mit verschiedenen Endpunkten:
 
-#### Price Comparison
+- **Companies API**: CRUD-Operationen für Unternehmensdaten
+- **Price Comparison**: §14a-Preisvergleiche und Kostenrechner
+- **Geographic Services**: Netzgebiete und PLZ-Zuordnungen
+- **Installer Services**: Automatisierte Installateur-Workflows
+- **Admin API**: Datenvalidierung und Qualitätskontrolle
+- **GraphQL**: Flexible Datenabfragen (zukünftig)
 
-```http
-GET    /api/v1/prices/compare            # Preisvergleich
-GET    /api/v1/prices/14a                # §14a-spezifische Preise
-GET    /api/v1/prices/history/{company}  # Preisentwicklung
-POST   /api/v1/prices/calculate          # Kostenrechner
-```
-
-#### Geographic Services
-
-```http
-GET    /api/v1/territories               # Netzgebiete
-GET    /api/v1/territories/postal/{plz}  # Netzbetreiber nach PLZ
-GET    /api/v1/territories/geojson       # GeoJSON für Karten
-```
-
-#### Installer Services
-
-```http
-POST   /api/v1/installer/register        # Installateur-Registrierung
-POST   /api/v1/installer/guest-entry     # Gasteintragung
-GET    /api/v1/installer/forms           # Verfügbare Formulare
-GET    /api/v1/installer/documents       # TAB-Dokumente
-```
-
-### GraphQL Schema (Zukünftig)
-
-```graphql
-type Company {
-  id: ID!
-  code: String!
-  name: String!
-  roles: [CompanyRole!]!
-  serviceAreas: [ServiceTerritory!]!
-  priceSheets(type: PriceSheetType): [PriceSheet!]!
-}
-
-type Query {
-  companies(filter: CompanyFilter): [Company!]!
-  priceComparison(input: PriceComparisonInput!): PriceComparison!
-  netOperatorByPostal(postalCode: String!): [Company!]!
-}
-
-type Mutation {
-  registerInstaller(input: InstallerInput!): InstallerResult!
-  requestGuestEntry(input: GuestEntryInput!): GuestEntryResult!
-}
-```
+Detaillierte Endpoint-Definitionen, Request/Response-Beispiele und Authentication-Details finden Sie in der API-Dokumentation.
 
 ---
 
