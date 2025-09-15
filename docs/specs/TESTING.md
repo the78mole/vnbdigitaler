@@ -8,10 +8,20 @@
 
 ### Test-Pyramide
 
-```
-    /\     E2E Tests (5%)
-   /  \    API Integration Tests (15%)
-  /____\   Unit Tests (80%)
+```mermaid
+graph TD
+    subgraph "Test-Pyramide"
+        A[E2E Tests<br/>5%<br/>Vollständige User-Journey-Tests]
+        B[API Integration Tests<br/>15%<br/>Datenbank- und API-Integration]
+        C[Unit Tests<br/>80%<br/>Schnelle, isolierte Tests für Geschäftslogik]
+    end
+
+    A --> B
+    B --> C
+
+    style A fill:#ff6b6b,stroke:#fff,stroke-width:2px,color:#fff
+    style B fill:#4ecdc4,stroke:#fff,stroke-width:2px,color:#fff
+    style C fill:#45b7d1,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
 Die Testing-Strategie folgt der klassischen Test-Pyramide mit Fokus auf:
@@ -250,6 +260,236 @@ class TestDatabaseIntegration:
         deleted = await repo.get_company(company.id)
         assert deleted is None
 ```
+
+---
+
+## ☁️ Cloudflare R2 Object Storage Tests
+
+### R2 Storage Integration Tests
+
+```python
+# tests/test_r2_storage.py
+import pytest
+import boto3
+from moto import mock_s3
+from src.storage.r2_client import CloudflareR2Client
+from src.models.documents import PriceSheetDocument
+
+@pytest.fixture
+def r2_client():
+    """Test R2 Client mit Mock-Konfiguration"""
+    return CloudflareR2Client(
+        access_key="test-access-key",
+        secret_key="test-secret-key",  # pragma: allowlist secret
+        account_id="test-account-id",
+        bucket_name="vnbdigitaler-test"
+    )
+
+@pytest.fixture
+def sample_pdf_content():
+    """Sample PDF content für Tests"""
+    return b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"
+
+class TestR2DocumentUpload:
+    @mock_s3
+    def test_upload_price_sheet_pdf(self, r2_client, sample_pdf_content):
+        """Test PDF-Upload zu R2"""
+        # Erstelle Mock S3 Bucket
+        r2_client._create_bucket_if_not_exists()
+
+        metadata = {
+            "company_code": "123456789012",
+            "document_type": "price_sheet_14a",
+            "effective_date": "2025-01-01",
+            "source_url": "https://example-vnb.de/preisblatt.pdf"
+        }
+
+        # Upload PDF
+        result = r2_client.upload_document(
+            content=sample_pdf_content,
+            metadata=metadata
+        )
+
+        assert result.success == True
+        assert result.object_key.startswith("documents/price-sheets/")
+        assert result.document_hash is not None
+        assert result.file_size_bytes == len(sample_pdf_content)
+
+    @mock_s3
+    def test_upload_with_traceability(self, r2_client, sample_pdf_content):
+        """Test Upload mit Traceability-Metadaten"""
+        r2_client._create_bucket_if_not_exists()
+
+        metadata = {
+            "company_code": "123456789012",
+            "document_type": "price_sheet_14a",
+            "uploaded_by": "admin",
+            "extraction_method": "manual",
+            "verification_required": True
+        }
+
+        result = r2_client.upload_document(
+            content=sample_pdf_content,
+            metadata=metadata,
+            enable_traceability=True
+        )
+
+        # Prüfe Traceability-Metadaten
+        assert result.traceability_id is not None
+        assert result.uploaded_by == "admin"
+        assert result.extraction_method == "manual"
+
+        # Prüfe dass Metadaten in R2 gespeichert wurden
+        stored_metadata = r2_client.get_object_metadata(result.object_key)
+        assert stored_metadata["uploaded_by"] == "admin"
+        assert stored_metadata["verification_required"] == "true"
+
+    @mock_s3
+    def test_document_integrity_verification(self, r2_client, sample_pdf_content):
+        """Test Integritätsprüfung von Dokumenten"""
+        r2_client._create_bucket_if_not_exists()
+
+        # Upload Dokument
+        upload_result = r2_client.upload_document(
+            content=sample_pdf_content,
+            metadata={"company_code": "123456789012"}
+        )
+
+        # Verifiziere Integrität
+        integrity_result = r2_client.verify_document_integrity(
+            upload_result.object_key,
+            expected_hash=upload_result.document_hash
+        )
+
+        assert integrity_result.is_valid == True
+        assert integrity_result.hash_match == True
+        assert integrity_result.file_accessible == True
+
+class TestR2DocumentDownload:
+    @mock_s3
+    def test_download_document_by_key(self, r2_client, sample_pdf_content):
+        """Test Dokument-Download über Object Key"""
+        r2_client._create_bucket_if_not_exists()
+
+        # Upload erst ein Dokument
+        upload_result = r2_client.upload_document(
+            content=sample_pdf_content,
+            metadata={"company_code": "123456789012"}
+        )
+
+        # Download das Dokument
+        download_result = r2_client.download_document(upload_result.object_key)
+
+        assert download_result.success == True
+        assert download_result.content == sample_pdf_content
+        assert download_result.content_type == "application/pdf"
+
+    @mock_s3
+    def test_generate_presigned_url(self, r2_client, sample_pdf_content):
+        """Test Pre-signed URL Generation"""
+        r2_client._create_bucket_if_not_exists()
+
+        # Upload Dokument
+        upload_result = r2_client.upload_document(
+            content=sample_pdf_content,
+            metadata={"company_code": "123456789012"}
+        )
+
+        # Generiere Pre-signed URL
+        presigned_url = r2_client.generate_presigned_url(
+            upload_result.object_key,
+            expiration_seconds=3600
+        )
+
+        assert presigned_url is not None
+        assert "X-Amz-Algorithm" in presigned_url
+        assert "X-Amz-Expires" in presigned_url
+
+class TestR2PerformanceAndScaling:
+    @pytest.mark.performance
+    def test_large_file_upload_performance(self, r2_client):
+        """Test Performance bei großen PDF-Uploads"""
+        import time
+
+        # Simuliere größere PDF-Datei (5MB)
+        large_pdf_content = b"x" * (5 * 1024 * 1024)
+
+        start_time = time.time()
+        result = r2_client.upload_document(
+            content=large_pdf_content,
+            metadata={"company_code": "123456789012"}
+        )
+        upload_time = time.time() - start_time
+
+        assert result.success == True
+        assert upload_time < 30  # Max 30 Sekunden für 5MB
+
+    @pytest.mark.performance
+    def test_concurrent_uploads(self, r2_client, sample_pdf_content):
+        """Test gleichzeitige Uploads"""
+        import asyncio
+
+        async def upload_document(i):
+            metadata = {
+                "company_code": f"12345678901{i}",
+                "document_type": "price_sheet",
+                "batch_upload": True
+            }
+            return r2_client.upload_document(
+                content=sample_pdf_content,
+                metadata=metadata
+            )
+
+        # Simuliere 10 gleichzeitige Uploads
+        tasks = [upload_document(i) for i in range(10)]
+        results = asyncio.run(asyncio.gather(*tasks))
+
+        # Alle Uploads sollten erfolgreich sein
+        assert all(result.success for result in results)
+        assert len(set(result.object_key for result in results)) == 10  # Unique keys
+
+class TestR2Integration:
+    """Integration Tests zwischen R2 und anderen Services"""
+
+    @pytest.mark.integration
+    def test_r2_database_integration(self, r2_client, db_session):
+        """Test Integration zwischen R2 und Datenbank"""
+        from src.models.price_sheets import PriceSheet
+
+        # Create database entry
+        price_sheet = PriceSheet(
+            company_id="test-company-uuid",
+            document_type="price_sheet_14a",
+            effective_date="2025-01-01"
+        )
+
+        # Upload to R2 and update database
+        upload_result = r2_client.upload_document(
+            content=b"sample pdf content",
+            metadata={"price_sheet_id": str(price_sheet.id)}
+        )
+
+        # Update database with R2 information
+        price_sheet.r2_object_key = upload_result.object_key
+        price_sheet.document_hash = upload_result.document_hash
+        price_sheet.r2_etag = upload_result.etag
+
+        db_session.add(price_sheet)
+        db_session.commit()
+
+        # Verify database-R2 consistency
+        db_entry = db_session.query(PriceSheet).filter_by(id=price_sheet.id).first()
+        assert db_entry.r2_object_key == upload_result.object_key
+
+        # Verify R2 document exists
+        r2_exists = r2_client.document_exists(upload_result.object_key)
+        assert r2_exists == True
+
+        @pytest.mark.integration
+    def test_r2_database_integration(self, r2_client, db_session):
+```
+
+---
 
 ## 🚀 Performance Tests
 

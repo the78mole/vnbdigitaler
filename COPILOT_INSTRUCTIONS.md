@@ -6,9 +6,11 @@
 ## Generell
 
 - Verwende `uv` für alle Python-Befehle
+- Bevorzuge mermaid-Digramme ggü. ASCII-Art-Diagrammen in Markdown-Dateien
 - Aktuelle Roadmap-Informationen: Siehe [ROADMAP.md](./docs/specs/ROADMAP.md)
 - Technische Details: Siehe [SPECIFICATION.md](./docs/specs/SPECIFICATION.md)
 - Synchronisiere alle drei Dokumente vor größeren Änderungen
+- Erstelle mit der Implementierung (wo möglich) auch immer gleich Unit- und Integrations-Tests
 
 ## Anmerkungen
 

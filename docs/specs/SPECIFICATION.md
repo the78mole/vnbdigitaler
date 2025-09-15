@@ -177,33 +177,63 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 
 ### System-Architektur
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Presentation Layer                       │
-├─────────────────────────────────────────────────────────────┤
-│  Streamlit WebUI  │  REST API  │  GraphQL API  │  Mobile App │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                    Application Layer                        │
-├─────────────────────────────────────────────────────────────┤
-│  Business Logic  │  Authentication  │  Authorization       │
-│  Validation      │  Workflows       │  Notifications       │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                    Data Processing Layer                    │
-├─────────────────────────────────────────────────────────────┤
-│  ETL Pipelines   │  Data Validation │  Transformations     │
-│  Schedulers      │  Quality Control │  Monitoring          │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                    Data Layer                               │
-├─────────────────────────────────────────────────────────────┤
-│  PostgreSQL                 │         File Storage          │
-│  Full-Text Search           │      Backup & Archive         │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "Presentation Layer"
+        A1[Streamlit WebUI]
+        A2[REST API]
+        A3[GraphQL API]
+        A4[Mobile App]
+    end
+
+    subgraph "Application Layer"
+        B1[Business Logic]
+        B2[Authentication]
+        B3[Authorization]
+        B4[Validation]
+        B5[Workflows]
+        B6[Notifications]
+    end
+
+    subgraph "Data Processing Layer"
+        C1[ETL Pipelines]
+        C2[Data Validation]
+        C3[Transformations]
+        C4[Schedulers]
+        C5[Quality Control]
+        C6[Monitoring]
+    end
+
+    subgraph "Data Layer"
+        D1[PostgreSQL<br/>Full-Text Search]
+        D2[Object Storage<br/>Cloudflare R2<br/>PDF-Preisblätter<br/>Backup & Archive]
+    end
+
+    A1 --> B1
+    A2 --> B2
+    A3 --> B3
+    A4 --> B4
+
+    B1 --> C1
+    B2 --> C2
+    B3 --> C3
+    B4 --> C4
+    B5 --> C5
+    B6 --> C6
+
+    C1 --> D1
+    C2 --> D1
+    C3 --> D1
+    C4 --> D2
+    C5 --> D2
+    C6 --> D1
+
+    style A1 fill:#ff4b4b,stroke:#fff,stroke-width:2px,color:#fff
+    style A2 fill:#00aa44,stroke:#fff,stroke-width:2px,color:#fff
+    style A3 fill:#e91e63,stroke:#fff,stroke-width:2px,color:#fff
+    style A4 fill:#2196f3,stroke:#fff,stroke-width:2px,color:#fff
+    style D1 fill:#336791,stroke:#fff,stroke-width:2px,color:#fff
+    style D2 fill:#f38020,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
 ### Technology Stack
@@ -213,7 +243,7 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 - **Runtime**: Python 3.11+
 - **Framework**: FastAPI (REST API + Data-Admin-UI + Installateur-Backend), Streamlit (Public WebUI)
 - **Database**: Neon (PostgreSQL 16 as a Service)
-- **Task Queue**: GitHub Actions (für ETL-Pipelines)
+- **Task Queue**: GitHub Actions (für Deployment-Pipelines)
 - **Package Management**: uv
 - **Deployment**: Streamlit Cloud + Docker Host (FastAPI Services)
 
@@ -226,7 +256,7 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
   - Tabellen-Explorer, Verknüpfungs-Validation
   - Geo-Informationen-Viewer, Data-Quality-Monitoring
 - **FastAPI + React/Next.js**: Installateur-Portal (interaktive Features)
-  - Login/Authentifizierung, Datenerfassung, Workflows
+  - Login/Authentifizierung, Datenerfassung, interaktive Features
   - Gasteintragung, Formular-Management, Dashboard
 - **Maps**: Folium/Leaflet (Streamlit), Leaflet/MapLibre (FastAPI UIs)
 - **Charts**: Plotly/Chart.js
@@ -235,6 +265,7 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 
 - **Containerization**: Docker + DevContainer
 - **Database**: Neon (PostgreSQL as a Service)
+- **Object Storage**: Cloudflare R2 (PDF-Preisblätter, Dokumente)
 - **Hosting**:
   - Streamlit Cloud (Read-Only Portal)
   - Docker Host (Data-Admin-UI + Installateur-Backend, FastAPI services)
@@ -252,18 +283,19 @@ External Data Sources
 ├── 🏢 BDEW (Marktteilnehmer-Stammdaten)
 ├── 📊 BNetzA (Smart-Meter-Rollout)
 ├── 🗺️ VNB Digital API (Netzgebiete)
-├── 💰 Netzbetreiber-Websites (Preisblätter)
-└── 📄 Regulierungstexte (TAB, Anträge)
+├── 💰 Netzbetreiber-Websites (Preisblätter → Cloudflare R2)
+├── 📄 Regulierungstexte (TAB, Anträge → Cloudflare R2)
+└── 🔗 Object Storage (Cloudflare R2 - Traceability & Verifikation)
 ```
 
 #### Datenfluss
 
 ```
-Ingestion  → Validation → Transform   → Storage    → API        → UI
-    ↓            ↓            ↓            ↓          ↓            ↓
-  Crawlers → Validators → Normalizers → PostgreSQL → REST       → Streamlit
-  APIs     → Parsers    → Enrichers   → Redis      → GraphQL    → Mobile
-  Files    → Cleaners   → Aggregators → Cache      → WebSockets → Reports
+Ingestion  → Validation → Transform   → Storage         → API        → UI
+    ↓            ↓            ↓            ↓              ↓            ↓
+  Crawlers → Validators → Normalizers → PostgreSQL     → REST       → Streamlit
+  APIs     → Parsers    → Enrichers   → Cloudflare R2  → GraphQL    → Mobile
+  Files    → Cleaners   → Aggregators → Cache          → WebSockets → Reports
 ```
 
 ---
@@ -326,10 +358,25 @@ class PriceSheet:
     company_id: UUID
     document_type: str        # §14a, Standard, etc.
     effective_date: date
-    document_url: str
+    document_url: str         # Original URL
+    document_r2_url: str      # Cloudflare R2 stored URL
+    document_hash: str        # SHA-256 for integrity verification
     extracted_prices: dict    # JSONB mit strukturierten Preisen
     validation_status: str
     created_at: datetime
+
+    # Traceability & Verification
+    original_filename: str
+    file_size_bytes: int
+    mime_type: str
+    extraction_method: str    # "manual" | "automated" | "ml"
+    verified_by: str          # Admin user ID for manual verification
+    verification_date: datetime
+
+    # Cloudflare R2 Object Metadata
+    r2_object_key: str        # S3-compatible object key
+    r2_etag: str              # Cloudflare R2 ETag
+    r2_storage_class: str     # Standard, IA, etc.
 ```
 
 ### Database Schema Features
@@ -340,6 +387,46 @@ class PriceSheet:
 - **unaccent**: Akzent-unabhängige Suche
 - **uuid-ossp**: UUID-Generierung
 - **PostGIS**: Geografische Daten (zukünftig)
+
+#### Object Storage (Cloudflare R2)
+
+```python
+# Cloudflare R2 Integration für PDF-Preisblätter
+class R2DocumentStorage:
+    bucket_name: str = "vnbdigitaler"
+    base_path: str = "documents/price-sheets/"
+
+    # Document Organization
+    # vnbdigitaler/
+    #   └── documents/
+    #       ├── price-sheets/
+    #       │   ├── 2025/
+    #       │   │   ├── 09/
+    #       │   │   │   └── {company_code}_{document_type}_{date}.pdf
+    #       │   └── archive/
+    #       ├── tab-documents/
+    #       └── forms/
+
+    def store_price_sheet(self, company_code: str, pdf_content: bytes,
+                         metadata: dict) -> str:
+        """Store PDF with traceability metadata"""
+        object_key = f"documents/price-sheets/{datetime.now().year}/" \
+                    f"{datetime.now().month:02d}/" \
+                    f"{company_code}_{metadata['type']}_{metadata['date']}.pdf"
+
+        # Store with metadata for traceability
+        return self.upload_with_metadata(object_key, pdf_content, metadata)
+
+# S3-compatible client configuration
+import boto3
+r2_client = boto3.client(
+    's3',
+    endpoint_url='https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com',
+    aws_access_key_id=CLOUDFLARE_R2_ACCESS_KEY,
+    aws_secret_access_key=CLOUDFLARE_R2_SECRET_KEY,
+    region_name='auto'
+)
+```
 
 #### Performance Indices
 
@@ -355,6 +442,10 @@ CREATE INDEX idx_service_territory_geom ON service_territories USING gist(geogra
 
 -- Role-based Queries
 CREATE INDEX idx_company_roles_composite ON company_roles(company_id, role_type, is_active);
+
+-- Object Storage Lookup
+CREATE INDEX idx_price_sheet_r2_key ON price_sheets(r2_object_key);
+CREATE INDEX idx_price_sheet_hash ON price_sheets(document_hash);
 ```
 
 ---
@@ -567,22 +658,24 @@ Detaillierte API-Spezifikationen für OAuth-Authentication und Installation-Mana
 > **🧪 Pipeline-Tests**: Siehe [TESTING.md](./TESTING.md) - Integration & Performance Tests
 > **🚀 Pipeline-Deployment**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - GitHub Actions Workflows
 
-Die Datenintegration erfolgt über eine mehrstufige ETL-Pipeline, die verschiedene Datenquellen automatisiert verarbeitet und validiert. Detaillierte Implementierungsbeispiele für BDEW-Integration, BNetzA-Rollout-Daten und Website-Scraping für Preisdaten finden Sie in den verlinkten Dokumenten.
+Die Datenintegration erfolgt über eine mehrstufige ETL-Pipeline, die automatisiert über GitHub Actions verarbeitet und validiert wird. Die Pipeline umfasst Datenextraktion aus verschiedenen Quellen, Validierung, Transformation und Speicherung sowohl in PostgreSQL als auch in Cloudflare R2 für Dokumente.
 
 #### Pipeline-Stufen
 
-1. **Extract**: Datenextraktion aus verschiedenen Quellen
-2. **Validate**: Datenvalidierung und Qualitätsprüfung
+1. **Extract**: Datenextraktion aus verschiedenen Quellen (BDEW, BNetzA, VNB-Websites)
+2. **Validate**: Datenvalidierung und Qualitätsprüfung mit Fehler-Tracking
 3. **Transform**: Datentransformation und Normalisierung
 4. **Load**: Datenladung in die PostgreSQL-Datenbank
-5. **Index**: Indizierung für optimierte Suchperformance
-6. **Notify**: Benachrichtigung über Pipeline-Status
+5. **Store**: Dokumentenspeicherung in Cloudflare R2 mit Traceability
+6. **Index**: Indizierung für optimierte Suchperformance
+7. **Notify**: Benachrichtigung über Pipeline-Status
 
 #### Integrierte Datenquellen
 
-- **BDEW-Integration**: Umfassende Marktteilnehmer-Daten
-- **BNetzA-Integration**: Smart-Meter-Rollout-Daten
-- **Website-Scraping**: Automatische Preisblatt-Extraktion
+- **BDEW-Integration**: Täglich, Marktteilnehmer-Daten mit Delta-Updates
+- **BNetzA-Integration**: Quarterly, Smart-Meter-Rollout-Daten
+- **Website-Scraping**: Wöchentlich, Preisblatt-Extraktion mit Cloudflare R2 Storage
+- **Data Quality**: Kontinuierlich, Datenqualitäts-Monitoring
 
 ### Datenvalidierung
 

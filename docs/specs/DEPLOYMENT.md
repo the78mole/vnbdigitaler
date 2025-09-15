@@ -10,19 +10,24 @@
 
 Das VNB Digitaler Projekt verwendet eine vereinfachte Cloud-native Architektur:
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   GitHub        │    │  Streamlit      │    │   Docker Host   │
-│   Actions       │────│     Cloud       │    │   (VPS/Cloud)   │
-│   (CI/CD)       │    │  (Public Portal)│    │ (Admin/Install) │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-        │                        │                        │
-        └────────────────────────┼────────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │  Neon Database  │
-                    │  (PostgreSQL)   │
-                    └─────────────────┘
+```mermaid
+graph TD
+    A[GitHub Actions<br/>CI/CD] --> D[Neon Database<br/>PostgreSQL]
+    A -.->|deploys| B
+    A -.->|deploys| C
+
+    B[Streamlit Cloud<br/>Public Portal] --> D
+    C[Docker Host<br/>VPS/Cloud<br/>Admin/Install] --> D
+    C --> E[Cloudflare R2<br/>Object Storage<br/>PDF Documents]
+
+    B -.->|reads from| E
+    C -.->|uploads to| E
+
+    style A fill:#24292e,stroke:#fff,stroke-width:2px,color:#fff
+    style B fill:#ff4b4b,stroke:#fff,stroke-width:2px,color:#fff
+    style C fill:#0066cc,stroke:#fff,stroke-width:2px,color:#fff
+    style D fill:#336791,stroke:#fff,stroke-width:2px,color:#fff
+    style E fill:#f38020,stroke:#fff,stroke-width:2px,color:#fff
 ```
 
 ### Deployment-Komponenten
@@ -32,8 +37,9 @@ Das VNB Digitaler Projekt verwendet eine vereinfachte Cloud-native Architektur:
 | **Public Portal**   | Streamlit Cloud | `vnbdigitaler.streamlit.app` | Öffentliche Datenansicht      |
 | **Admin Interface** | Docker Host     | `admin.vnbdigitaler.de`      | Datenvalidierung & -kontrolle |
 | **Installer API**   | Docker Host     | `installer.vnbdigitaler.de`  | Installateur-Services         |
+| **Object Storage**  | Cloudflare R2   | `r2.vnbdigitaler.de`         | PDF-Dokumente & Backup        |
 | **Database**        | Neon            | Managed PostgreSQL           | Zentrale Datenhaltung         |
-| **CI/CD**           | GitHub Actions  | Workflows                    | Automatisierung               |
+| **CI/CD**           | GitHub Actions  | Workflows                    | Deployment-Automatisierung    |
 
 ## 🐳 Docker Setup
 
@@ -56,6 +62,12 @@ services:
       - DATABASE_URL=${NEON_DATABASE_URL}
       - ADMIN_SECRET_KEY=${ADMIN_SECRET_KEY}
       - ALLOWED_HOSTS=admin.vnbdigitaler.de
+      # Cloudflare R2 Configuration
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
+      - CLOUDFLARE_R2_BUCKET_NAME=vnbdigitaler
+      - CLOUDFLARE_R2_ENDPOINT_URL=https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data:ro
@@ -80,6 +92,11 @@ services:
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - ALLOWED_HOSTS=installer.vnbdigitaler.de
+      # Cloudflare R2 Configuration
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
+      - CLOUDFLARE_R2_BUCKET_NAME=vnbdigitaler
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
@@ -89,6 +106,22 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+    environment:
+      - PREFECT_API_URL=http://localhost:4200/api
+      - DATABASE_URL=${NEON_DATABASE_URL}
+      - BDEW_API_KEY=${BDEW_API_KEY}
+      - VNB_DIGITAL_API_KEY=${VNB_DIGITAL_API_KEY}
+      # Cloudflare R2 Configuration for document processing
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
+      - CLOUDFLARE_R2_BUCKET_NAME=vnbdigitaler
+    volumes:
+      - ./flows:/app/flows
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
 
   # Nginx für HTTPS/SSL-Termination und Routing
   nginx:
@@ -121,6 +154,27 @@ services:
     command: -config.file=/etc/loki/local-config.yaml
     restart: unless-stopped
 
+  # Cloudflare R2 Management Service (Optional Web Interface)
+  r2-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.r2-manager
+    ports:
+      - "8082:8082"
+    environment:
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
+      - CLOUDFLARE_R2_BUCKET_NAME=vnbdigitaler
+      - ADMIN_SECRET_KEY=${ADMIN_SECRET_KEY}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - admin-api
+    profiles:
+      - "management"  # Optional service, enable with --profile management
+
 volumes:
   loki-data:
 
@@ -150,7 +204,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 # Copy dependency files
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies
+# Install dependencies (including boto3 for R2 integration)
+RUN uv add "boto3>=1.28.0" "botocore>=1.31.0"
 RUN uv sync --frozen --no-dev
 
 # Copy application code
@@ -192,7 +247,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock ./
 COPY installer/package.json installer/package-lock.json ./installer/
 
-# Install Python dependencies
+# Install Python dependencies (including boto3 for R2 integration)
+RUN uv add "boto3>=1.28.0" "botocore>=1.31.0" "Pillow>=10.0.0"
 RUN uv sync --frozen --no-dev
 
 # Install Node.js dependencies and build frontend
@@ -215,6 +271,46 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 CMD ["uv", "run", "uvicorn", "installer.main:app", "--host", "0.0.0.0", "--port", "8080"]
+```
+
+#### R2 Manager (Optional)
+
+```dockerfile
+# Dockerfile.r2-manager
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies for R2 management
+RUN uv add "fastapi>=0.100.0" "uvicorn>=0.22.0" "boto3>=1.28.0" "streamlit>=1.25.0"
+RUN uv sync --frozen --no-dev
+
+# Copy R2 management application
+COPY src/ ./src/
+COPY r2-manager/ ./r2-manager/
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash r2user && chown -R r2user:r2user /app
+USER r2user
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8082/health || exit 1
+
+EXPOSE 8082
+
+CMD ["uv", "run", "uvicorn", "r2_manager.main:app", "--host", "0.0.0.0", "--port", "8082"]
 ```
 
 ## 🌐 Nginx Configuration
@@ -719,15 +815,45 @@ pg_dump $NEON_DATABASE_URL > $BACKUP_FILE
 # Compress backup
 gzip $BACKUP_FILE
 
-# Upload to cloud storage (optional)
-if [ -n "$AWS_S3_BUCKET" ]; then
-    aws s3 cp "${BACKUP_FILE}.gz" "s3://${AWS_S3_BUCKET}/backups/"
+# Upload to Cloudflare R2 backup folder
+if [ -n "$CLOUDFLARE_R2_BUCKET_NAME" ]; then
+    aws s3 cp "${BACKUP_FILE}.gz" "s3://${CLOUDFLARE_R2_BUCKET_NAME}/backups/database/" \
+        --endpoint-url $CLOUDFLARE_R2_ENDPOINT_URL
 fi
 
 # Cleanup old backups (keep last 30 days)
 find $BACKUP_DIR -name "*.sql.gz" -mtime +30 -delete
 
-echo "Backup completed: ${BACKUP_FILE}.gz"
+echo "Database backup completed: ${BACKUP_FILE}.gz"
+```
+
+### R2 Object Storage Backup
+
+```bash
+#!/bin/bash
+# scripts/backup_r2_objects.sh
+
+# Cloudflare R2 Object Backup Script
+BACKUP_DIR="/opt/backups/vnbdigitaler/r2-objects"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p $BACKUP_DIR
+
+# Sync critical documents to local backup
+aws s3 sync "s3://${CLOUDFLARE_R2_BUCKET_NAME}/documents/" "${BACKUP_DIR}/${TIMESTAMP}/" \
+    --endpoint-url $CLOUDFLARE_R2_ENDPOINT_URL
+
+# Create integrity report
+aws s3 ls "s3://${CLOUDFLARE_R2_BUCKET_NAME}/documents/" --recursive \
+    --endpoint-url $CLOUDFLARE_R2_ENDPOINT_URL > "${BACKUP_DIR}/${TIMESTAMP}/object_list.txt"
+
+# Calculate checksums for verification
+find "${BACKUP_DIR}/${TIMESTAMP}" -type f -name "*.pdf" -exec sha256sum {} \; > "${BACKUP_DIR}/${TIMESTAMP}/checksums.txt"
+
+# Optional: Create archive for long-term storage
+tar -czf "${BACKUP_DIR}/r2_backup_${TIMESTAMP}.tar.gz" -C "${BACKUP_DIR}" "${TIMESTAMP}/"
+
+echo "R2 object backup completed: ${BACKUP_DIR}/r2_backup_${TIMESTAMP}.tar.gz"
 ```
 
 ## 📊 Monitoring & Health Checks
@@ -883,6 +1009,22 @@ JWT_SECRET_KEY=jwt-signing-secret
 # External APIs
 BDEW_API_KEY=bdew-api-access-key
 VNB_DIGITAL_API_KEY=vnb-digital-graphql-key
+
+# Cloudflare R2 Object Storage
+CLOUDFLARE_R2_ACCESS_KEY=your-r2-access-key
+CLOUDFLARE_R2_SECRET_KEY=your-r2-secret-key  # pragma: allowlist secret
+CLOUDFLARE_R2_ACCOUNT_ID=your-cloudflare-account-id
+CLOUDFLARE_R2_BUCKET_NAME=vnbdigitaler
+CLOUDFLARE_R2_ENDPOINT_URL=https://your-account-id.r2.cloudflarestorage.com
+CLOUDFLARE_R2_PUBLIC_URL=https://r2.vnbdigitaler.de
+
+# Prefect Configuration
+PREFECT_API_URL=http://prefect-server:4200/api
+PREFECT_SERVER_API_HOST=0.0.0.0
+PREFECT_SERVER_API_PORT=4200
+PREFECT_API_DATABASE_CONNECTION_URL=postgresql://${NEON_USER}:${NEON_PASSWORD}@${NEON_HOST}/vnbdigitaler
+PREFECT_LOGGING_LEVEL=INFO
+PREFECT_WORKER_POOL=default-pool
 
 # Monitoring
 SLACK_WEBHOOK_URL=slack-webhook-for-alerts

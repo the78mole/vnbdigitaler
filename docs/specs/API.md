@@ -18,7 +18,7 @@ Das VNB Digitaler Projekt bietet drei Haupt-API-Interfaces:
 │ • Data Explorer │    │ • OAuth Login   │    │ • Company Search│
 │ • Validation    │    │ • Guest Entry   │    │ • Price Compare │
 │ • Manual Edits  │    │ • TAB Documents │    │ • Territory Info│
-│ • Quality Ctrl  │    │ • Workflows     │    │ • Data Export   │
+│ • Quality Ctrl  │    │ • Data Pipelines│    │ • Data Export   │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
         │                       │                       │
         └───────────────────────┼───────────────────────┘
@@ -333,6 +333,224 @@ Authorization: Bearer {access_token}
     "total": 12,
     "current_page": 1,
     "per_page": 50
+  }
+}
+```
+
+### Document Storage (Cloudflare R2)
+
+#### Upload PDF Document
+
+```http
+POST /admin/documents/upload
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+
+file: {PDF file}
+company_id: {grid-operator-uuid}
+document_type: "price_sheet_14a"
+effective_date: "2025-01-01"
+source_url: "https://example-vnb.de/preisblatt.pdf"
+extraction_method: "manual"
+```
+
+**Response:**
+
+```json
+{
+  "document_id": "{document-uuid}",
+  "r2_object_key": "documents/price-sheets/2025/09/123456789012_price_sheet_14a_2025-01-01.pdf",
+  "r2_url": "https://r2.vnbdigitaler.de/documents/price-sheets/2025/09/123456789012_price_sheet_14a_2025-01-01.pdf",
+  "document_hash": "sha256:a1b2c3d4e5f6...",
+  "file_size_bytes": 2468013,
+  "upload_status": "success",
+  "uploaded_at": "2025-09-15T14:30:00Z",
+  "traceability": {
+    "original_filename": "preisblatt_2025_swm.pdf",
+    "mime_type": "application/pdf",
+    "uploaded_by": "admin",
+    "source_verified": false
+  }
+}
+```
+
+#### Download PDF Document
+
+```http
+GET /admin/documents/{document_id}/download
+Authorization: Bearer {access_token}
+```
+
+**Response:** Binary PDF content with appropriate headers:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/pdf
+Content-Length: 2468013
+Content-Disposition: attachment; filename="123456789012_price_sheet_14a_2025-01-01.pdf"
+Cache-Control: private, max-age=3600
+ETag: "a1b2c3d4e5f6..."
+```
+
+#### List Stored Documents
+
+```http
+GET /admin/documents?company_id={grid-operator-uuid}&type=price_sheet&limit=50&verified_only=false
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+
+```json
+{
+  "documents": [
+    {
+      "document_id": "{document-uuid}",
+      "company_name": "Stadtwerke München GmbH",
+      "document_type": "price_sheet_14a",
+      "effective_date": "2025-01-01",
+      "file_size_bytes": 2468013,
+      "uploaded_at": "2025-09-15T14:30:00Z",
+      "verified": false,
+      "verification_status": "pending_review",
+      "r2_url": "https://r2.vnbdigitaler.de/documents/price-sheets/2025/09/123456789012_price_sheet_14a_2025-01-01.pdf",
+      "traceability": {
+        "uploaded_by": "admin",
+        "extraction_method": "manual",
+        "source_url": "https://example-vnb.de/preisblatt.pdf",
+        "integrity_verified": true
+      }
+    }
+  ],
+  "pagination": {
+    "total": 156,
+    "current_page": 1,
+    "per_page": 50
+  },
+  "storage_stats": {
+    "total_documents": 156,
+    "total_size_mb": 384.7,
+    "verified_documents": 142,
+    "pending_verification": 14
+  }
+}
+```
+
+#### Verify Document
+
+```http
+POST /admin/documents/{document_id}/verify
+Authorization: Bearer {access_token}
+Content-Type: application/json
+
+{
+    "verification_status": "verified",  // "verified" | "rejected" | "needs_review"
+    "verified_by": "admin",
+    "verification_notes": "Prices extracted and validated against VNB website",
+    "extracted_data": {
+        "base_price_ct_kwh": 28.5,
+        "section_14a_reduction_percent": 12.5,
+        "effective_from": "2025-01-01",
+        "tariff_name": "Grundversorgung"
+    }
+}
+```
+
+**Response:**
+
+```json
+{
+  "document_id": "{document-uuid}",
+  "verification_status": "verified",
+  "verified_by": "admin",
+  "verified_at": "2025-09-15T15:45:00Z",
+  "verification_notes": "Prices extracted and validated against VNB website",
+  "data_quality_score": 0.95,
+  "extracted_data": {
+    "base_price_ct_kwh": 28.5,
+    "section_14a_reduction_percent": 12.5,
+    "effective_from": "2025-01-01",
+    "tariff_name": "Grundversorgung"
+  },
+  "audit_trail": [
+    {
+      "timestamp": "2025-09-15T14:30:00Z",
+      "action": "uploaded",
+      "user": "admin"
+    },
+    {
+      "timestamp": "2025-09-15T15:45:00Z",
+      "action": "verified",
+      "user": "admin"
+    }
+  ]
+}
+```
+
+#### Document Integrity Check
+
+```http
+GET /admin/documents/{document_id}/integrity
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+
+```json
+{
+  "document_id": "{document-uuid}",
+  "integrity_status": "valid",
+  "checks": {
+    "hash_verification": {
+      "status": "passed",
+      "stored_hash": "sha256:a1b2c3d4e5f6...",
+      "calculated_hash": "sha256:a1b2c3d4e5f6...",
+      "match": true
+    },
+    "file_accessibility": {
+      "status": "passed",
+      "r2_accessible": true,
+      "response_time_ms": 156
+    },
+    "metadata_consistency": {
+      "status": "passed",
+      "file_size_match": true,
+      "mime_type_valid": true,
+      "etag_match": true
+    }
+  },
+  "last_checked": "2025-09-15T16:00:00Z"
+}
+```
+
+#### Document Search
+
+```http
+GET /admin/documents/search?q=stadtwerke&type=price_sheet&date_from=2025-01-01&verified=true
+Authorization: Bearer {access_token}
+```
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "document_id": "{document-uuid}",
+      "company_name": "Stadtwerke München GmbH",
+      "document_type": "price_sheet_14a",
+      "effective_date": "2025-01-01",
+      "relevance_score": 0.92,
+      "verification_status": "verified",
+      "download_url": "/admin/documents/{document-uuid}/download",
+      "preview_url": "/admin/documents/{document-uuid}/preview"
+    }
+  ],
+  "search_metadata": {
+    "query": "stadtwerke",
+    "total_results": 15,
+    "search_time_ms": 23,
+    "filters_applied": ["type:price_sheet", "verified:true", "date_from:2025-01-01"]
   }
 }
 ```
@@ -907,7 +1125,10 @@ Authorization: Bearer {access_token}
       "last_updated": "2024-01-15T00:00:00Z",
       "language": "de",
       "cached": true,
-      "download_url": "/api/documents/tab/550e8400.../tab_ns_2024.pdf"
+      "r2_backup_url": "https://r2.vnbdigitaler.de/documents/tab-documents/123456789012/TAB_NS_2024.pdf",
+      "download_url": "/api/documents/tab/550e8400.../tab_ns_2024.pdf",
+      "integrity_verified": true,
+      "document_hash": "sha256:b2c3d4e5f6..."
     },
     {
       "type": "installation_form",
@@ -918,14 +1139,79 @@ Authorization: Bearer {access_token}
       "last_updated": "2024-06-01T00:00:00Z",
       "cached": true,
       "prefillable": true,
-      "download_url": "/api/documents/forms/550e8400.../installation_form.pdf"
+      "r2_backup_url": "https://r2.vnbdigitaler.de/documents/forms/123456789012/installation_form.pdf",
+      "download_url": "/api/documents/forms/550e8400.../installation_form.pdf",
+      "integrity_verified": true
     }
   ],
   "metadata": {
     "last_scraped": "2025-09-15T06:00:00Z",
     "documents_found": 12,
     "documents_accessible": 10,
-    "scrape_success_rate": 0.83
+    "scrape_success_rate": 0.83,
+    "r2_backup_status": "up_to_date"
+  }
+}
+```
+
+#### Secure Document Access
+
+```http
+GET /api/documents/{document_id}/secure-download
+Authorization: Bearer {access_token}
+```
+
+**Response:** Pre-signed URL for secure access to Cloudflare R2:
+
+```json
+{
+  "document_id": "{document-uuid}",
+  "secure_url": "https://r2.vnbdigitaler.de/documents/tab-documents/123456789012/TAB_NS_2024.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=...",
+  "expires_at": "2025-09-15T17:30:00Z",
+  "valid_for_seconds": 3600,
+  "download_instructions": {
+    "method": "GET",
+    "headers": {
+      "User-Agent": "VNB-Digitaler-Client/1.0"
+    }
+  }
+}
+```
+
+#### Upload Installation Document
+
+```http
+POST /api/installations/{installation_id}/documents
+Authorization: Bearer {access_token}
+Content-Type: multipart/form-data
+
+file: {PDF/Image file}
+document_type: "electrical_certificate"
+description: "Elektrotechnische Bescheinigung für Ladeeinrichtung"
+```
+
+**Response:**
+
+```json
+{
+  "document_id": "{uploaded-document-uuid}",
+  "installation_id": "inst-2025-09-15-001",
+  "document_type": "electrical_certificate",
+  "filename": "Bescheinigung_Müller_2025-09-15.pdf",
+  "file_size_bytes": 1234567,
+  "uploaded_at": "2025-09-15T16:45:00Z",
+  "r2_object_key": "documents/installations/2025/09/inst-2025-09-15-001/electrical_certificate.pdf",
+  "document_hash": "sha256:c3d4e5f6...",
+  "status": "uploaded",
+  "processing": {
+    "ocr_scheduled": true,
+    "validation_pending": true,
+    "estimated_processing_time_minutes": 5
+  },
+  "access": {
+    "installer_viewable": true,
+    "customer_viewable": false,
+    "grid_operator_shareable": true
   }
 }
 ```
