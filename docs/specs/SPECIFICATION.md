@@ -27,7 +27,7 @@
 
 ### Mission
 
-Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mit besonderem Fokus auf steuerbare Verbrauchseinrichtungen nach EnWG §14a.
+Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mit besonderem Fokus auf steuerbare Verbrauchseinrichtungen nach EnWG §14a und die Digitalisierung von Installateurprozessen.
 
 ### Kernwerte
 
@@ -35,6 +35,7 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 - **Neutralität**: Unabhängige, sachliche Darstellung ohne Interessenskonflikte
 - **Offenheit**: Open-Data-Ansatz zur Förderung der Markttransparenz
 - **Benutzerfreundlichkeit**: Komplexe Daten für Laien verständlich aufbereiten
+- **API-first**: Vollständige API-Dokumentation für Entwickler und Zugang zu allen Daten
 
 ---
 
@@ -54,20 +55,36 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 
 1. **Markttransparenz erhöhen**
 
-   - Zentrale Anlaufstelle für Energiemarkt-Informationen
-   - Vergleichbare Darstellung von Preisen und Konditionen
-   - Geografische Marktübersicht
+- Zentrale Anlaufstelle für Energiemarkt-Informationen
+- Vergleichbare Darstellung von Preisen und Konditionen
+- Geografische Marktübersicht
 
-2. **§14a-Transparenz schaffen**
+1. **§14a-Transparenz schaffen**
 
-   - Vergleich der Netzentgelte für steuerbare Verbrauchseinrichtungen
-   - Übersicht über Regelungen und Bedingungen
-   - Unterstützung bei der Anbieterwahl
+- Vergleich der Netzentgelte für steuerbare Verbrauchseinrichtungen
+- Übersicht über Regelungen und Bedingungen
+- Unterstützung bei der Anbieterwahl
 
-3. **Installateurprozesse digitalisieren**
-   - Automatisierte Gasteintragung
-   - Zentrale Formularverwaltung
-   - Erinnerungssystem für Fristen
+1. **Installateurprozesse digitalisieren**
+
+- Automatisierte Gasteintragung
+- Zentrale Formularverwaltung
+- Erinnerungssystem für Fristen
+
+1. **Finanzielle Tragfähigkeit gewährleisten**
+
+- Einblenden von Werbung in der GUI
+- Spendenaufrufe in den Repos und der GUI
+- Crowdfunding-Kampagnen für komplexe, neue Features
+- Sponsoring durch Diensteanbieter
+  - kostenlose Neon-DB für OpenSource/OpenData Projekt
+  - kostenlose ObjectDB (falls Cloudflare 10 GB nicht ausreicht)
+  - Hosting der non-Streamlit-Services (FastAPI Backend) bei einem CloudAnbieter
+- Premium-Features für Geschäftskunden
+  - Digitalisierungsfunktionen für Installateuere mit Free-Tier und Bezahl-Modell
+  - API-Zugang für Geschäftskunden mit Rate-Limiting und Bezahl-Modell
+  - Daten-Exports für Geschäftskunden (CSV, JSON, PDF) mit Bezahl-Modell
+  - Kundenportale für Geschäftskunden mit Bezahl-Modell (z.B. Self-Service für PV-Kunden)
 
 ---
 
@@ -94,9 +111,9 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 
 - **FR-020**: Benutzerauthentifizierung (OAuth2)
 - **FR-021**: Automatische Gasteintragung bei Netzbetreibern
-- **FR-022**: TAB-Dokumentenverwaltung
+- **FR-022**: TAB-Dokumentenverwaltung (VNBs mit BDEW-Vorlagen-basierte TABs kennzeichnen)
 - **FR-023**: Antragsformular-Management
-- **FR-024**: Fristenerinnerungen
+- **FR-024**: Fristenerinnerungen (Bei Aktivität halb-automatische Verlängerung mit Bestätigung)
 - **FR-025**: Installateur-Dashboard
 
 #### 4. Datenintegration
@@ -106,6 +123,9 @@ Schaffen von Markttransparenz und Vergleichbarkeit im deutschen Energiesektor mi
 - **FR-032**: VNB Digital API-Integration (Netzgebiete)
 - **FR-033**: Netzbetreiber-Website-Scraping
 - **FR-034**: Automatische Datenvalidierung
+- **FR-035**: Integration von Buchhaltungslösungen (zuerst Lexoffice) für Installateure
+  Abgleich von Kundendaten mit Self-Service-Portal
+  Listen- bzw. Gasteintragung checken und ggf. vorschlagen
 
 #### 5. Benutzeroberfläche
 
