@@ -273,9 +273,13 @@ add_ignore = [
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.21.0",
     "detect-secrets>=1.5.0",
     "mypy>=1.17.1",
     "pydocstyle>=6.3.0",
+    "pytest>=8.4.1",
+    "pytest-asyncio>=1.1.0",
+    "pytest-cov>=6.2.1",
     "ruff>=0.12.9",
     "safety>=3.6.1",
 ]

@@ -110,6 +110,31 @@ repos:
             .*archive/.*|
           )$
 
+  # Pytest with coverage checks
+  - repo: local
+    hooks:
+      - id: pytest-coverage
+        name: pytest with coverage check
+        entry: bash -c 'uv run pytest --cov=src --cov-fail-under=60 --cov-report=term-missing:skip-covered --cov-report=xml -m "not slow" || true'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: pytest-full-coverage
+        name: pytest full test suite with coverage
+        entry: bash -c 'uv run pytest --cov=src --cov-fail-under=50 --cov-report=term-missing --cov-report=xml || true'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: pytest-fast
+        name: pytest fast tests only
+        entry: bash -c 'uv run pytest -m "not slow and not integration" --maxfail=5 || true'
+        language: system
+        pass_filenames: false
+        stages: [manual]
+
 # Global configuration
 ci:
   autofix_commit_msg: |

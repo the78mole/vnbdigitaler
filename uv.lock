@@ -3626,9 +3626,13 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "aiosqlite" },
     { name = "detect-secrets" },
     { name = "mypy" },
     { name = "pydocstyle" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
     { name = "ruff" },
     { name = "safety" },
 ]
@@ -3700,9 +3704,13 @@ provides-extras = ["dev", "ai", "test"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "aiosqlite", specifier = ">=0.21.0" },
     { name = "detect-secrets", specifier = ">=1.5.0" },
     { name = "mypy", specifier = ">=1.17.1" },
     { name = "pydocstyle", specifier = ">=6.3.0" },
+    { name = "pytest", specifier = ">=8.4.1" },
+    { name = "pytest-asyncio", specifier = ">=1.1.0" },
+    { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "ruff", specifier = ">=0.12.9" },
     { name = "safety", specifier = ">=3.6.1" },
 ]
