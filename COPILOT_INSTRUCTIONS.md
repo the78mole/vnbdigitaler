@@ -1,8 +1,14 @@
 # VNB Digitaler - Copilot Instructions
 
+> **📋 Projekt-Roadmap**: [ROADMAP.md](./ROADMAP.md) - Vollständige Phasen und Meilensteine
+> **⚙️ Technische Spezifikation**: [SPECIFICATION.md](./SPECIFICATION.md) - API-Details und Architektur
+
 ## Generell
 
 - Verwende `uv` für alle Python-Befehle
+- Aktuelle Roadmap-Informationen: Siehe [ROADMAP.md](./ROADMAP.md)
+- Technische Details: Siehe [SPECIFICATION.md](./SPECIFICATION.md)
+- Synchronisiere alle drei Dokumente vor größeren Änderungen
 
 ## Anmerkungen
 
@@ -159,70 +165,32 @@ src/
 
 ## 🔄 Datenaktualisierung - Implementierungsplan
 
-### Phase 1: Grundlagen ✅ ABGESCHLOSSEN
+> **📋 Detaillierte Roadmap**: Siehe [ROADMAP.md](./ROADMAP.md) für vollständige Phasen, Meilensteine und Checklisten
 
-- [x] Datenquellen-Interfaces definieren
-- [x] Basis-Pipeline-Architektur erstellen
-- [x] Logging-Framework einrichten
+### Aktueller Status (September 2025)
 
-### Phase 2: PostgreSQL-Integration ✅ ABGESCHLOSSEN
+**Phase 2**: Core Data Integration (🔄 In Entwicklung)
 
-- [x] DevContainer mit PostgreSQL 16 eingerichtet
-- [x] BDEW-Modelle mit PostgreSQL-Features (JSONB, UUID, Constraints)
-- [x] Repository-Pattern mit erweiterten PostgreSQL-Operationen
-- [x] Performance-Indices und Extensions (pg_trgm, unaccent, uuid-ossp)
-- [x] Full-Text-Search und Trigram-Ähnlichkeitssuche
-- [x] Automatische Datenbank-Initialisierung
-- [x] Test-Daten-Validierung erfolgreich
-- [x] Streamlit-Integration mit PostgreSQL-Backend
-- [x] Umfassende Dokumentation (Phase 2 Completion Guide)
+### Technische Implementierung
 
-### Phase 3: BDEW-Umfassende Integration 🔄 GEPLANT
+Die Implementierung folgt einem phasenweisen Ansatz mit klarer Trennung der Verantwortlichkeiten:
 
-- [x] BDEW-Stromnetzbetreiber-Adapter implementiert
-- [x] Download der Daten von der BDEW-Seite
-- [x] Stammdaten-Import-Pipeline
-- [x] Validierung gegen bestehende Daten
-- [ ] **NEU**: Multi-Rollen-BDEW-Integration
-- [ ] **NEU**: Endpoint-Discovery für alle Marktteilnehmer-Kategorien
-- [ ] **NEU**: Rollen-basierte Datenmodelle (Many-to-Many)
-- [ ] **NEU**: Cross-Role Company Validation
+#### Aktuell abgeschlossen ✅
 
-### Phase 4: VNB-spezifische Anreicherung der BDEW-Daten aus vnbdigital
+- **Foundation**: Pipeline-Architektur, PostgreSQL-Integration, DevContainer-Setup
+- **BDEW-Basis**: Stromnetzbetreiber-Import, Datenmodelle, Repository-Pattern
 
-- [ ] VNB-Identifikation aus Multi-Role BDEW-Basis
-- [ ] Datenanreicherungs-Logik implementieren (nur für VNB-Rolle)
-- [ ] Integration der vnbdigital GraphQL-API (beschränkt)
-- [ ] Konvertierung der Layer-Daten von vnbdigital in GeoJSON
-- [ ] Anreicherung der GeoDaten mittels Adresslokalisierung
+#### In Entwicklung 🔄
 
-### Phase 5: BNetzA-Integration
+- **Multi-Role-BDEW**: Alle Marktteilnehmer-Kategorien, Many-to-Many-Rollen-Modell
+- **BNetzA-Integration**: Smart-Meter-Rollout-Daten, Quartalsweise Updates
+- **Data-Admin-WebUI**: FastAPI-Backend, Validierungs-Interface
 
-- [ ] BNetzA-Rollout-Daten-Adapter
-- [ ] Quartalsweise Update-Pipeline
-- [ ] Historische Datenarchivierung
-- [ ] Suche auf VNB-Seiten nach
-  - [ ] Informationen für Installateure (TAB, Anmeldeformulare)
-  - [ ] KI-gestützte Extraktion von Installatuer-Informationen (z.B. Gasteintragung)
-  - [ ] Ermittlung der Gasteintragungsprozesse
+#### Geplant 📋
 
-### Phase 6: Automatisierungstools für Installateuere und Kunden
-
-- [ ] User-Authentifizierung (z.B. OAuth2)
-- [ ] Hinterlegung von Informationen für Gasteintragung
-- [ ] Automatischer Antrag auf Gasteintragung bei Netzbetreibern
-      Hier sollte ein Scan des Installateurausweises genügen
-      Automatische Verlängerung der Gasteintragung
-- [ ] Automatischer Antrag auf Eintragung in Installateursverzeichnis
-      Dies benötigt teils sehr unterschiedliche Formulare und Prozesse
-- [ ] Erinnerungsfunktion für Verlängerungen (z.B. Gasteintragung, Schulungen,...)
-- [ ] Dashboard für Installateure (z.B. Übersicht über Anträge, Status, Fristen)
-
-### Phase 7: Optimierung
-
-- [ ] Performance-Optimierung
-- [ ] Monitoring und Alerting
-- [ ] Automatisierung
+- **Price Transparency**: PDF-Extraktion, Preisvergleiche, Historische Daten
+- **Public Portal**: Streamlit-Interface, Interaktive Karten, API
+- **Installer Services**: OAuth2, Automatisierung, Dashboard
 
 ## 🧪 Testing-Strategie
 
@@ -286,7 +254,11 @@ src/
 
 ## ✅ Implementierungsstatus
 
-### Phase 1 & 2 - Erfolgreich Abgeschlossen
+> **📋 Aktuelle Roadmap**: Siehe [ROADMAP.md](./ROADMAP.md) für detaillierte Phasen und Meilensteine
+
+### Status-Übersicht (September 2025)
+
+#### Phase 1 & 2 - Erfolgreich Abgeschlossen ✅
 
 **Pipeline-Architektur:**
 

@@ -1,6 +1,13 @@
 # 🛣️ VNB Digitaler - Roadmap
 
+> **Die autoritative Quelle für alle Phasen, Meilensteine und Checklisten des VNB Digitaler Projekts**
+>
 > **Transparenz für den deutschen Energiemarkt durch Open-Source-Datenintegration**
+
+## 📋 Dokumentation-Referenzen
+
+- **[SPECIFICATION.md](./SPECIFICATION.md)**: Technische Spezifikation und API-Details
+- **[COPILOT_INSTRUCTIONS.md](./COPILOT_INSTRUCTIONS.md)**: Entwicklungsrichtlinien und Guidelines
 
 ## 📅 Aktuelle Phase
 

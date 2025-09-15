@@ -1,5 +1,8 @@
 # VNB Digitaler - Projektspezifikation
 
+> **📋 Projekt-Roadmap**: [ROADMAP.md](./ROADMAP.md) - Phasen, Meilensteine und aktuelle Checklisten
+> **👨‍💻 Entwicklungsrichtlinien**: [COPILOT_INSTRUCTIONS.md](./COPILOT_INSTRUCTIONS.md) - Guidelines und technische Implementierung
+
 ## 📋 Inhaltsverzeichnis
 
 1. [Projektüberblick](#-projektüberblick)
@@ -1239,79 +1242,35 @@ jobs:
 
 ## 📋 Implementierungsplan
 
-### Roadmap
+> **📋 Vollständige Roadmap**: Siehe [ROADMAP.md](./ROADMAP.md) für detaillierte Phasen, Meilensteine und aktuelle Checklisten
 
-#### Phase 1: Foundation (Abgeschlossen ✅)
+### Überblick
 
-**Zeitrahmen**: Q4 2025
+Das VNB Digitaler Projekt wird in sechs Hauptphasen implementiert:
 
-- [x] Basis-Pipeline-Architektur
-- [x] PostgreSQL-Integration
-- [x] DevContainer-Setup
-- [x] BDEW-Datenmodelle
-- [x] Test-Framework
+1. **Foundation** (✅ Abgeschlossen) - Basis-Architektur und Setup
+2. **Core Data Integration** (🔄 Aktuell) - BDEW & BNetzA Datenintegration
+3. **Data-Admin-WebUI** (📋 Geplant Q4 2025) - Admin-Interface für Datenvalidierung
+4. **Price Transparency** (📋 Q1 2026) - §14a-Preisdaten und Vergleiche
+5. **Public Portal** (📋 Q1-Q2 2026) - Öffentliche Streamlit-Oberfläche
+6. **Installer Services** (📋 Q2-Q3 2026) - Automatisierte Installateur-Workflows
 
-#### Phase 2: Core Data Integration (Aktuell 🔄)
+### Technische Implementierungsstrategie
 
-**Zeitrahmen**: Q4 2025
+#### Architektur-Prinzipien
 
-- [x] BDEW-Stromnetzbetreiber-Import
-- [ ] Multi-Rollen-BDEW-Integration (alle Marktteilnehmer)
-- [ ] BNetzA-Rollout-Daten-Integration
-- [ ] VNB Digital API-Integration
-- [ ] Basis-Datenvalidierung
+- **Modularer Aufbau**: Jede Phase baut auf der vorherigen auf
+- **Datenintegrität**: Validierung und Qualitätssicherung in allen Phasen
+- **Performance**: PostgreSQL-Optimierung für große Datenmengen
+- **Skalierbarkeit**: Cloud-native Deployment mit Neon Database
+- **Wartbarkeit**: Umfassende Tests und Dokumentation
 
-#### Phase 2.5: Data-Admin-WebUI (Geplant 📋)
+#### Deployment-Strategie
 
-**Zeitrahmen**: Q4 2025/Q1 2026
-
-- [ ] FastAPI-Backend für Admin-Interface
-- [ ] Data-Explorer-Dashboard (Tabellen-Übersicht)
-- [ ] BDEW vs. BNetzA Verknüpfungs-Validierung
-- [ ] Geo-Informationen Viewer und Editor
-- [ ] Data-Quality-Monitoring-Interface
-- [ ] Manuelle Datenkorrektur-Tools
-
-#### Phase 3: Price Transparency (Geplant 📋)
-
-**Zeitrahmen**: Q1 2026
-
-- [ ] Netzbetreiber-Website-Crawling
-- [ ] PDF-Preisblatt-Extraktion
-- [ ] §14a-Preis-Normalisierung
-- [ ] Preisvergleichs-Engine
-- [ ] Historische Preisentwicklung
-
-#### Phase 4: User Interface (Geplant 📋)
-
-**Zeitrahmen**: Q1 2026
-
-- [ ] Streamlit-Weboberfläche (Read-Only Portal)
-- [ ] Interaktive Karten (Netzgebiete)
-- [ ] Suchfunktionen und Datenexport
-- [ ] Responsive Design für hohe Nutzerzahlen
-- [ ] Separate Web-App für Installateur-Services (Grundgerüst)
-
-#### Phase 5: Installer Services (Geplant 📋)
-
-**Zeitrahmen**: Q1 2026
-
-- [ ] Web-App-Entwicklung (React/Next.js)
-- [ ] Benutzerauthentifizierung (OAuth2)
-- [ ] Automatische Gasteintragung
-- [ ] TAB-Dokumentenverwaltung
-- [ ] Installateur-Dashboard mit Workflows
-- [ ] Fristenerinnerungen und Notifications
-
-#### Phase 6: Advanced Features (Geplant 📋)
-
-**Zeitrahmen**: Q2-Q3 2026
-
-- [ ] KI-gestützte Datenextraktion
-- [ ] Predictive Analytics
-- [ ] API-Marketplace
-- [ ] Mobile App
-- [ ] Machine Learning für Preisprediction
+- **GitHub Actions**: CI/CD für alle Services
+- **Neon Database**: Managed PostgreSQL für Datenbank-Layer
+- **Streamlit Cloud**: Hosting der öffentlichen Portal-Oberfläche
+- **Docker Host**: Deployment der FastAPI-Services (Admin & Installer)
 
 ### Risikomanagement
 
