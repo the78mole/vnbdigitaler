@@ -485,7 +485,82 @@ Detaillierte API-Spezifikationen für OAuth-Authentication und Installation-Mana
 > **🧪 Pipeline-Tests**: Siehe [TESTING.md](./TESTING.md) - Integration & Performance Tests
 > **🚀 Pipeline-Deployment**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - GitHub Actions Workflows
 
-Die Datenintegration erfolgt über eine mehrstufige ETL-Pipeline, die automatisiert über GitHub Actions verarbeitet und validiert wird. Die Pipeline umfasst Datenextraktion aus verschiedenen Quellen, Validierung, Transformation und Speicherung sowohl in PostgreSQL als auch in Cloudflare R2 für Dokumente.
+Die Datenintegration erfolgt über eine robuste, mehrstufige ETL-Pipeline, die durch **Prefect 2.x** orchestriert wird. Diese Architektur kombiniert die bestehende modulare Pipeline-Struktur (`src/pipelines/`) mit Prefects erweiterten Orchestrierungs-, Monitoring- und Fehlerbehandlungs-Funktionen.
+
+#### Prefect-Integration
+
+**VNB Digitaler** nutzt Prefect als zentrale Orchestrierungs-Engine für alle Datenverarbeitungs-Workflows:
+
+```mermaid
+graph TB
+    subgraph "Prefect Orchestration Layer"
+        PS[Prefect Server/Cloud]
+        WP[Work Pools]
+        DP[Deployments]
+    end
+
+    subgraph "VNB Digitaler Flows"
+        BF[BDEW Import Flow]
+        RF[BNetzA Rollout Flow]
+        PF[Price Sheet Flow]
+        GF[Geo Data Flow]
+    end
+
+    subgraph "Existing Pipeline Infrastructure"
+        BP[Pipeline Base Classes]
+        EP[Extractors]
+        VP[Validators]
+        TP[Transformers]
+    end
+
+    PS --> WP
+    WP --> DP
+    DP --> BF
+    DP --> RF
+    DP --> PF
+    DP --> GF
+
+    BF --> BP
+    RF --> BP
+    PF --> BP
+    GF --> BP
+
+    BP --> EP
+    BP --> VP
+    BP --> TP
+```
+
+**Kernvorteile der Prefect-Integration:**
+
+- **Robuste Fehlerbehandlung**: Automatische Retry-Logic mit exponential backoff
+- **Observability**: Rich UI für Flow-Monitoring und Debugging
+- **Scheduling**: Flexible Cron- und event-basierte Ausführung
+- **Parallelisierung**: Task-Level-Parallelität für Performance-Optimierung
+- **State Management**: Persistente Flow-States und intelligentes Caching
+
+#### Projekt-Struktur für Prefect
+
+```
+vnbdigitaler/
+├── src/
+│   ├── pipelines/           # Bestehende Pipeline-Basis (behalten)
+│   │   ├── base.py         # PipelineStep, Pipeline
+│   │   └── bdew_import.py  # BDEW-spezifische Pipeline
+│   └── prefect_flows/      # 🆕 Prefect-Integration
+│       ├── __init__.py
+│       ├── config/         # Flow-Konfigurationen
+│       ├── flows/          # Flow-Definitionen
+│       │   ├── bdew/       # BDEW Company Import Flows
+│       │   ├── bnetza/     # BNetzA Rollout Import Flows
+│       │   ├── pricing/    # VNB Price Sheet Flows
+│       │   └── geo/        # Geo Data Processing Flows
+│       ├── tasks/          # Wiederverwendbare Prefect Tasks
+│       ├── deployments/    # Deployment-Konfigurationen
+│       └── monitoring/     # Custom Monitoring Hooks
+├── flows/                   # 🆕 Flow-Entry-Points für Prefect CLI
+├── deployments/             # 🆕 Deployment YAML Files
+└── prefect_config/          # 🆕 Prefect Server Konfiguration
+```
 
 #### Pipeline-Stufen
 
@@ -496,6 +571,78 @@ Die Datenintegration erfolgt über eine mehrstufige ETL-Pipeline, die automatisi
 5. **Store**: Dokumentenspeicherung in Cloudflare R2 mit Traceability
 6. **Index**: Indizierung für optimierte Suchperformance
 7. **Notify**: Benachrichtigung über Pipeline-Status
+
+#### Core Prefect Flows
+
+> **🔄 Flow-Implementierungen**: Siehe [PREFECT_FLOWS.md](../PREFECT_FLOWS.md) - Detaillierte Flow-Definitionen und Code-Beispiele
+
+##### 1. BDEW Company Data Import Flow
+
+- **Zweck**: Import und Update von BDEW Energiemarktakteur-Daten
+- **Frequenz**: Täglich (incremental) / Wöchentlich (full refresh)
+- **Features**: Parallelisierte Extraktion nach Kategorien, Datenvalidierung, Transaktionsschutz
+- **Retry-Policy**: 1 Retry mit 5min Delay
+- **Timeout**: 60 Minuten
+
+##### 2. BNetzA Smart Meter Rollout Flow
+
+- **Zweck**: Quartalsweiser Import von Smart Meter Rollout-Daten
+- **Frequenz**: Monatlich (Auto-Discovery neuer Berichte)
+- **Features**: ETag-basierte Download-Optimierung, Fuzzy-Matching zu BDEW-Daten, Artefakt-Erstellung
+- **Retry-Policy**: 2 Retries mit exponential backoff
+- **Timeout**: 30 Minuten
+
+##### 3. VNB Price Sheet Processing Flow
+
+- **Zweck**: §14a-Netzentgelt-Preisblätter von VNB-Websites extrahieren
+- **Frequenz**: Jährlich (1. Januar) + On-Demand
+- **Features**: Parallelisierte Website Discovery, KI-basierte PDF-Extraktion, Cloudflare R2 Storage
+- **Concurrency**: Limit 10-20 parallele Downloads
+- **Timeout**: 120 Minuten
+
+#### Integration mit bestehenden Pipeline-Klassen
+
+> **🔧 Integration-Code**: Siehe [PREFECT_INTEGRATION.md](../PREFECT_INTEGRATION.md) - Pipeline-Adapter und Task-Implementierungen
+
+Prefect-Tasks fungieren als Wrapper um bestehende Pipeline-Komponenten und gewährleisten eine nahtlose Integration ohne Änderung der bestehenden Architektur:
+
+- **Pipeline-Adapter**: Bestehende `Pipeline`-Klassen als Prefect Tasks
+- **Database-Transaktionen**: Sichere Datenbank-Operationen mit Rollback-Support
+- **Error-Handling**: Integration der bestehenden `PipelineStepResult`-Architektur
+- **Logging-Bridge**: Kombination von Prefect-Logging mit VNB Pipeline-Logging
+
+#### Deployment-Strategien
+
+> **🚀 Deployment-Konfigurationen**: Siehe [PREFECT_DEPLOYMENT.md](../PREFECT_DEPLOYMENT.md) - YAML-Konfigurationen und Setup-Anweisungen
+
+**Entwicklung (Local)**:
+
+- **Work Pool**: `local-dev-pool` (Process-basiert)
+- **Scheduling**: Montags 9:00 für Development-Tests
+- **Parameters**: `dry_run: true` für sichere Tests
+- **Timezone**: Europe/Berlin
+
+**Produktion (Kubernetes)**:
+
+- **Work Pool**: `kubernetes-prod-pool`
+- **Scheduling**: Täglich 6:00 UTC für kritische Flows
+- **Parameters**: `incremental: true` für Performance
+- **Tags**: ["production", "critical", "daily"]
+- **Resources**: 2Gi Memory, 1-2 CPU Cores
+
+#### Monitoring & Observability
+
+**Prefect UI Integration:**
+
+- **Flow Run Dashboard**: Zentrale Übersicht aller Datenverarbeitungs-Flows
+- **Custom Artifacts**: Datenqualitäts-Reports und Erfolgs-Metriken
+- **Alerting**: Intelligente Benachrichtigungen bei kritischen Fehlern
+
+**Quality Gates:**
+
+- **Pre-commit**: Schnelle Tests (Unit Tests, Coverage ≥ 60%)
+- **Pre-push**: Vollständige Test-Suite (Coverage ≥ 50%)
+- **Production**: Automatisierte Flow-Validierung mit Rollback-Mechanismen
 
 #### Integrierte Datenquellen
 
