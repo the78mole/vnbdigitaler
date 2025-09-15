@@ -6,7 +6,16 @@ Willkommen zur Dokumentation der VNB Digitaler Anwendung.
 
 Die Dokumentation ist in folgende Bereiche unterteilt:
 
-### Grundlagen
+### 📋 Projekt-Spezifikationen (`specs/`)
+
+- **[ROADMAP.md](specs/ROADMAP.md)** - Projekt-Roadmap, Phasen und Meilensteine
+- **[SPECIFICATION.md](specs/SPECIFICATION.md)** - Technische Spezifikation und Architektur
+- **[API.md](specs/API.md)** - REST & GraphQL API-Dokumentation
+- **[DATABASE.md](specs/DATABASE.md)** - Vollständiges Datenbankschema
+- **[TESTING.md](specs/TESTING.md)** - Test-Strategien und Code Quality
+- **[DEPLOYMENT.md](specs/DEPLOYMENT.md)** - Production Setup und Operations
+
+### 📚 Detaillierte Dokumentation
 
 - [Installation & Setup](setup.md)
 - [Erste Schritte](getting-started.md)

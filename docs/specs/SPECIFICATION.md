@@ -1,7 +1,7 @@
 # VNB Digitaler - Projektspezifikation
 
 > **📋 Projekt-Roadmap**: [ROADMAP.md](./ROADMAP.md) - Phasen, Meilensteine und aktuelle Checklisten
-> **👨‍💻 Entwicklungsrichtlinien**: [COPILOT_INSTRUCTIONS.md](./COPILOT_INSTRUCTIONS.md) - Guidelines und technische Implementierung
+> **👨‍💻 Entwicklungsrichtlinien**: [COPILOT_INSTRUCTIONS.md](../../COPILOT_INSTRUCTIONS.md) - Guidelines und technische Implementierung
 
 ## 📋 Inhaltsverzeichnis
 
@@ -443,62 +443,16 @@ type Mutation {
 
 #### UI-Komponenten
 
-##### Suchkomponenten
+> **🔌 Detaillierte API-Spezifikationen**: Siehe [API.md](./API.md) - REST & GraphQL Endpoints
 
-```python
-# Intelligente Unternehmenssuche
-st.text_input(
-    "Unternehmen oder PLZ suchen",
-    placeholder="z.B. Stadtwerke München oder 80331"
-)
-
-# Erweiterte Filter
-col1, col2, col3 = st.columns(3)
-with col1:
-    role_filter = st.multiselect("Rolle", ["VNB", "ÜNB", "MSB"])
-with col2:
-    state_filter = st.selectbox("Bundesland", states)
-with col3:
-    size_filter = st.select_slider("Unternehmensgröße", options)
-```
-
-##### Preisvergleich-Interface
-
-```python
-# §14a-Rechner
-with st.form("price_calculator"):
-    postal_code = st.text_input("Postleitzahl")
-    device_type = st.selectbox("Anlage", ["Wärmepumpe", "Wallbox", "Speicher"])
-    power_rating = st.number_input("Anschlusswert (kW)")
-    annual_consumption = st.number_input("Jahresverbrauch (kWh)")
-
-    if st.form_submit_button("Preise vergleichen"):
-        results = calculate_14a_prices(postal_code, device_type, power_rating)
-        display_price_comparison(results)
-```
-
-##### Interaktive Karten
-
-```python
-# Netzgebiete-Karte mit Folium
-map = folium.Map(location=[51.1657, 10.4515], zoom_start=6)
-
-for territory in service_territories:
-    folium.GeoJson(
-        territory.geographic_bounds,
-        popup=f"{territory.company.name}",
-        style_function=lambda x: {
-            'fillColor': get_color_by_type(x['properties']['type']),
-            'color': 'black',
-            'weight': 1,
-            'fillOpacity': 0.6
-        }
-    ).add_to(map)
-
-st_folium(map, width=700, height=500)
-```
+Die Streamlit-Oberfläche bietet intuitive Suchkomponenten, Preisvergleich-Interfaces und interaktive Karten für die Visualisierung von Netzgebieten. Detaillierte Implementierungsbeispiele und Code-Snippets finden Sie in der API-Dokumentation.
 
 ### Data-Admin-WebUI (FastAPI)
+
+> **🔌 Admin-API-Endpoints**: Siehe [API.md](./API.md) - Admin API Dokumentation
+> **🗄️ Datenbank-Schema**: Siehe [DATABASE.md](./DATABASE.md) - Tabellen und Strukturen
+
+Das Admin-Interface für Datenvalidierung bietet umfassende Tools für die Verwaltung und Qualitätssicherung der integrierten Daten:
 
 #### Admin-Interface für Datenvalidierung
 
@@ -535,44 +489,11 @@ st_folium(map, width=700, height=500)
     └── Rollback-Funktionen
 ```
 
-#### FastAPI Admin-Endpoints
-
-```python
-# Admin API Endpoints
-@router.get("/admin/dashboard")
-async def get_admin_dashboard():
-    """Dashboard mit Datenqualitäts-Übersicht"""
-
-@router.get("/admin/tables/{table_name}")
-async def get_table_data(table_name: str, page: int = 1, size: int = 100):
-    """Paginierte Tabellendaten mit Filter/Sort"""
-
-@router.get("/admin/linkage/bdew-bnetza")
-async def get_linkage_overview():
-    """BDEW ↔ BNetzA Verknüpfungs-Status"""
-
-@router.post("/admin/linkage/manual")
-async def create_manual_link(link_data: ManualLinkage):
-    """Manuelle Verknüpfung zwischen Datensätzen"""
-
-@router.get("/admin/geo/territories")
-async def get_geo_territories():
-    """Geo-Informationen der Netzgebiete"""
-
-@router.put("/admin/geo/territories/{id}")
-async def update_territory_geo(id: UUID, geo_data: GeoData):
-    """Geo-Daten eines Netzgebiets aktualisieren"""
-
-@router.get("/admin/quality/metrics")
-async def get_quality_metrics():
-    """Datenqualitäts-Kennzahlen"""
-
-@router.post("/admin/corrections/bulk")
-async def apply_bulk_corrections(corrections: List[DataCorrection]):
-    """Bulk-Datenkorrektur mit Audit-Trail"""
-```
+Detaillierte API-Endpoints und Implementierungsbeispiele finden Sie in der API-Dokumentation.
 
 #### Separate Anwendung für interaktive Features
+
+> **🔌 Installer-API**: Siehe [API.md](./API.md) - OAuth & Installation Management
 
 ```
 🔧 VNB Digitaler - Installateur-Portal (Web-App)
@@ -602,6 +523,8 @@ async def apply_bulk_corrections(corrections: List[DataCorrection]):
     └── Zeitersparnis-Analysen
 ```
 
+Detaillierte API-Spezifikationen für OAuth-Authentication und Installation-Management finden Sie in der API-Dokumentation.
+
 #### Breakpoints
 
 - **Mobile**: < 768px (Single-Column Layout)
@@ -621,622 +544,49 @@ async def apply_bulk_corrections(corrections: List[DataCorrection]):
 
 ### ETL-Pipeline-Architektur
 
+> **🧪 Pipeline-Tests**: Siehe [TESTING.md](./TESTING.md) - Integration & Performance Tests
+> **🚀 Pipeline-Deployment**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - GitHub Actions Workflows
+
+Die Datenintegration erfolgt über eine mehrstufige ETL-Pipeline, die verschiedene Datenquellen automatisiert verarbeitet und validiert. Detaillierte Implementierungsbeispiele für BDEW-Integration, BNetzA-Rollout-Daten und Website-Scraping für Preisdaten finden Sie in den verlinkten Dokumenten.
+
 #### Pipeline-Stufen
 
-```python
-class DataPipeline:
-    def __init__(self):
-        self.steps = [
-            ExtractStep(),      # Datenextraktion
-            ValidateStep(),     # Datenvalidierung
-            TransformStep(),    # Datentransformation
-            LoadStep(),         # Datenladung
-            IndexStep(),        # Indizierung
-            NotifyStep()        # Benachrichtigung
-        ]
-```
+1. **Extract**: Datenextraktion aus verschiedenen Quellen
+2. **Validate**: Datenvalidierung und Qualitätsprüfung
+3. **Transform**: Datentransformation und Normalisierung
+4. **Load**: Datenladung in die PostgreSQL-Datenbank
+5. **Index**: Indizierung für optimierte Suchperformance
+6. **Notify**: Benachrichtigung über Pipeline-Status
 
-#### BDEW-Integration
+#### Integrierte Datenquellen
 
-```python
-class BDEWIntegration:
-    """Umfassende BDEW-Datenintegration für alle Marktteilnehmer"""
-
-    endpoints = {
-        'stromnetzbetreiber': 'https://bdew-codes.de/Content/Files/StromNB/...',
-        'gasnetzbetreiber': 'https://bdew-codes.de/Content/Files/GasNB/...',
-        'energielieferanten': 'https://bdew-codes.de/Content/Files/EnergieLief/...',
-        'messstellenbetreiber': 'https://bdew-codes.de/Content/Files/MSB/...'
-    }
-
-    async def extract_all_roles(self) -> Dict[str, List[Dict]]:
-        """Extrahiert alle Marktteilnehmer-Rollen parallel"""
-        tasks = []
-        for role, endpoint in self.endpoints.items():
-            tasks.append(self.extract_role_data(role, endpoint))
-
-        results = await asyncio.gather(*tasks)
-        return dict(zip(self.endpoints.keys(), results))
-```
-
-#### BNetzA-Integration
-
-```python
-class BNetzAIntegration:
-    """Smart-Meter-Rollout-Daten von der Bundesnetzagentur"""
-
-    def extract_rollout_data(self) -> List[RolloutData]:
-        """Quartalsweise Rollout-Berichte verarbeiten"""
-        reports = self.download_quarterly_reports()
-        rollout_data = []
-
-        for report in reports:
-            parsed_data = self.parse_rollout_report(report)
-            validated_data = self.validate_rollout_data(parsed_data)
-            rollout_data.extend(validated_data)
-
-        return rollout_data
-```
-
-#### Website-Scraping für Preisdaten
-
-```python
-class PriceExtractor:
-    """Automatische Extraktion von Preisblättern"""
-
-    def extract_prices_from_website(self, company: Company) -> PriceSheet:
-        """KI-gestützte Preisextraktion von Netzbetreiber-Websites"""
-
-        # 1. Website crawlen
-        pages = self.crawl_company_website(company.website_url)
-
-        # 2. Preisblätter identifizieren
-        price_documents = self.identify_price_documents(pages)
-
-        # 3. PDF-Inhalte extrahieren
-        extracted_data = []
-        for doc in price_documents:
-            if doc.type == 'pdf':
-                content = self.extract_pdf_content(doc.url)
-            else:
-                content = self.extract_web_content(doc.url)
-
-            extracted_data.append(content)
-
-        # 4. Strukturierte Preise extrahieren
-        structured_prices = self.parse_price_data(extracted_data)
-
-        return PriceSheet(
-            company_id=company.id,
-            extracted_prices=structured_prices,
-            validation_status='pending'
-        )
-```
+- **BDEW-Integration**: Umfassende Marktteilnehmer-Daten
+- **BNetzA-Integration**: Smart-Meter-Rollout-Daten
+- **Website-Scraping**: Automatische Preisblatt-Extraktion
 
 ### Datenvalidierung
 
-#### Multi-Level-Validation
+> **🧪 Validierungstests**: Siehe [TESTING.md](./TESTING.md) - Datenqualitäts-Tests
 
-```python
-class DataValidator:
-    """Mehrstufige Datenvalidierung"""
-
-    def validate(self, data: Any, context: ValidationContext) -> ValidationResult:
-        validators = [
-            SchemaValidator(),      # JSON Schema Validation
-            BusinessRuleValidator(), # Geschäftsregeln
-            CrossReferenceValidator(), # Referenzielle Integrität
-            HistoricalValidator(),  # Historische Konsistenz
-            GeographicValidator()   # Geografische Plausibilität
-        ]
-
-        results = []
-        for validator in validators:
-            result = validator.validate(data, context)
-            results.append(result)
-
-            if result.severity == 'critical':
-                break  # Stop bei kritischen Fehlern
-
-        return ValidationResult.combine(results)
-```
-
-#### Qualitätskennzahlen
-
-```python
-class DataQualityMetrics:
-    """Datenqualitäts-Monitoring"""
-
-    metrics = {
-        'completeness': lambda df: df.notna().sum() / len(df),
-        'uniqueness': lambda df: df.nunique() / len(df),
-        'validity': lambda df: self.validate_format(df).sum() / len(df),
-        'consistency': lambda df: self.check_consistency(df),
-        'accuracy': lambda df: self.verify_accuracy(df)
-    }
-```
+Die Datenvalidierung erfolgt über ein mehrstufiges System mit Schema-Validation, Geschäftsregeln-Prüfung, referenzieller Integrität und geografischer Plausibilitätskontrolle.
 
 ---
 
 ## 🧪 Qualitätssicherung
 
+> **🧪 Umfassende Test-Dokumentation**: Siehe [TESTING.md](./TESTING.md) - Test-Strategien & Code Quality
+
 ### Testing-Strategie
 
-#### Test-Pyramide
-
-```
-    /\     E2E Tests (5%)
-   /  \    API Integration Tests (15%)
-  /____\   Unit Tests (80%)
-```
-
-#### Unit Tests
-
-```python
-# Beispiel: BDEW-Datenvalidierung
-class TestBDEWDataValidation:
-    def test_company_code_validation(self):
-        """BDEW-Code muss dem Standard entsprechen"""
-        validator = BDEWCodeValidator()
-
-        # Valide Codes
-        assert validator.validate("123456789012") == True  # pragma: allowlist secret
-        assert validator.validate("999999999999") == True  # pragma: allowlist secret
-
-        # Invalide Codes
-        assert validator.validate("12345") == False
-        assert validator.validate("abc123456789") == False  # pragma: allowlist secret
-
-    def test_multi_role_assignment(self):
-        """Unternehmen können mehrere Rollen haben"""
-        company = Company(code="123456789012", name="Test AG")  # pragma: allowlist secret
-
-        company.add_role(RoleType.VNB, active=True)
-        company.add_role(RoleType.MSB, active=True)
-
-        assert len(company.roles) == 2
-        assert company.has_role(RoleType.VNB) == True
-        assert company.has_role(RoleType.MSB) == True
-```
-
-#### Integration Tests
-
-```python
-class TestDataPipelineIntegration:
-    async def test_bdew_full_pipeline(self):
-        """Vollständiger BDEW-Import-Test"""
-        pipeline = BDEWImportPipeline()
-
-        # Mock-Daten verwenden
-        with mock_bdew_api():
-            result = await pipeline.run()
-
-        assert result.status == 'success'
-        assert result.records_processed > 0
-        assert result.validation_errors == 0
-
-    def test_price_extraction_accuracy(self):
-        """Preisextraktion-Genauigkeit testen"""
-        extractor = PriceExtractor()
-
-        # Test mit bekannten Preisblättern
-        test_pdfs = load_test_price_sheets()
-
-        for pdf in test_pdfs:
-            extracted = extractor.extract_prices(pdf.content)
-            expected = pdf.expected_prices
-
-            accuracy = calculate_extraction_accuracy(extracted, expected)
-            assert accuracy > 0.95  # 95% Genauigkeit erforderlich
-```
-
-### Code Quality
-
-#### Code-Standards
-
-```python
-# pyproject.toml
-[tool.black]
-line-length = 88
-target-version = ['py311']
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-
-[tool.mypy]
-python_version = "3.11"
-strict = true
-disallow_untyped_defs = true
-
-[tool.pytest]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = "--cov=src --cov-report=html --cov-fail-under=95"
-```
-
-#### Pre-Commit Hooks
-
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: https://github.com/psf/black
-    rev: 23.9.1
-    hooks:
-      - id: black
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1
-    hooks:
-      - id: mypy
-
-  - repo: https://github.com/pycqa/bandit
-    rev: 1.7.5
-    hooks:
-      - id: bandit
-        args: ["-c", "pyproject.toml"]
-```
-
-### Performance Testing
-
-#### Load Testing
-
-```python
-# locustfile.py
-from locust import HttpUser, task, between
-
-class VNBDigitalUser(HttpUser):
-    wait_time = between(1, 3)
-
-    @task(3)
-    def search_companies(self):
-        """Unternehmensuche simulieren"""
-        self.client.get("/api/v1/companies/search?q=stadtwerke")
-
-    @task(2)
-    def price_comparison(self):
-        """Preisvergleich simulieren"""
-        self.client.get("/api/v1/prices/14a?postal_code=80331")
-
-    @task(1)
-    def view_territories(self):
-        """Netzgebiete abrufen"""
-        self.client.get("/api/v1/territories/geojson")
-```
+Die Qualitätssicherung basiert auf der bewährten Test-Pyramide mit 80% Unit Tests, 15% Integration Tests und 5% End-to-End Tests. Detaillierte Test-Implementierungen, Performance-Testing und Code-Quality-Standards sind in der Test-Dokumentation zu finden.
 
 ---
 
 ## 🚀 Betrieb und Wartung
 
-### Deployment-Architektur
+> **🚀 Deployment-Dokumentation**: Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) - Production Setup & Operations
 
-#### GitHub Actions als Orchestrierungs-Platform
-
-```yaml
-# .github/workflows/data-pipeline.yml
-name: Daily Data Pipeline
-on:
-  schedule:
-    - cron: "0 2 * * *" # Täglich um 2:00 UTC
-  workflow_dispatch:
-
-jobs:
-  bdew-sync:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Python + uv
-        uses: astral-sh/setup-uv@v1
-      - name: Run BDEW data sync
-        run: uv run python -m src.pipelines.bdew_import
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-
-  price-extraction:
-    needs: bdew-sync
-    runs-on: ubuntu-latest
-    steps:
-      - name: Extract VNB price sheets
-        run: uv run python -m src.pipelines.price_extraction
-        env:
-          DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-
-  deploy-webapp:
-    needs: [bdew-sync, price-extraction]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy to Docker Host
-        run: |
-          docker-compose -f docker-compose.prod.yml up -d --build webapp
-        env:
-          DOCKER_HOST: ${{ secrets.DOCKER_HOST_URL }}
-```
-
-#### Production Environment (Vereinfacht)
-
-```yaml
-# docker-compose.prod.yml
-version: "3.8"
-services:
-  # Data Admin UI (FastAPI)
-  admin-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.admin
-    ports:
-      - "8081:8081"
-    environment:
-      - ENV=production
-      - DATABASE_URL=${{ secrets.NEON_DATABASE_URL }}
-      - ADMIN_SECRET_KEY=${{ secrets.ADMIN_SECRET_KEY }}
-    volumes:
-      - ./logs:/app/logs
-    restart: unless-stopped
-
-  # Installateur Web-App (FastAPI + React)
-  installer-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.installer
-    ports:
-      - "8080:8080"
-    environment:
-      - ENV=production
-      - DATABASE_URL=${{ secrets.NEON_DATABASE_URL }}
-      - OAUTH_CLIENT_ID=${{ secrets.OAUTH_CLIENT_ID }}
-      - OAUTH_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
-    volumes:
-      - ./logs:/app/logs
-    restart: unless-stopped
-
-  # Nginx für HTTPS/SSL-Termination und Routing
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - admin-api
-      - installer-api
-    restart: unless-stopped
-```
-
-#### Nginx Routing Configuration
-
-```nginx
-# nginx.conf
-server {
-    listen 443 ssl;
-    server_name admin.vnbdigitaler.de;
-
-    ssl_certificate /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
-
-    location / {
-        proxy_pass http://admin-api:8081;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name installer.vnbdigitaler.de;
-
-    ssl_certificate /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
-
-    location / {
-        proxy_pass http://installer-api:8080;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-#### Neon Database Setup
-
-```python
-# Database Connection für Neon
-DATABASE_URL = "postgresql://username:password@ep-xyz.us-east-1.aws.neon.tech/vnbdigitaler?sslmode=require"  # pragma: allowlist secret
-
-# Connection Pooling für Neon
-from sqlalchemy import create_engine
-from sqlalchemy.pool import QueuePool
-
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=QueuePool,
-    pool_size=5,
-    max_overflow=10,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    echo=False
-)
-```
-
-### Monitoring & Observability (Vereinfacht)
-
-#### GitHub Actions Monitoring
-
-```yaml
-# .github/workflows/health-check.yml
-name: System Health Check
-on:
-  schedule:
-    - cron: "*/30 * * * *" # Alle 30 Minuten
-  workflow_dispatch:
-
-jobs:
-  health-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Streamlit App
-        run: |
-          curl -f https://vnbdigitaler.streamlit.app/health || exit 1
-
-      - name: Check Database Connection
-        run: |
-          python -c "
-          import psycopg2
-          conn = psycopg2.connect('${{ secrets.NEON_DATABASE_URL }}')
-          print('Database OK')
-          "
-
-      - name: Check Docker Host App
-        run: |
-          curl -f https://installer.vnbdigitaler.de/health || exit 1
-```
-
-#### Einfache Metriken
-
-```python
-# src/monitoring/simple_metrics.py
-import json
-from datetime import datetime
-from pathlib import Path
-
-class SimpleMetrics:
-    """Einfaches Monitoring ohne Prometheus"""
-
-    def __init__(self, metrics_file: str = "metrics.json"):
-        self.metrics_file = Path(metrics_file)
-
-    def record_pipeline_run(self, pipeline: str, status: str, records: int):
-        metrics = self.load_metrics()
-        metrics["pipeline_runs"].append({
-            "timestamp": datetime.utcnow().isoformat(),
-            "pipeline": pipeline,
-            "status": status,
-            "records_processed": records
-        })
-        self.save_metrics(metrics)
-
-    def record_api_request(self, endpoint: str, duration_ms: int):
-        metrics = self.load_metrics()
-        metrics["api_requests"].append({
-            "timestamp": datetime.utcnow().isoformat(),
-            "endpoint": endpoint,
-            "duration_ms": duration_ms
-        })
-        self.save_metrics(metrics)
-```
-
-#### Health Checks (Vereinfacht)
-
-```python
-# src/health.py
-from fastapi import APIRouter, status
-import psycopg2
-
-router = APIRouter()
-
-@router.get("/health")
-async def health_check():
-    """Einfache Gesundheitsprüfung für Docker Host"""
-    try:
-        # Database Check
-        conn = psycopg2.connect(DATABASE_URL)
-        conn.close()
-
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow(),
-            "database": "connected",
-            "environment": "production"
-        }
-    except Exception as e:
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.utcnow()
-        }, 503
-```
-
-### Backup & Recovery (Neon-basiert)
-
-#### Automatische Neon-Backups
-
-```python
-# Neon bietet automatische Backups
-# Backup-Strategie: Neon-native Features nutzen
-
-class NeonBackupManager:
-    """Backup-Management mit Neon Database Features"""
-
-    def __init__(self, neon_api_key: str):
-        self.api_key = neon_api_key
-        self.base_url = "https://console.neon.tech/api/v2"
-
-    def create_branch_backup(self, project_id: str, backup_name: str):
-        """Erstellt einen Branch als Backup (Neon-Feature)"""
-        response = requests.post(
-            f"{self.base_url}/projects/{project_id}/branches",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            json={
-                "name": f"backup-{backup_name}-{datetime.now().strftime('%Y%m%d')}",
-                "parent_id": "main"
-            }
-        )
-        return response.json()
-
-    def export_schema_ddl(self):
-        """Exportiert Schema-DDL als zusätzliches Backup"""
-        with psycopg2.connect(DATABASE_URL) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT ddl FROM pg_get_schema_ddl('public')")
-                return cur.fetchone()[0]
-```
-
-#### GitHub Actions Backup Workflow
-
-```yaml
-# .github/workflows/backup.yml
-name: Weekly Backup
-on:
-  schedule:
-    - cron: "0 3 * * 0" # Sonntags um 3:00 UTC
-
-jobs:
-  backup:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create Neon Branch Backup
-        run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "name": "backup-$(date +%Y%m%d)",
-              "parent_id": "main"
-            }' \
-            https://console.neon.tech/api/v2/projects/${{ secrets.NEON_PROJECT_ID }}/branches
-
-      - name: Export Schema DDL
-        run: |
-          python scripts/backup_schema.py > backup-schema-$(date +%Y%m%d).sql
-
-      - name: Upload to GitHub Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: schema-backup
-          path: backup-schema-*.sql
-```
-
-#### Disaster Recovery Plan (Vereinfacht)
-
-1. **RTO (Recovery Time Objective)**: 2 Stunden (Single Host)
-2. **RPO (Recovery Point Objective)**: 15 Minuten (Neon automatische Backups)
-3. **Backup-Strategie**: Neon-Branches + Schema-Exports
-4. **Failover**: Manueller Neustart auf Docker Host
+Die Deployment-Architektur nutzt GitHub Actions als Orchestrierungs-Platform für tägliche Datenpipelines und automatisierte Deployments. Das Production Environment läuft auf einem Docker Host mit Nginx für SSL-Termination und einer Neon PostgreSQL-Datenbank für hohe Verfügbarkeit.
 
 ---
 

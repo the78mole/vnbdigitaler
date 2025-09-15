@@ -1,13 +1,13 @@
 # VNB Digitaler - Copilot Instructions
 
-> **📋 Projekt-Roadmap**: [ROADMAP.md](./ROADMAP.md) - Vollständige Phasen und Meilensteine
-> **⚙️ Technische Spezifikation**: [SPECIFICATION.md](./SPECIFICATION.md) - API-Details und Architektur
+> **📋 Projekt-Roadmap**: [ROADMAP.md](./docs/specs/ROADMAP.md) - Vollständige Phasen und Meilensteine
+> **⚙️ Technische Spezifikation**: [SPECIFICATION.md](./docs/specs/SPECIFICATION.md) - API-Details und Architektur
 
 ## Generell
 
 - Verwende `uv` für alle Python-Befehle
-- Aktuelle Roadmap-Informationen: Siehe [ROADMAP.md](./ROADMAP.md)
-- Technische Details: Siehe [SPECIFICATION.md](./SPECIFICATION.md)
+- Aktuelle Roadmap-Informationen: Siehe [ROADMAP.md](./docs/specs/ROADMAP.md)
+- Technische Details: Siehe [SPECIFICATION.md](./docs/specs/SPECIFICATION.md)
 - Synchronisiere alle drei Dokumente vor größeren Änderungen
 
 ## Anmerkungen
@@ -165,7 +165,7 @@ src/
 
 ## 🔄 Datenaktualisierung - Implementierungsplan
 
-> **📋 Detaillierte Roadmap**: Siehe [ROADMAP.md](./ROADMAP.md) für vollständige Phasen, Meilensteine und Checklisten
+> **📋 Detaillierte Roadmap**: Siehe [ROADMAP.md](./docs/specs/ROADMAP.md) für vollständige Phasen, Meilensteine und Checklisten
 
 ### Aktueller Status (September 2025)
 
@@ -254,7 +254,7 @@ Die Implementierung folgt einem phasenweisen Ansatz mit klarer Trennung der Vera
 
 ## ✅ Implementierungsstatus
 
-> **📋 Aktuelle Roadmap**: Siehe [ROADMAP.md](./ROADMAP.md) für detaillierte Phasen und Meilensteine
+> **📋 Aktuelle Roadmap**: Siehe [ROADMAP.md](./docs/specs/ROADMAP.md) für detaillierte Phasen und Meilensteine
 
 ### Status-Übersicht (September 2025)
 

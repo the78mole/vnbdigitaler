@@ -7,7 +7,7 @@
 ## 📋 Dokumentation-Referenzen
 
 - **[SPECIFICATION.md](./SPECIFICATION.md)**: Technische Spezifikation und API-Details
-- **[COPILOT_INSTRUCTIONS.md](./COPILOT_INSTRUCTIONS.md)**: Entwicklungsrichtlinien und Guidelines
+- **[COPILOT_INSTRUCTIONS.md](../../COPILOT_INSTRUCTIONS.md)**: Entwicklungsrichtlinien und Guidelines
 
 ## 📅 Aktuelle Phase
 
