@@ -1,0 +1,13 @@
+{
+  "Einsatzverantwortlicher": 1,
+  "Betreiber einer technischen Ressource": 2,
+  "Bilanzkreisverantwortlicher": 3,
+  "Lieferant": 4,
+  "Messstellenbetreiber": 5,
+  "Netzbetreiber": 6,
+  "Energieserviceanbieter des Anschlussnutzers": 7,
+  "Netznutzer ohne All-Inklusiv-Vertrag": 8,
+  "Bilanzkoordinator": 9,
+  "Übertragungsnetzbetreiber": 10,
+  "Data Provider": 11
+}

@@ -1,5 +1,4 @@
-"""
-SQLAlchemy Modelle für BDEW-Stammdaten.
+"""SQLAlchemy Modelle für BDEW-Stammdaten.
 
 Datenbank-Modelle für die Speicherung und Verwaltung
 von BDEW Verteilnetzbetreiber-Stammdaten mit PostgreSQL-Optimierungen.
@@ -122,6 +121,7 @@ class BDEWCompany(Base):
     )
 
     def __repr__(self) -> str:
+        """String representation of BDEWCompany."""
         return f"<BDEWCompany(name='{self.company_name}', id='{self.network_operator_id}')>"
 
     def to_dict(self) -> dict[str, Any]:
@@ -232,6 +232,7 @@ class BDEWImportLog(Base):
     user_context = Column(String(100))
 
     def __repr__(self) -> str:
+        """String representation of BDEWImportLog."""
         return (
             f"<BDEWImportLog(file='{self.source_file}', "
             f"status='{self.import_status}', records={self.records_imported})>"
@@ -304,6 +305,7 @@ class BDEWValidationRule(Base):
     category = Column(String(50), index=True)  # business, technical, compliance
 
     def __repr__(self) -> str:
+        """String representation of BDEWValidationRule."""
         return (
             f"<BDEWValidationRule(name='{self.rule_name}', "
             f"field='{self.field_name}', active={self.is_active})>"
@@ -357,6 +359,7 @@ class BDEWDataHistory(Base):
     )
 
     def __repr__(self) -> str:
+        """String representation of BDEWDataHistory."""
         return (
             f"<BDEWDataHistory(company_id='{self.company_id}', "
             f"type='{self.change_type}', timestamp='{self.change_timestamp}')>"

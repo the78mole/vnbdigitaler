@@ -1,5 +1,4 @@
-"""
-PostgreSQL-Datenbankverbindung und Session-Management.
+"""PostgreSQL-Datenbankverbindung und Session-Management.
 
 Zentrale Datenbank-Infrastruktur für die BDEW-Anwendung mit
 PostgreSQL-spezifischen Features wie JSONB, Full-Text-Search und

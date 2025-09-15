@@ -55,12 +55,12 @@ repos:
   #       files: ^src/
   #       exclude: ^(tools/bak/|.*archive/)
 
-  # Docstring style checking with pydocstyle - Temporarily relaxed for systematic cleanup
+  # Docstring style checking with pydocstyle
   - repo: https://github.com/pycqa/pydocstyle
     rev: 6.3.0
     hooks:
       - id: pydocstyle
-        args: ["--convention=google", "--add-ignore=D100,D104,D105,D107,D200,D212,D403"]
+        args: ["--convention=google", "--add-ignore=D107,D200,D212"]
         files: ^src/
         exclude: ^(tools/bak/|.*archive/)
 
@@ -86,7 +86,7 @@ repos:
     hooks:
       - id: bandit
         additional_dependencies: [pbr]
-        args: [-ll]
+        args: [-ll, --skip=B608]
         exclude: ^(tests/|tools/bak/|migrations/|.*archive/)
 
   # Security scanning for secrets

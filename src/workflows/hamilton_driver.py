@@ -9,7 +9,7 @@ from datetime import datetime
 
 from hamilton import driver
 
-from . import bdew_update_workflow_clean as workflow
+from . import bdew_update_workflow_normalized as workflow
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
