@@ -82,6 +82,9 @@ Actions Workflows integriert werden kann.
 ├── 📱 Streamlit UI (Öffentlicher Zugang für Endverbraucher)
 ├── 🔍 Vergleichs-Tools (§14a-Preise, Netzentgelte)
 ├── 📊 Marktanalyse-Dashboard (für Journalisten/Forscher)
+├── 🏗️ Installateurstools
+│   ├── Einfacher Zugriff auf TABs, Formulare, Anträge
+│   └── z.B. Antrag auf Eintragung in Installateursverzeichnis und Gasteintragung
 └── 🔌 REST API (für Entwickler und Analysten)
 ```
 
@@ -105,6 +108,7 @@ Actions Workflows integriert werden kann.
    - Postleitzahl-basierte Netzbetreiber-Suche
    - §14a-Preisvergleiche für Wärmepumpen, Wallboxen, etc.
    - Interaktive Karten der Netzgebiete
+   - Einfacher Zugang zu Informationen/Formularen für Installateure
    - Download-Funktionen für Rohdaten (Open Data)
 
 ## 🛠️ Technische Guidelines
@@ -197,8 +201,24 @@ src/
 - [ ] BNetzA-Rollout-Daten-Adapter
 - [ ] Quartalsweise Update-Pipeline
 - [ ] Historische Datenarchivierung
+- [ ] Suche auf VNB-Seiten nach
+  - [ ] Informationen für Installateure (TAB, Anmeldeformulare)
+  - [ ] KI-gestützte Extraktion von Installatuer-Informationen (z.B. Gasteintragung)
+  - [ ] Ermittlung der Gasteintragungsprozesse
 
-### Phase 6: Optimierung
+### Phase 6: Automatisierungstools für Installateuere und Kunden
+
+- [ ] User-Authentifizierung (z.B. OAuth2)
+- [ ] Hinterlegung von Informationen für Gasteintragung
+- [ ] Automatischer Antrag auf Gasteintragung bei Netzbetreibern
+      Hier sollte ein Scan des Installateurausweises genügen
+      Automatische Verlängerung der Gasteintragung
+- [ ] Automatischer Antrag auf Eintragung in Installateursverzeichnis
+      Dies benötigt teils sehr unterschiedliche Formulare und Prozesse
+- [ ] Erinnerungsfunktion für Verlängerungen (z.B. Gasteintragung, Schulungen,...)
+- [ ] Dashboard für Installateure (z.B. Übersicht über Anträge, Status, Fristen)
+
+### Phase 7: Optimierung
 
 - [ ] Performance-Optimierung
 - [ ] Monitoring und Alerting
