@@ -1,3 +1,0 @@
-"""
-Datenvalidatoren für Qualitätssicherung.
-"""
