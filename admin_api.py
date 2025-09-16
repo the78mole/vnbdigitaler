@@ -16,7 +16,7 @@ import logging
 from typing import Any
 
 import psycopg2
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -107,6 +107,27 @@ async def dashboard(request: Request):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request})
 
 
+@app.get("/test", response_class=HTMLResponse)
+async def test_page():
+    """Simple test page to verify everything works."""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Test Page</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-100 p-8">
+        <h1 class="text-3xl font-bold text-blue-600">Test Page</h1>
+        <p class="mt-4">Wenn Sie das sehen, funktioniert die Anwendung grundsätzlich.</p>
+        <a href="/admin_dashboard" class="mt-4 inline-block bg-blue-500 text-white px-4 py-2 rounded">
+            Zum Admin Dashboard
+        </a>
+    </body>
+    </html>
+    """
+
+
 @app.get("/api/dashboard/stats", response_model=DashboardStats)
 async def get_dashboard_stats():
     """Get dashboard statistics."""
@@ -136,34 +157,82 @@ async def get_dashboard_stats():
         )
 
 
-@app.get("/api/companies", response_model=list[Company])
-async def get_companies():
-    """Get all companies with their code counts."""
+@app.get("/api/companies")
+async def get_companies(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(25, ge=1, le=1000, description="Page size"),
+    search: str = Query("", description="Search term for company name"),
+):
+    """Get companies with DataTables-compatible pagination and filtering."""
+    offset = (page - 1) * limit
+
+    # Build WHERE clause for filtering
+    where_conditions = []
+    params = []
+
+    if search.strip():
+        where_conditions.append("LOWER(company_name) LIKE LOWER(%s)")
+        params.append(f"%{search}%")
+
+    where_clause = ""
+    if where_conditions:
+        where_clause = "WHERE " + " AND ".join(where_conditions)
+
     with (
         get_db_connection() as conn,
         conn.cursor(cursor_factory=RealDictCursor) as cursor,
     ):
-        cursor.execute(
-            """
-                SELECT
-                    company_name,
-                    COUNT(*) as total_codes
-                FROM vnb_digitaler.bdew_code_registry
-                GROUP BY company_name
-                ORDER BY company_name
-            """
-        )
+        # Get total count
+        count_query = f"""
+            SELECT COUNT(DISTINCT company_name) as total
+            FROM vnb_digitaler.bdew_code_registry
+            {where_clause}
+        """
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()["total"]
 
-        companies = []
+        # Get paginated results
+        query = f"""
+            SELECT
+                company_name as name,
+                company_name as short_name,
+                '' as postal_code,
+                '' as city,
+                COUNT(*) as code_count,
+                MIN(bdew_code) as id
+            FROM vnb_digitaler.bdew_code_registry
+            {where_clause}
+            GROUP BY company_name
+            ORDER BY company_name
+            LIMIT %s OFFSET %s
+        """
+
+        cursor.execute(query, [*params, limit, offset])
+
+        items = []
         for row in cursor.fetchall():
-            companies.append(
-                Company(
-                    company_name=clean_company_name(row["company_name"]),
-                    total_codes=row["total_codes"],
-                )
+            items.append(
+                {
+                    "id": str(row["id"]),
+                    "name": clean_company_name(row["name"]),
+                    "short_name": (
+                        clean_company_name(row["short_name"])[:50]
+                        if row["short_name"]
+                        else ""
+                    ),
+                    "postal_code": row["postal_code"],
+                    "city": row["city"],
+                    "code_count": row["code_count"],
+                }
             )
 
-        return companies
+        return {
+            "items": items,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "pages": (total_count + limit - 1) // limit,
+        }
 
 
 @app.get("/api/companies/{company_name}")
@@ -214,69 +283,241 @@ async def get_company_details(company_name: str):
         )
 
 
-@app.get("/api/bdew-codes", response_model=list[BDEWCode])
-async def get_bdew_codes():
-    """Get all BDEW codes."""
+@app.get("/api/bdew-codes")
+async def get_bdew_codes(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(25, ge=1, le=1000, description="Page size"),
+    search: str = Query("", description="Search term for company name or BDEW code"),
+    order_by: str = Query("code", description="Order by field"),
+    order_dir: str = Query("asc", description="Order direction"),
+):
+    """Get BDEW codes with DataTables-compatible pagination and filtering."""
+    offset = (page - 1) * limit
+
+    # Build WHERE clause for filtering
+    where_conditions = []
+    params = []
+
+    if search.strip():
+        where_conditions.append(
+            "(LOWER(b.company_name) LIKE LOWER(%s) OR b.bdew_code LIKE %s)"
+        )
+        search_param = f"%{search}%"
+        params.extend([search_param, search_param])
+
+    where_clause = ""
+    if where_conditions:
+        where_clause = "WHERE " + " AND ".join(where_conditions)
+
+    # Map frontend column names to database columns
+    order_map = {
+        "code": "b.bdew_code",
+        "name": "b.company_name",
+        "short_name": "b.company_name",
+        "market_function_name": "m.name",
+    }
+
+    order_column = order_map.get(order_by, "b.bdew_code")
+    order_direction = "DESC" if order_dir.lower() == "desc" else "ASC"
+
     with (
         get_db_connection() as conn,
         conn.cursor(cursor_factory=RealDictCursor) as cursor,
     ):
-        cursor.execute(
-            """
-                SELECT
-                    b.company_name,
-                    b.bdew_code,
-                    m.name as market_function,
-                    b.status
-                FROM vnb_digitaler.bdew_code_registry b
-                LEFT JOIN vnb_digitaler.market_functions m ON b.market_function_id = m.id
-                ORDER BY b.company_name, b.bdew_code
-            """
-        )
+        # Get total count
+        count_query = f"""
+            SELECT COUNT(*) as total
+            FROM vnb_digitaler.bdew_code_registry b
+            LEFT JOIN vnb_digitaler.market_functions m
+                ON b.market_function_id = m.id
+            {where_clause}
+        """
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()["total"]
 
-        codes = []
+        # Get paginated results with proper JOIN
+        query = f"""
+            SELECT
+                b.bdew_code as code,
+                b.company_name as name,
+                b.company_name as short_name,
+                '' as postal_code,
+                '' as city,
+                COALESCE(m.name, '') as market_function_name,
+                COALESCE(b.status, 'ACTIVE') as status
+            FROM vnb_digitaler.bdew_code_registry b
+            LEFT JOIN vnb_digitaler.market_functions m
+                ON b.market_function_id = m.id
+            {where_clause}
+            ORDER BY {order_column} {order_direction}
+            LIMIT %s OFFSET %s
+        """
+
+        cursor.execute(query, [*params, limit, offset])
+
+        items = []
         for row in cursor.fetchall():
-            codes.append(
-                BDEWCode(
-                    company_name=clean_company_name(row["company_name"]),
-                    bdew_code=row["bdew_code"],
-                    market_function=row["market_function"],
-                    status=row["status"] or "active",
-                )
+            items.append(
+                {
+                    "code": row["code"],
+                    "name": clean_company_name(row["name"]),
+                    "short_name": (
+                        clean_company_name(row["short_name"])[:50]
+                        if row["short_name"]
+                        else ""
+                    ),
+                    "postal_code": row["postal_code"],
+                    "city": row["city"],
+                    "market_function_name": row["market_function_name"],
+                    "status": row["status"],
+                }
             )
 
-        return codes
+        return {
+            "items": items,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "pages": (total_count + limit - 1) // limit,
+        }
 
 
-@app.get("/api/market-functions", response_model=list[MarketFunction])
+@app.get("/api/market-functions")
 async def get_market_functions():
-    """Get all market functions."""
+    """Get available market functions for filtering."""
+    # For now, return a simple static list
+    # This can be enhanced later with database queries
+    return [
+        {"value": "", "label": "Alle Marktfunktionen"},
+        {"value": "lieferant", "label": "Lieferant"},
+        {"value": "netzbetreiber", "label": "Netzbetreiber"},
+        {"value": "messstellenbetreiber", "label": "Messstellenbetreiber"},
+        {"value": "marktpartner", "label": "Marktpartner"},
+    ]
+
+
+@app.get("/api/functions")
+async def get_functions(
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(25, ge=1, le=1000, description="Page size"),
+    search: str = Query("", description="Search term for function name"),
+):
+    """Get market functions with DataTables-compatible pagination and filtering."""
+    offset = (page - 1) * limit
+
+    # Build WHERE clause for filtering
+    where_conditions = []
+    params = []
+
+    if search.strip():
+        where_conditions.append("LOWER(name) LIKE LOWER(%s)")
+        params.append(f"%{search}%")
+
+    where_clause = ""
+    if where_conditions:
+        where_clause = "WHERE " + " AND ".join(where_conditions)
+
     with (
         get_db_connection() as conn,
         conn.cursor(cursor_factory=RealDictCursor) as cursor,
     ):
-        cursor.execute(
-            """
-                SELECT
-                    name as function_name,
-                    id::text as function_code,
-                    description
-                FROM vnb_digitaler.market_functions
-                ORDER BY name
-            """
-        )
+        # Get total count
+        count_query = f"""
+            SELECT COUNT(*) as total
+            FROM vnb_digitaler.market_functions
+            {where_clause}
+        """
+        cursor.execute(count_query, params)
+        total_count = cursor.fetchone()["total"]
 
-        functions = []
+        # Get paginated results
+        query = f"""
+            SELECT
+                id as code,
+                name,
+                COALESCE(description, '') as description,
+                TRUE as is_active,
+                created_at
+            FROM vnb_digitaler.market_functions
+            {where_clause}
+            ORDER BY name
+            LIMIT %s OFFSET %s
+        """
+
+        cursor.execute(query, [*params, limit, offset])
+
+        items = []
         for row in cursor.fetchall():
-            functions.append(
-                MarketFunction(
-                    function_name=row["function_name"],
-                    function_code=row["function_code"],
-                    description=row["description"],
-                )
+            items.append(
+                {
+                    "code": str(row["code"]),
+                    "name": row["name"],
+                    "description": row["description"],
+                    "is_active": row["is_active"],
+                    "created_at": (
+                        row["created_at"].isoformat() if row["created_at"] else None
+                    ),
+                }
             )
 
-        return functions
+        return {
+            "items": items,
+            "total": total_count,
+            "page": page,
+            "limit": limit,
+            "pages": (total_count + limit - 1) // limit,
+        }
+
+
+@app.get("/api/debug/db-structure")
+async def debug_db_structure():
+    """Debug endpoint to check database structure."""
+    with (
+        get_db_connection() as conn,
+        conn.cursor(cursor_factory=RealDictCursor) as cursor,
+    ):
+        # Check bdew_code_registry structure
+        cursor.execute(
+            """
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns
+            WHERE table_schema = 'vnb_digitaler'
+            AND table_name = 'bdew_code_registry'
+            ORDER BY ordinal_position
+        """
+        )
+        bdew_columns = cursor.fetchall()
+
+        # Check if market_functions table exists
+        cursor.execute(
+            """
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = 'vnb_digitaler'
+            AND table_name = 'market_functions'
+            ORDER BY ordinal_position
+        """
+        )
+        market_columns = cursor.fetchall()
+
+        # Sample data with market_function_id
+        cursor.execute(
+            """
+            SELECT company_name, bdew_code, market_function_id, status
+            FROM vnb_digitaler.bdew_code_registry
+            LIMIT 5
+        """
+        )
+        sample_data = cursor.fetchall()
+
+        return {
+            "bdew_code_registry_columns": [dict(row) for row in bdew_columns],
+            "market_functions_columns": [dict(row) for row in market_columns],
+            "sample_data": [dict(row) for row in sample_data],
+        }
+
+
+# Companies API endpoints
 
 
 if __name__ == "__main__":
