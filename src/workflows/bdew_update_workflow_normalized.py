@@ -65,10 +65,10 @@ def bdew_web_config() -> dict[str, Any]:
         "company_details_url": "https://bdew-codes.de/Codenumbers/BDEWCodes/GetBdewCodeListOfCompany",
         "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "timeout": 30,
-        "test_mode": True,  # Enable test mode for limited data fetching
-        "test_page_size": 5,  # Small page size for testing
-        "test_max_pages": 2,  # Limit pages for testing
-        "test_max_companies": 3,  # Limit companies for details in test mode
+        "test_mode": False,  # Disable test mode for full import
+        "test_page_size": 50,  # Process 50 companies per batch
+        "test_max_pages": None,  # No page limit - fetch all pages
+        "test_max_companies": None,  # No company limit - process all companies
     }
 
 
@@ -89,7 +89,10 @@ def _fetch_companies(
     """Fetch companies from BDEW API with pagination."""
     companies = []
     page_size = config.get("test_page_size", 50)
-    max_pages = config.get("test_max_pages", 5)
+    max_pages_config = config.get("test_max_pages")
+    max_pages = (
+        max_pages_config if max_pages_config is not None else 1000
+    )  # Large number for unlimited pages
 
     try:
         for page in range(max_pages):
@@ -134,10 +137,24 @@ def _fetch_company_bdew_codes(
 ) -> list[dict[str, Any]]:
     """Fetch BDEW codes for each company."""
     all_records = []
-    max_companies = config.get("test_max_companies", len(companies))
+    max_companies_config = config.get("test_max_companies")
+    max_companies = (
+        max_companies_config if max_companies_config is not None else len(companies)
+    )
 
+    logger.info(
+        f"Processing {max_companies} companies out of {len(companies)} total companies"
+    )
+
+    batch_size = 50
     for i, company in enumerate(companies[:max_companies]):
         try:
+            # Progress reporting every 50 companies
+            if i > 0 and i % batch_size == 0:
+                logger.info(
+                    f"🔄 Progress: {i}/{max_companies} companies processed ({i/max_companies*100:.1f}%)"
+                )
+
             company_name = company.get("Company", "Unknown").strip().replace("\t", "")
             logger.info(
                 f"Fetching BDEW codes for company {i+1}/{max_companies}: {company_name[:30]}..."

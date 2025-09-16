@@ -37,21 +37,18 @@ def run_bdew_sync():
 
         # Execute the workflow
         result = dr.execute(
-            ["workflow_summary"],  # Final output node
+            ["save_to_database"],  # Final output node that saves data to database
             inputs={},  # No external inputs needed
         )
 
-        summary = result["workflow_summary"]
+        save_result = result["save_to_database"]
 
         logger.info("BDEW synchronization workflow completed")
-        logger.info(f"Workflow ID: {summary['workflow_id']}")
-        logger.info(f"Duration: {summary['duration_seconds']} seconds")
-        logger.info(f"Success: {summary['overall_success']}")
-        logger.info(f"Records inserted: {summary['records_inserted']}")
-        logger.info(f"Records updated: {summary['records_updated']}")
-        logger.info(f"Records failed: {summary['records_failed']}")
+        logger.info(f"Sync ID: {save_result['sync_metadata']['sync_id']}")
+        logger.info(f"Statistics: {save_result['statistics']}")
+        logger.info(f"Completion time: {save_result['completion_time']}")
 
-        return summary
+        return save_result
 
     except Exception as e:
         logger.error(f"BDEW synchronization workflow failed: {e}")
@@ -94,7 +91,7 @@ def visualize_workflow():
 
 if __name__ == "__main__":
     # Run the workflow
-    summary = run_bdew_sync()
+    result = run_bdew_sync()
 
     # Optionally generate visualization
     visualize_workflow()
