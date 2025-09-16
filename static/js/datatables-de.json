@@ -1,0 +1,42 @@
+{
+  "decimal": ",",
+  "thousands": ".",
+  "sProcessing": "Verarbeitung...",
+  "sLengthMenu": "_MENU_ Einträge anzeigen",
+  "sZeroRecords": "Keine Einträge vorhanden",
+  "sEmptyTable": "Keine Daten in der Tabelle vorhanden",
+  "sInfo": "_START_ bis _END_ von _TOTAL_ Einträgen",
+  "sInfoEmpty": "0 bis 0 von 0 Einträgen",
+  "sInfoFiltered": "(gefiltert von _MAX_ Einträgen)",
+  "sInfoPostFix": "",
+  "sSearch": "Suchen:",
+  "sUrl": "",
+  "sInfoThousands": ".",
+  "sLoadingRecords": "Lade...",
+  "oPaginate": {
+    "sFirst": "Erste",
+    "sLast": "Letzte",
+    "sNext": "Weiter",
+    "sPrevious": "Zurück"
+  },
+  "oAria": {
+    "sSortAscending": ": aktivieren, um Spalte aufsteigend zu sortieren",
+    "sSortDescending": ": aktivieren, um Spalte absteigend zu sortieren"
+  },
+  "select": {
+    "rows": {
+      "_": "%d Zeilen ausgewählt",
+      "0": "Zum Auswählen auf eine Zeile klicken",
+      "1": "1 Zeile ausgewählt"
+    }
+  },
+  "buttons": {
+    "copy": "Kopieren",
+    "csv": "CSV",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "print": "Drucken",
+    "colvis": "Spalten",
+    "colvisRestore": "Alle Spalten anzeigen"
+  }
+}

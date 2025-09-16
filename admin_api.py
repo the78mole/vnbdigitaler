@@ -149,11 +149,22 @@ async def get_dashboard_stats():
         cursor.execute("SELECT COUNT(*) as total FROM vnb_digitaler.market_functions")
         total_functions = cursor.fetchone()["total"]
 
+        # Get last sync date from the most recent record
+        cursor.execute(
+            "SELECT MAX(last_sync_date) as last_sync FROM vnb_digitaler.bdew_code_registry"
+        )
+        last_sync_result = cursor.fetchone()
+        last_sync = (
+            last_sync_result["last_sync"].isoformat()
+            if last_sync_result["last_sync"]
+            else None
+        )
+
         return DashboardStats(
             total_companies=total_companies,
             total_codes=total_codes,
             total_functions=total_functions,
-            last_sync="Heute",
+            last_sync=last_sync,
         )
 
 

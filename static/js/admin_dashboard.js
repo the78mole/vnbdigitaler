@@ -7,7 +7,7 @@ class AdminDashboard {
   constructor() {
     this.dataTablesConfig = {
       language: {
-        url: "//cdn.datatables.net/plug-ins/1.13.7/i18n/de-DE.json",
+        url: "/static/js/datatables-de.json",
       },
       pageLength: 25,
       lengthMenu: [
@@ -174,9 +174,38 @@ class AdminDashboard {
         stats.total_companies?.toLocaleString() || "0";
       document.getElementById("total-functions").textContent =
         stats.total_functions?.toLocaleString() || "0";
+
+      // Format last sync time to human readable
+      const lastSyncElement = document.getElementById("last-sync");
+      if (lastSyncElement && stats.last_sync) {
+        lastSyncElement.textContent = this.formatRelativeTime(stats.last_sync);
+      }
     } catch (error) {
       console.error("Failed to load dashboard stats:", error);
     }
+  }
+
+  formatRelativeTime(isoString) {
+    if (!isoString) return "Unbekannt";
+
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return "gerade eben";
+    if (diffMins < 60) return `vor ${diffMins} Minute${diffMins === 1 ? "" : "n"}`;
+    if (diffHours < 24) return `vor ${diffHours} Stunde${diffHours === 1 ? "" : "n"}`;
+    if (diffDays === 1) return "gestern";
+    if (diffDays < 7) return `vor ${diffDays} Tagen`;
+    if (diffDays < 30)
+      return `vor ${Math.floor(diffDays / 7)} Woche${Math.floor(diffDays / 7) === 1 ? "" : "n"}`;
+    if (diffDays < 365)
+      return `vor ${Math.floor(diffDays / 30)} Monat${Math.floor(diffDays / 30) === 1 ? "" : "en"}`;
+
+    return `vor ${Math.floor(diffDays / 365)} Jahr${Math.floor(diffDays / 365) === 1 ? "" : "en"}`;
   }
 
   initBdewCodesTable() {
@@ -199,7 +228,11 @@ class AdminDashboard {
           };
         },
         dataSrc: function (json) {
-          return json.items || [];
+          // Set DataTables pagination info correctly
+          json.recordsTotal = json.total;
+          json.recordsFiltered = json.total;
+          json.data = json.items || [];
+          return json.data;
         },
       },
       columns: [
@@ -255,7 +288,11 @@ class AdminDashboard {
           };
         },
         dataSrc: function (json) {
-          return json.items || [];
+          // Set DataTables pagination info correctly
+          json.recordsTotal = json.total;
+          json.recordsFiltered = json.total;
+          json.data = json.items || [];
+          return json.data;
         },
       },
       columns: [
@@ -310,7 +347,11 @@ class AdminDashboard {
           };
         },
         dataSrc: function (json) {
-          return json.items || [];
+          // Set DataTables pagination info correctly
+          json.recordsTotal = json.total;
+          json.recordsFiltered = json.total;
+          json.data = json.items || [];
+          return json.data;
         },
       },
       columns: [
