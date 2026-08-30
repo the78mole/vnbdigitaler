@@ -25,29 +25,25 @@ def test_market_participants_db():
 
         with conn.cursor() as cursor:
             # Test schema and tables
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = 'vnb_digitaler'
                 ORDER BY table_name
-            """
-            )
+            """)
             tables = cursor.fetchall()
             print(f"📋 Found {len(tables)} tables in vnb_digitaler schema:")
             for table in tables:
                 print(f"   - {table[0]}")
 
             # Test market participant roles
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT role_category, COUNT(*) as role_count
                 FROM vnb_digitaler.market_participant_roles
                 WHERE is_active = true
                 GROUP BY role_category
                 ORDER BY role_category
-            """
-            )
+            """)
             role_stats = cursor.fetchall()
             print("\n📊 Market Participant Roles by Category:")
             for category, count in role_stats:
@@ -61,8 +57,7 @@ def test_market_participants_db():
             print(f"\n🏢 Companies: {company_count} active companies")
 
             # Test company roles relationships
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT
                     c.company_name,
                     STRING_AGG(r.bdew_role_code, ', ' ORDER BY r.bdew_role_code) as roles
@@ -72,16 +67,14 @@ def test_market_participants_db():
                 WHERE c.is_active = true AND cr.is_active = true
                 GROUP BY c.company_name
                 ORDER BY c.company_name
-            """
-            )
+            """)
             company_roles = cursor.fetchall()
             print("\n🔗 Company-Role Assignments:")
             for company, roles in company_roles:
                 print(f"   - {company}: {roles}")
 
             # Test multi-role companies
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT
                     c.company_name,
                     COUNT(DISTINCT cr.role_id) as role_count
@@ -91,23 +84,20 @@ def test_market_participants_db():
                 GROUP BY c.company_name
                 HAVING COUNT(DISTINCT cr.role_id) > 1
                 ORDER BY role_count DESC, c.company_name
-            """
-            )
+            """)
             multi_role = cursor.fetchall()
             print(f"\n🎭 Multi-Role Companies ({len(multi_role)} companies):")
             for company, count in multi_role:
                 print(f"   - {company}: {count} roles")
 
             # Test service territories
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT DISTINCT service_territory, COUNT(*) as companies
                 FROM vnb_digitaler.company_roles
                 WHERE service_territory IS NOT NULL AND is_active = true
                 GROUP BY service_territory
                 ORDER BY companies DESC, service_territory
-            """
-            )
+            """)
             territories = cursor.fetchall()
             print(f"\n🗺️  Service Territories ({len(territories)} territories):")
             for territory, count in territories:
@@ -139,12 +129,10 @@ def test_database_constraints():
         with conn.cursor() as cursor:
             # Test unique constraints
             try:
-                cursor.execute(
-                    """
+                cursor.execute("""
                     INSERT INTO vnb_digitaler.companies (company_name, company_code)
                     VALUES ('Stadtwerke München GmbH', 'TEST_DUPLICATE')
-                """
-                )
+                """)
                 conn.rollback()
                 print("❌ Unique constraint not working for company_name")
             except psycopg2.errors.UniqueViolation:
@@ -153,12 +141,10 @@ def test_database_constraints():
 
             # Test foreign key constraints
             try:
-                cursor.execute(
-                    """
+                cursor.execute("""
                     INSERT INTO vnb_digitaler.company_roles (company_id, role_id)
                     VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000')
-                """
-                )
+                """)
                 conn.rollback()
                 print("❌ Foreign key constraint not working")
             except psycopg2.errors.ForeignKeyViolation:
