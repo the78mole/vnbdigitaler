@@ -181,15 +181,11 @@ async def show_database_status(db_manager: DatabaseManager):
         logger.info(f"🔧 Installierte Extensions: {', '.join(extensions)}")
 
         # Tabellen-Anzahl
-        result = await session.execute(
-            text(
-                """
+        result = await session.execute(text("""
                 SELECT COUNT(*)
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
-            """
-            )
-        )
+            """))
         table_count = result.scalar()
         logger.info(f"📊 Anzahl Tabellen: {table_count}")
 

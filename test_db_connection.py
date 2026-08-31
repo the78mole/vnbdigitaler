@@ -40,13 +40,11 @@ def test_connection():
                 print("❌ Schema 'vnb_digitaler' not found")
 
             # Count tables
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT table_name
                 FROM information_schema.tables
                 WHERE table_schema = 'vnb_digitaler'
-            """
-            )
+            """)
             tables = cursor.fetchall()
             print(f"📋 Found {len(tables)} tables in vnb_digitaler schema:")
             for table in tables:

@@ -170,8 +170,7 @@ class BDEWRepository:
         """
         # PostGIS-ähnliche Entfernungsberechnung (vereinfacht)
         result = await self.session.execute(
-            text(
-                """
+            text("""
                 SELECT *,
                        (6371 * acos(cos(radians(:lat)) * cos(radians(latitude))
                                   * cos(radians(longitude) - radians(:lng))
@@ -184,8 +183,7 @@ class BDEWRepository:
                                  * cos(radians(longitude) - radians(:lng))
                                  + sin(radians(:lat)) * sin(radians(latitude)))) <= :radius
                 ORDER BY distance
-            """
-            ),
+            """),
             {"lat": latitude, "lng": longitude, "radius": radius_km},
         )
         return [BDEWCompany(**row) for row in result.mappings()]
@@ -255,16 +253,14 @@ class BDEWRepository:
 
         # PostgreSQL similarity() Funktion (falls pg_trgm aktiviert)
         result = await self.session.execute(
-            text(
-                """
+            text("""
                 SELECT *, similarity(company_name_normalized, :name) as sim_score
                 FROM bdew_companies
                 WHERE similarity(company_name_normalized, :name) > :threshold
                   AND is_active = true
                 ORDER BY sim_score DESC
                 LIMIT 20
-            """
-            ),
+            """),
             {"name": normalized_name, "threshold": threshold},
         )
         return [BDEWCompany(**row) for row in result.mappings()]
@@ -278,17 +274,13 @@ class BDEWRepository:
         Returns:
             Dict[str, int]: {Bundesland: Anzahl}
         """
-        result = await self.session.execute(
-            text(
-                """
+        result = await self.session.execute(text("""
                 SELECT federal_state, COUNT(*) as count
                 FROM bdew_companies
                 WHERE is_active = true AND federal_state IS NOT NULL
                 GROUP BY federal_state
                 ORDER BY count DESC
-            """
-            )
-        )
+            """))
         return {
             str(getattr(row, "federal_state", "")): int(getattr(row, "count", 0))
             for row in result
@@ -301,9 +293,7 @@ class BDEWRepository:
         Returns:
             Dict[str, Any]: Qualitätsstatistiken
         """
-        result = await self.session.execute(
-            text(
-                """
+        result = await self.session.execute(text("""
                 SELECT
                     COUNT(*) as total,
                     AVG(data_quality_score) as avg_score,
@@ -313,9 +303,7 @@ class BDEWRepository:
                     COUNT(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL) as with_coordinates
                 FROM bdew_companies
                 WHERE is_active = true
-            """
-            )
-        )
+            """))
 
         row = result.first()
         if not row:
@@ -359,15 +347,13 @@ class BDEWRepository:
             bool: True wenn erfolgreich
         """
         result = await self.session.execute(
-            text(
-                """
+            text("""
                 UPDATE bdew_companies
                 SET service_territory = :geojson,
                     updated_at = NOW()
                 WHERE id = :company_id
                 RETURNING id
-            """
-            ),
+            """),
             {"company_id": company_id, "geojson": geojson_data},
         )
 
@@ -381,17 +367,13 @@ class BDEWRepository:
         Returns:
             List[BDEWCompany]: Unternehmen mit Service-Territorien
         """
-        result = await self.session.execute(
-            text(
-                """
+        result = await self.session.execute(text("""
                 SELECT * FROM bdew_companies
                 WHERE service_territory IS NOT NULL
                   AND service_territory != 'null'::jsonb
                   AND is_active = true
                 ORDER BY company_name
-            """
-            )
-        )
+            """))
         return [BDEWCompany(**row) for row in result.mappings()]
 
     # Change Tracking
@@ -470,8 +452,7 @@ class BDEWRepository:
             Dict[str, Any]: Import-Statistiken
         """
         result = await self.session.execute(
-            text(
-                """
+            text("""
                 SELECT
                     COUNT(*) as total_imports,
                     COUNT(*) FILTER (WHERE import_status = 'SUCCESS') as successful_imports,
@@ -480,8 +461,7 @@ class BDEWRepository:
                     SUM(file_size_bytes) as total_data_processed
                 FROM bdew_import_logs
                 WHERE import_timestamp >= NOW() - INTERVAL ':days days'
-            """
-            ),
+            """),
             {"days": days},
         )
 
@@ -562,16 +542,12 @@ class BDEWRepository:
             quality_stats = await self.get_quality_distribution()
 
             # Letzte Import-Aktivität
-            last_import = await self.session.execute(
-                text(
-                    """
+            last_import = await self.session.execute(text("""
                     SELECT import_timestamp, import_status
                     FROM bdew_import_logs
                     ORDER BY import_timestamp DESC
                     LIMIT 1
-                """
-                )
-            )
+                """))
             last_import_row = last_import.first()
 
             return {

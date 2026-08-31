@@ -85,9 +85,7 @@ def create_complete_database_schema():
 
             # 1. Companies table (BDEW companies with vnbdigital.de integration)
             print("📋 Creating companies table...")
-            conn.execute(
-                text(
-                    """
+            conn.execute(text("""
                 CREATE TABLE companies (
                     id SERIAL PRIMARY KEY,
 
@@ -130,15 +128,11 @@ def create_complete_database_schema():
                     CONSTRAINT chk_bdew_name_not_empty CHECK (length(trim(bdew_name)) > 0),
                     CONSTRAINT chk_normalized_name_not_empty CHECK (length(trim(bdew_name_normalized)) > 0)
                 );
-            """
-                )
-            )
+            """))
 
             # 2. Rollout companies table (BNetzA company names linked to BDEW)
             print("🏢 Creating rollout_companies table...")
-            conn.execute(
-                text(
-                    """
+            conn.execute(text("""
                 CREATE TABLE rollout_companies (
                     id SERIAL PRIMARY KEY,
                     bnetza_name VARCHAR(500) UNIQUE NOT NULL,
@@ -152,15 +146,11 @@ def create_complete_database_schema():
                     CONSTRAINT chk_bnetza_name_not_empty CHECK (length(trim(bnetza_name)) > 0),
                     CONSTRAINT chk_bnetza_name_normalized_not_empty CHECK (length(trim(bnetza_name_normalized)) > 0)
                 );
-            """
-                )
-            )
+            """))
 
             # 3. Rollout quotas table (time-series quota data)
             print("📊 Creating rollout_quotas table...")
-            conn.execute(
-                text(
-                    """
+            conn.execute(text("""
                 CREATE TABLE rollout_quotas (
                     id SERIAL PRIMARY KEY,
                     rollout_company_id INTEGER REFERENCES rollout_companies(id) NOT NULL,
@@ -180,15 +170,11 @@ def create_complete_database_schema():
                     CONSTRAINT chk_report_year_valid CHECK (report_year IS NULL OR (report_year >= 2020 AND report_year <= 2050)),
                     CONSTRAINT uq_rollout_quota_unique UNIQUE (rollout_company_id, reference_date, report_quarter, report_year)
                 );
-            """
-                )
-            )
+            """))
 
             # 4. Rollout update logs table (tracking automated report processing)
             print("📝 Creating rollout_update_logs table...")
-            conn.execute(
-                text(
-                    """
+            conn.execute(text("""
                 CREATE TABLE rollout_update_logs (
                     id SERIAL PRIMARY KEY,
 
@@ -234,15 +220,11 @@ def create_complete_database_schema():
                     CONSTRAINT chk_processing_duration_positive CHECK (processing_duration_seconds IS NULL OR processing_duration_seconds >= 0),
                     CONSTRAINT uq_rollout_update_logs_file_hash UNIQUE (excel_file_hash)
                 );
-            """
-                )
-            )
+            """))
 
             # 5. Rollout reports table (BNetzA report metadata)
             print("📄 Creating rollout_reports table...")
-            conn.execute(
-                text(
-                    """
+            conn.execute(text("""
                 CREATE TABLE rollout_reports (
                     id SERIAL PRIMARY KEY,
 
@@ -278,15 +260,11 @@ def create_complete_database_schema():
                     CONSTRAINT quarter_range_check CHECK (quarter >= 1 AND quarter <= 4),
                     CONSTRAINT method_range_check CHECK (method >= 0 AND method <= 2)
                 );
-            """
-                )
-            )
+            """))
 
             # 6. Download sessions table (tracking download sessions)
             print("💾 Creating download_sessions table...")
-            conn.execute(
-                text(
-                    """
+            conn.execute(text("""
                 CREATE TABLE download_sessions (
                     id SERIAL PRIMARY KEY,
 
@@ -313,9 +291,7 @@ def create_complete_database_schema():
                     -- Constraints
                     CONSTRAINT chk_download_status_valid CHECK (status IN ('active', 'completed', 'failed', 'cancelled'))
                 );
-            """
-                )
-            )
+            """))
 
             print("✅ Created all tables")
 
