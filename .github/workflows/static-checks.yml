@@ -17,7 +17,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: pass # pragma: allowlist secret
           POSTGRES_USER: user
@@ -31,11 +31,11 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install uv (GitHub Actions)
         if: ${{ !env.ACT }}
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.1.0
 
       - name: Install uv (local act)
         if: ${{ env.ACT }}
@@ -57,9 +57,9 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
 
       - name: Set up Node.js for Prettier
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Upgrade Node.js for act compatibility
         if: ${{ env.ACT }}
@@ -87,7 +87,7 @@ jobs:
 
       - name: Upload coverage reports
         if: matrix.python-version == '3.11' && !env.ACT
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -102,11 +102,11 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install uv (GitHub Actions)
         if: ${{ !env.ACT }}
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.1.0
 
       - name: Install uv (local act)
         if: ${{ env.ACT }}
@@ -129,7 +129,7 @@ jobs:
     needs: [test, security]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Deploy to Streamlit Cloud
         run: |
