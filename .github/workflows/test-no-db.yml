@@ -11,11 +11,11 @@ jobs:
         python-version: ["3.11"]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install uv (GitHub Actions)
         if: ${{ !env.ACT }}
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.1.0
 
       - name: Install uv (local act)
         if: ${{ env.ACT }}
