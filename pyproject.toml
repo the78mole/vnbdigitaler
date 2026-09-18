@@ -138,6 +138,8 @@ exclude = [
 "**/config.py" = ["F401"]
 # Init files can have unused imports
 "**/__init__.py" = ["F401"]
+# FastAPI route handlers declare query params and dependencies as parameters
+"webui/routers/*.py" = ["PLR0917"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["src"]
