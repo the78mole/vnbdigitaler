@@ -13,7 +13,7 @@ def run_git_command(args):
         result = subprocess.run(  # nosec B603
             ["git", *args], capture_output=True, text=True, check=True
         )
-        return result.stdout.strip()
+        return result.stdout.rstrip("\n")
     except subprocess.CalledProcessError as e:
         print(f"Fehler beim Ausführen von 'git {' '.join(args)}': {e}")
         return ""
@@ -24,9 +24,8 @@ def get_deleted_files():
     output = run_git_command(
         ["log", "--name-only", "--pretty=format:", "--diff-filter=D"]
     )
-    return sorted(
-        {line.strip() for line in output.split("\n") if line.strip().endswith(".py")}
-    )
+    # Keep paths verbatim (no stripping), only drop empty separator lines
+    return sorted({line for line in output.split("\n") if line.endswith(".py")})
 
 
 def find_last_commit_for_file(filepath):
