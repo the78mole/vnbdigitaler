@@ -88,9 +88,19 @@ class DataReset:
             )
 
             # Drop all tables with CASCADE to handle dependencies
+            # Identifiers are quoted server-side with format('%I'); no string
+            # formatting of SQL in Python.
+            drop_query = """
+            DO $$
+            DECLARE r record;
+            BEGIN
+                FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+                    EXECUTE format('DROP TABLE IF EXISTS %I CASCADE', r.tablename);
+                END LOOP;
+            END $$;
+            """
+            await conn.execute(drop_query)
             for table_name in table_names:
-                drop_query = f"DROP TABLE IF EXISTS {table_name} CASCADE"
-                await conn.execute(drop_query)
                 logger.info(f"🗑️  Dropped table: {table_name}")
 
             await conn.close()

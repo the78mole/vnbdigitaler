@@ -833,10 +833,10 @@
               // Use BDEW ID for highlighting in rollout list
               const rolloutName = response.rollout_quota.bnetza_name;
               rolloutMatchEl.innerHTML = `
-                  <a href="/rollout/?highlight_bdew_id=${response.id}"
+                  <a href="/rollout/?highlight_bdew_id=${encodeURIComponent(response.id)}"
                      class="text-primary text-decoration-none"
                      title="View in Roll-Out Data">
-                      ${rolloutName}
+                      ${escapeHtml(rolloutName)}
                       <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
                   </a>
               `;
@@ -846,7 +846,7 @@
                   <a href="/rollout/?highlight=${encodeURIComponent(response.rollout_report_name)}"
                      class="text-primary text-decoration-none"
                      title="View in Roll-Out Data">
-                      ${response.rollout_report_name}
+                      ${escapeHtml(response.rollout_report_name)}
                       <i class="fas fa-external-link-alt ms-1" style="font-size: 0.8em;"></i>
                   </a>
               `;
@@ -860,8 +860,8 @@
           if (response.rollout_quota) {
               const quota = response.rollout_quota;
               rolloutQuotaEl.innerHTML = `
-                  <span class="fw-bold ${quota.quota_percentage >= 80 ? 'text-success' : quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">${quota.quota_percentage}%</span>
-                  <small class="text-muted d-block">Stichtag: ${quota.reference_date}</small>
+                  <span class="fw-bold ${quota.quota_percentage >= 80 ? 'text-success' : quota.quota_percentage >= 50 ? 'text-warning' : 'text-danger'}">${escapeHtml(quota.quota_percentage)}%</span>
+                  <small class="text-muted d-block">Stichtag: ${escapeHtml(quota.reference_date)}</small>
               `;
               rolloutQuotaContainer.style.display = 'block';
           } else if (response.rollout_report_name || (response.rollout_quota && response.rollout_quota.bnetza_name)) {
@@ -1047,7 +1047,7 @@
 
       // Update UI
       if (addressParts.length > 0) {
-          addressEl.innerHTML = addressParts.join('<br>');
+          addressEl.innerHTML = addressParts.map(escapeHtml).join('<br>');
           addressContainer.style.display = 'block';
       } else {
           addressContainer.style.display = 'none';
@@ -1172,7 +1172,7 @@
               <div class="text-danger">
                   <i class="fas fa-exclamation-triangle mb-2"></i>
                   <p class="mb-1"><strong>Error loading service area</strong></p>
-                  <p class="mb-0 small">${error.message}</p>
+                  <p class="mb-0 small">${escapeHtml(error.message)}</p>
               </div>
           `;
       }
@@ -1185,7 +1185,7 @@
       toast.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
       toast.style.cssText = 'top: 20px; right: 20px; z-index: 10000; min-width: 250px;';
       toast.innerHTML = `
-          ${message}
+          ${escapeHtml(message)}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       `;
 

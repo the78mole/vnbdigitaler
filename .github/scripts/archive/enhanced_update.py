@@ -36,7 +36,8 @@ def run_update(force_update: bool = False) -> bool:
             cmd.append("--force-update")
 
         # Run the updater with verbose output
-        result = subprocess.run(
+        # argv list built from fixed strings and CLI flags, no shell
+        result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
             cmd, capture_output=True, text=True, cwd=".", check=False
         )
 

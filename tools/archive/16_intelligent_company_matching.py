@@ -189,7 +189,8 @@ class CompanyMatcher:
 
         # Render the complete template with Jinja2
         bdew_list = self.format_bdew_companies_for_llm(bdew_companies)
-        template = Template(self.prompt_template)
+        # LLM prompt (plain text, never rendered as HTML): autoescape not applicable
+        template = Template(self.prompt_template)  # nosemgrep: python.flask.security.xss.audit.direct-use-of-jinja2
         rendered_prompt = template.render(
             rollout_company_name=rollout_company_name, bdew_companies_list=bdew_list
         )

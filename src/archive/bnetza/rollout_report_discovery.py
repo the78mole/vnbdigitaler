@@ -775,7 +775,8 @@ class BNetzAReportDiscovery:
 
             # Load and render prompt template
             template_content = self._load_ai_prompt_template()
-            template = Template(template_content)
+            # LLM prompt (plain text, never rendered as HTML): autoescape not applicable
+            template = Template(template_content)  # nosemgrep: python.flask.security.xss.audit.direct-use-of-jinja2
 
             rendered_prompt = template.render(urls=urls_data, now=datetime.now())
 

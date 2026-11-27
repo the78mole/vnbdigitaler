@@ -168,6 +168,13 @@
       });
 
       // Utility Functions
+      // Escape text for safe interpolation into HTML strings (available to all pages)
+      function escapeHtml(value) {
+        const div = document.createElement("div");
+        div.textContent = value == null ? "" : String(value);
+        return div.innerHTML;
+      }
+
       function showLoading(element) {
         if (element) {
           element.style.display = "block";
@@ -207,7 +214,7 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
                 </div>
                 <div class="toast-body">
-                    ${message}
+                    ${escapeHtml(message)}
                 </div>
             `;
 

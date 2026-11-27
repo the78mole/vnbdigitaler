@@ -7,30 +7,33 @@ import subprocess
 from pathlib import Path
 
 
-def run_git_command(cmd):
-    """Führe Git-Kommando aus und gib Output zurück"""
+def run_git_command(args):
+    """Führe Git-Kommando (ohne Shell) aus und gib Output zurück"""
     try:
-        result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True, check=True  # nosec B602
+        result = subprocess.run(  # nosec B603
+            ["git", *args], capture_output=True, text=True, check=True
         )
-        return result.stdout.strip()
+        return result.stdout.rstrip("\n")
     except subprocess.CalledProcessError as e:
-        print(f"Fehler beim Ausführen von '{cmd}': {e}")
+        print(f"Fehler beim Ausführen von 'git {' '.join(args)}': {e}")
         return ""
 
 
 def get_deleted_files():
     """Hole alle gelöschten Python-Dateien"""
-    cmd = "git log --name-only --pretty=format: --diff-filter=D | grep '\\.py$' | sort | uniq"
-    output = run_git_command(cmd)
-    return [line.strip() for line in output.split("\n") if line.strip()]
+    output = run_git_command(
+        ["log", "--name-only", "--pretty=format:", "--diff-filter=D"]
+    )
+    # Keep paths verbatim (no stripping), only drop empty separator lines
+    return sorted({line for line in output.split("\n") if line.endswith(".py")})
 
 
 def find_last_commit_for_file(filepath):
     """Finde den letzten Commit, in dem eine Datei existierte"""
-    cmd = f"git log --all --full-history -- '{filepath}' --pretty=format:%H | head -1"
-    commit = run_git_command(cmd)
-    return commit
+    output = run_git_command(
+        ["log", "--all", "--full-history", "--pretty=format:%H", "--", filepath]
+    )
+    return output.split("\n", 1)[0] if output else ""
 
 
 def extract_file_from_commit(filepath, commit_hash):
@@ -48,9 +51,9 @@ def extract_file_from_commit(filepath, commit_hash):
 
     # Versuche verschiedene Commit-Varianten
     commands_to_try = [
-        f"git show {commit_hash}:{filepath}",
-        f"git show {commit_hash}^:{filepath}",
-        f"git show {commit_hash}~1:{filepath}",
+        ["show", f"{commit_hash}:{filepath}"],
+        ["show", f"{commit_hash}^:{filepath}"],
+        ["show", f"{commit_hash}~1:{filepath}"],
     ]
 
     for cmd in commands_to_try:

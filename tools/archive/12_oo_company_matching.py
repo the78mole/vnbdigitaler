@@ -64,7 +64,8 @@ class LLMCompanyMatcher:
 
         # Setup Jinja2 template environment
         template_dir = Path(__file__).parent / "templates"
-        self.jinja_env = Environment(
+        # autoescape is enabled; not a Flask response
+        self.jinja_env = Environment(  # nosemgrep: python.flask.security.xss.audit.direct-use-of-jinja2
             loader=FileSystemLoader(template_dir), autoescape=True
         )
         self.template = self.jinja_env.get_template("llm_company_matching.j2")

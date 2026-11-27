@@ -193,11 +193,11 @@ endblock %} {% block toolbar %}
           if (rolloutData && rolloutData.length > 0) {
               rolloutInfoDiv.innerHTML = rolloutData.map(rollout => `
                   <div class="mb-2">
-                      <strong>${rollout.rollout_name}</strong>
+                      <strong>${escapeHtml(rollout.rollout_name)}</strong>
                       <br>
-                      <small class="text-muted">Report: ${rollout.report_name}</small>
+                      <small class="text-muted">Report: ${escapeHtml(rollout.report_name)}</small>
                       <br>
-                      <small class="text-muted">Quarter: ${rollout.quarter_year}</small>
+                      <small class="text-muted">Quarter: ${escapeHtml(rollout.quarter_year)}</small>
                   </div>
               `).join('<hr>');
           } else {

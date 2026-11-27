@@ -158,7 +158,7 @@ block content %}
       companiesList.innerHTML = `
             <div class="alert alert-danger">
                 <i class="fas fa-exclamation-triangle me-2"></i>
-                Search failed: ${error.message}
+                Search failed: ${escapeHtml(error.message)}
             </div>
         `;
       searchResults.style.display = "block";
@@ -172,12 +172,13 @@ block content %}
       .map(
         company => `
         <a href="#" class="list-group-item list-group-item-action"
-           onclick="selectCompany(${company.id}, '${company.display_name.replace(/'/g, "\\'")}')"
+           data-company-name="${escapeHtml(company.display_name)}"
+           onclick="selectCompany(${Number(company.id)}, this.dataset.companyName)"
            onmouseover="highlightCompany(this)" onmouseout="unhighlightCompany(this)">
             <div class="d-flex w-100 justify-content-between align-items-center">
                 <div>
-                    <h6 class="mb-1">${company.display_name}</h6>
-                    <small class="text-muted">BDEW Code: ${company.bdew_code}</small>
+                    <h6 class="mb-1">${escapeHtml(company.display_name)}</h6>
+                    <small class="text-muted">BDEW Code: ${escapeHtml(company.bdew_code)}</small>
                 </div>
                 <div class="text-end">
                     <span class="badge bg-primary">
