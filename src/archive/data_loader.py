@@ -866,7 +866,8 @@ if __name__ == "__main__":
 
         def _company_update() -> str:
             # Run the company updater script
-            result = subprocess.run(
+            # Fixed argv list, no shell, no user input
+            result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
                 [sys.executable, ".github/scripts/company_updater.py"],
                 check=True,
                 capture_output=True,
@@ -941,7 +942,8 @@ if __name__ == "__main__":
 
         def _quota_update() -> str:
             # Run the quota updater script
-            result = subprocess.run(
+            # Fixed argv list, no shell, no user input
+            result = subprocess.run(  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit
                 [sys.executable, ".github/scripts/quota_updater.py"],
                 check=True,
                 capture_output=True,
