@@ -70,11 +70,16 @@ function showMessage(message, type = "info", duration = 5000) {
   const messageElement = document.createElement("div");
   messageElement.id = messageId;
   messageElement.className = `alert ${alertClass} alert-dismissible fade show slide-in`;
-  messageElement.innerHTML = `
-        <i class="${iconClass} me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
+  // Build the alert via DOM APIs so the message is always rendered as plain
+  // text (messages can contain company names or server error details).
+  const icon = document.createElement("i");
+  icon.className = `${iconClass} me-2`;
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "btn-close";
+  closeButton.dataset.bsDismiss = "alert";
+  closeButton.setAttribute("aria-label", "Close");
+  messageElement.append(icon, document.createTextNode(String(message)), closeButton);
 
   messageContainer.appendChild(messageElement);
   currentMessages.push(messageId);
